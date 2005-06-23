@@ -26,6 +26,7 @@ extern "C" {
     int OGG_Load(char *filename);
     void OGG_Tick();
     void OGG_Close();
+    void OGG_FreeTune();
 
 #ifdef __cplusplus
 }

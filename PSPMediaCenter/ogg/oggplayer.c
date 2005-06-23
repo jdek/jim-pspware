@@ -47,15 +47,15 @@ int current_section;
 char **oggComments;
 vorbis_info *vi;
 int errno, __errno;
-static int done_init;
 FILE *fp;
 static int isPlaying;		// Set to true when a mod is being played
 static int myChannel;
 
+/*
 #define PREBUFFER	2097152
 static short outputBuffer[PREBUFFER];
 u32 outputBufferLevel;
-
+*/
 void OGGsetStubs(codecStubs * stubs)
 {
     memcpy(validExtensions[CODEC_OGG], "ogg", 3);
@@ -70,43 +70,24 @@ void OGGsetStubs(codecStubs * stubs)
 
 static void OGGCallback(short *_buf, unsigned long numSamples)
 {
-    unsigned long samplesOut = 0;
-    u8 justStarted = 1;
-    unsigned long bytesRequired = numSamples * 2 * 2;
-    int underruns = 0;
-    unsigned long ret = 0;
-
-    if (isPlaying == TRUE) {	//  Playing , so mix up a buffer
-	//do decoding here
-	//if out buffer has more than requested, copy it out
-	if (outputBufferLevel > bytesRequired) {
-	    printf("%d > %d\n", outputBufferLevel, bytesRequired);
-	    memcpy((char *) _buf, (char *) outputBuffer, bytesRequired);
-	    memmove(outputBuffer, &outputBuffer[bytesRequired], outputBufferLevel - bytesRequired);
-	    outputBufferLevel -= bytesRequired;
+unsigned long samplesOut = 0;
+	unsigned long bytesRequired = numSamples*2*2;
+	int underruns = 0;
+	if (isPlaying == TRUE) { //  Playing , so mix up a buffer
+		//do decoding here
+		while (bytesRequired > 0) {
+			unsigned long ret=ov_read(&vf,(unsigned char*)_buf, bytesRequired,&current_section);
+			/*if (ret != bytesRequired) {
+				underruns++;
+				printf("requested %d got %d, underrun %d\n", bytesRequired, ret, underruns);
+			}*/
+			bytesRequired -= ret;
+		}
+	} else { //  Not Playing , so clear buffer
+		int count;
+		for(count=0;count<numSamples*2;count++)
+			*(_buf+count) = 0;
 	}
-	//while (bytesRequired > 0) {
-	/*if (outputBufferLevel < PREBUFFER*2) {
-	   ret=ov_read(&vf,(unsigned char*)outputBuffer, PREBUFFER*2-outputBufferLevel,&current_section);
-	   outputBufferLevel += ret;
-	   /*if (ret != bytesRequired) {
-	   underruns++;
-	   printf("requested %d got %d, underrun %d\n", bytesRequired, ret, underruns);
-	   } */
-	//bytesRequired -= ret;
-	//}
-
-    } else {			//  Not Playing , so clear buffer
-	int count;
-	for (count = 0; count < numSamples * 2; count++)
-	    *(_buf + count) = 0;
-	//decode a little more
-	if (done_init && outputBufferLevel < PREBUFFER * 2 - 1) {
-	    ret = ov_read(&vf, (unsigned char *) outputBuffer, PREBUFFER * 2 - outputBufferLevel, &current_section);
-	    outputBufferLevel += ret;
-	}
-
-    }
 }
 
 //////////////////////////////////////////////////////////////////////
@@ -121,12 +102,9 @@ static void OGGCallback(short *_buf, unsigned long numSamples)
 //  has returned the buffer at 'data' will not be needed again.
 int OGG_Load(char *filename)
 {
-    int bytesRequired = PREBUFFER * 2;
     unsigned long ret = 0;
     isPlaying = 0;
 
-    done_init = 0;
-    //sceIoGetstat(filename,&pstat);
     fp = fopen(filename, "r");
     if (!fp) {
 	printf("could not open file %s\n", filename);
@@ -156,22 +134,6 @@ int OGG_Load(char *filename)
 	printf("Encoded by: %s\n\n", ov_comment(&vf, -1)->vendor);
     }
 
-    while (bytesRequired > 0) {
-	ret = ov_read(&vf, (char *) outputBuffer, bytesRequired, &current_section);
-	/*if (ret != bytesRequired) {
-	   underruns++;
-	   printf("requested %d got %d, underrun %d\n", bytesRequired, ret, underruns);
-	   } */
-	bytesRequired -= ret;
-	outputBufferLevel += ret;
-	printf("PreBuffer %0.2f pc full (added %d samples)\n",
-	       (float) (outputBufferLevel + 1) / (float) (PREBUFFER * 2) * 100, ret);
-    }
-    done_init = 1;
-    printf("Done prebuffering.\n");
-    sceDisplayWaitVblankStart();
-    sceDisplayWaitVblankStart();
-    sceKernelDelayThread(500000);
     return 1;
 }
 

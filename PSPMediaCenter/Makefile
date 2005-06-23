@@ -17,7 +17,7 @@ all: release
 release : $(PSP_BIN)
 
 clean:
-	rm -f *.elf *.o mp3/*.o ogg/*.o mod/*.o *.a $(PSP_EBOOT) $(PSP_BIN).fix
+	rm -f *.elf *.o mp3/*.o ogg/*.o mod/*.o *.a $(PSP_EBOOT) $(PSP_BIN).fix release/* release/PSPMC/* release/PSPMC%/* 2> /dev/null
 
 cleanup:
 	rm -f *.bak *.?~ mp3/*.bak mp3/*.?~ ogg/*.bak ogg/*.?~ mod/*.bak mod/*.?~
@@ -25,10 +25,13 @@ cleanup:
 indent:
 	indent -kr -l120  *.c *.h mp3/*.c mp3/*.h ogg/*.c ogg/*.h mod/*.c mod/*.h ogg/*.c ogg/*.h
 	
-buildpbp:
-	#psp-strip --strip-all $(PSP_BIN).fix
-	#mksfo $(PSP_EBOOT_TITLE) $(PSP_EBOOT_SFO)
-	#pack-pbp $(PSP_EBOOT) $(PSP_EBOOT_SFO) $(PSP_EBOOT_ICON) NULL NULL NULL NULL $(PSP_BIN).fix NULL
+pbp:
+	psp-strip --strip-all $(PSP_BIN)
+	mksfo $(PSP_EBOOT_TITLE) $(PSP_EBOOT_SFO)
+	pack-pbp release/v1.0/$(PSP_EBOOT) $(PSP_EBOOT_SFO) $(PSP_EBOOT_ICON) NULL NULL NULL NULL $(PSP_BIN) NULL
+	pack-pbp release/PSPMC%/$(PSP_EBOOT) $(PSP_EBOOT_SFO) $(PSP_EBOOT_ICON) NULL NULL NULL NULL NULL NULL
+	cp -rf $(PSP_BIN) release/PSPMC/EBOOT.PBP
+	cp -rf Readme release/Readme.txt
 	#cp -rf $(PSP_EBOOT) $(PSP_MSDIR)
 
 upload15:

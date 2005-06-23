@@ -1,0 +1,17 @@
+PSPMediaCenter by John_K & adresd
+=================================
+
+v0.5b - June 23 2005
+-------------------------------------------------------------
+Currently plays MP3s, MODs and partially OGGs (they jitter).
+Uses libMad, Tremor and adresd's MOD code.
+
+Place media files in /PSP/MUSIC but not in a subdir.
+For MODs, only .mod will work. AHX support is in the works.
+
+only 44khz files are currently supported, although others may partially work.
+
+
+-- 
+Greetz to the #pspdev and #ps2dev crews!
+http://pspdev.org - http://wiki.pspdev.org
