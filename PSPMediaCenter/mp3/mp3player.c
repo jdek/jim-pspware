@@ -31,7 +31,6 @@
 
 #include "audiolib.h"
 #include "mp3player.h"
-#include "bstdfile.h"
 
 #define FALSE 0
 #define TRUE !FALSE

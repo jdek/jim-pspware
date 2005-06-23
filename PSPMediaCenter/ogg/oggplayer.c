@@ -30,7 +30,7 @@
 #include <display.h>
 #include <ctype.h>
 #include <audiolib.h>
-#include <oggplayer.h>
+#include "oggplayer.h"
 
 #define FALSE 0
 #define TRUE !FALSE

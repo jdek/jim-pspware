@@ -12,9 +12,12 @@
 #include <audio.h>
 
 #include "audiolib.h"
-#include "mp3player.h"
+#include "mp3/mp3player.h"
+#include "ogg/oggplayer.h"
+#include "mod/modplayer.h"
+
 /* Define the module info section */
-MODULE_INFO("PSPLAY", 0x01010000)
+MODULE_INFO("PSPMC", 0x01010000)
 
 /* Define printf, just to make typing easier */
 #define printf	pspDebugScreenPrintf

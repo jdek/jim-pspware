@@ -1,6 +1,6 @@
 PSP_EBOOT = EBOOT.PBP
 PSP_BIN = pspmc.elf
-PSP_OBJS = pspmc.o audiolib.o mp3/mp3player.o ogg/oggplayer.o
+PSP_OBJS = pspmc.o audiolib.o mp3/mp3player.o ogg/oggplayer.o mod/modplayer.o
 PSP_LIBS = -ldebug -lmad -lvorbisidec -lc
 PSP_CFLAGS := $(PSP_CFLAGS) -I../libmad/include -I../libTremor/include
 PSP_LDFLAGS :=  -v $(PSP_LDFLAGS) -L../libmad/lib -L../libTremor/lib
@@ -17,7 +17,7 @@ all: release
 release : $(PSP_BIN)
 
 clean:
-	rm -f *.elf *.o *.a $(PSP_EBOOT) $(PSP_BIN).fix $(PSP_EBOOT_SFO)
+	rm -f *.elf *.o mp3/*.o ogg/*.o mod/*.o *.a $(PSP_EBOOT) $(PSP_BIN).fix $(PSP_EBOOT_SFO)
 
 buildpbp:
 	#psp-strip --strip-all $(PSP_BIN).fix
