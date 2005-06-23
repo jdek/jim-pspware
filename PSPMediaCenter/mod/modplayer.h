@@ -6,21 +6,26 @@
 #ifndef _MODPLAYER_GENERAL_H
 #define _MODPLAYER_GENERAL_H
 
+#include "../codec.h"
+
 #ifdef __cplusplus
 extern "C" {
 #endif
 
 //  Function prototypes for public functions
-void ModPlay_Init(int channel,unsigned char *data);
-int ModPlay_Play();
-int ModPlay_Stop();
-void ModPlay_End();
-void ModPlayer_Load(char *filename,char *data);
-void ModPlay_Tick();
-void ModPlay_Close();
+    void MODsetStubs(codecStubs * stubs);
+
+//  Function prototypes for private functions
+    void Mod_Init(int channel);
+    int Mod_Play();
+    void Mod_Pause();
+    int Mod_Stop();
+    void Mod_End();
+    int Mod_Load(char *filename);
+    void Mod_Tick();
+    void Mod_Close();
 
 #ifdef __cplusplus
 }
 #endif
-
 #endif

@@ -17,14 +17,23 @@ all: release
 release : $(PSP_BIN)
 
 clean:
-	rm -f *.elf *.o mp3/*.o ogg/*.o mod/*.o *.a $(PSP_EBOOT) $(PSP_BIN).fix $(PSP_EBOOT_SFO)
+	rm -f *.elf *.o mp3/*.o ogg/*.o mod/*.o *.a $(PSP_EBOOT) $(PSP_BIN).fix
 
+cleanup:
+	rm -f *.bak *.?~ mp3/*.bak mp3/*.?~ ogg/*.bak ogg/*.?~ mod/*.bak mod/*.?~
+
+indent:
+	indent -kr -l120  *.c *.h mp3/*.c mp3/*.h ogg/*.c ogg/*.h mod/*.c mod/*.h ogg/*.c ogg/*.h
+	
 buildpbp:
 	#psp-strip --strip-all $(PSP_BIN).fix
 	#mksfo $(PSP_EBOOT_TITLE) $(PSP_EBOOT_SFO)
 	#pack-pbp $(PSP_EBOOT) $(PSP_EBOOT_SFO) $(PSP_EBOOT_ICON) NULL NULL NULL NULL $(PSP_BIN).fix NULL
 	#cp -rf $(PSP_EBOOT) $(PSP_MSDIR)
 
+upload15:
+	cp $(PSP_BIN) $(PSP_MSDIR)/EBOOT.PBP
+	
 include $(PSPSDK)/build/Makefile.pref
 include $(PSPSDK)/build/Makefile.global
 

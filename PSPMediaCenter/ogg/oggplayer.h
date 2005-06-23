@@ -8,22 +8,26 @@
 
 #include <ivorbiscodec.h>
 #include <ivorbisfile.h>
+#include "../codec.h"
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
 //  Function prototypes for public functions
-void OGGPlay_Init(int channel);
-int OGGPlay_Play();
-int OGGPlay_Stop();
-void OGGPlay_End();
-int OGGPlay_Load(char *filename);
-void OGGPlay_Tick();
-void OGGPlay_Close();
+    void OGGsetStubs(codecStubs * stubs);
+
+// private functions
+    void OGG_Init(int channel);
+    int OGG_Play();
+    void OGG_Pause();
+    int OGG_Stop();
+    void OGG_End();
+    int OGG_Load(char *filename);
+    void OGG_Tick();
+    void OGG_Close();
 
 #ifdef __cplusplus
 }
 #endif
-
 #endif
