@@ -14,8 +14,7 @@ extern "C" {
 
 // These next few lines determine how the sound will be mixed. 
 // Set PLAYBACK_FREQ to whatever you want. 
-// This is for PS2 - Sjeeps IRX plays back at 48000
-#define PLAYBACK_FREQ 48000
+#define PLAYBACK_FREQ 44100
 
 // OVERSAMPLE can be commented out to disable that function 
 // (takes up less CPU time, but doesnt sound as good). 

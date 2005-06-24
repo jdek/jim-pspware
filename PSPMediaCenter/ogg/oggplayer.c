@@ -70,24 +70,24 @@ void OGGsetStubs(codecStubs * stubs)
 
 static void OGGCallback(short *_buf, unsigned long numSamples)
 {
-unsigned long samplesOut = 0;
-	unsigned long bytesRequired = numSamples*2*2;
-	int underruns = 0;
-	if (isPlaying == TRUE) { //  Playing , so mix up a buffer
-		//do decoding here
-		while (bytesRequired > 0) {
-			unsigned long ret=ov_read(&vf,(unsigned char*)_buf, bytesRequired,&current_section);
-			/*if (ret != bytesRequired) {
-				underruns++;
-				printf("requested %d got %d, underrun %d\n", bytesRequired, ret, underruns);
-			}*/
-			bytesRequired -= ret;
-		}
-	} else { //  Not Playing , so clear buffer
-		int count;
-		for(count=0;count<numSamples*2;count++)
-			*(_buf+count) = 0;
+    unsigned long samplesOut = 0;
+    unsigned long bytesRequired = numSamples * 2 * 2;
+    int underruns = 0;
+    if (isPlaying == TRUE) {	//  Playing , so mix up a buffer
+	//do decoding here
+	while (bytesRequired > 0) {
+	    unsigned long ret = ov_read(&vf, (unsigned char *) _buf, bytesRequired, &current_section);
+	    /*if (ret != bytesRequired) {
+	       underruns++;
+	       printf("requested %d got %d, underrun %d\n", bytesRequired, ret, underruns);
+	       } */
+	    bytesRequired -= ret;
 	}
+    } else {			//  Not Playing , so clear buffer
+	int count;
+	for (count = 0; count < numSamples * 2; count++)
+	    *(_buf + count) = 0;
+    }
 }
 
 //////////////////////////////////////////////////////////////////////

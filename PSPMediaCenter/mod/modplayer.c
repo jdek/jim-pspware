@@ -236,24 +236,18 @@ int Mod_Load(char *filename)
 	return 0;
     }
 
-    BPM_RATE = 125;
-    BPM_RATE = 124;		// NTSC
+    BPM_RATE = 130;
     //  Set default settings
     numsamples = 32;
     m_nNumTracks = 4;
     //  Check for diff types of mod
-    if ((data[1080] == 'M') && (data[1081] == '.') && (data[1082] == 'K')
-	&& (data[1083] == '.'));
-    else if ((data[1080] == 'F') && (data[1081] == 'L')
-	     && (data[1082] == 'T') && (data[1083] == '4'));
-    else if ((data[1080] == 'F') && (data[1081] == 'L')
-	     && (data[1082] == 'T') && (data[1083] == '8'))
+    if ((data[1080] == 'M') && (data[1081] == '.') && (data[1082] == 'K') && (data[1083] == '.'));
+    else if ((data[1080] == 'F') && (data[1081] == 'L') && (data[1082] == 'T') && (data[1083] == '4'));
+    else if ((data[1080] == 'F') && (data[1081] == 'L') && (data[1082] == 'T') && (data[1083] == '8'))
 	m_nNumTracks = 8;
-    else if ((data[1080] == '6') && (data[1081] == 'C')
-	     && (data[1082] == 'H') && (data[1083] == 'N'))
+    else if ((data[1080] == '6') && (data[1081] == 'C') && (data[1082] == 'H') && (data[1083] == 'N'))
 	m_nNumTracks = 6;
-    else if ((data[1080] == '8') && (data[1081] == 'C')
-	     && (data[1082] == 'H') && (data[1083] == 'N'))
+    else if ((data[1080] == '8') && (data[1081] == 'C') && (data[1082] == 'H') && (data[1083] == 'N'))
 	m_nNumTracks = 8;
     else
 	numsamples = 16;

@@ -1,9 +1,10 @@
 PSP_EBOOT = EBOOT.PBP
 PSP_BIN = pspmc.elf
 PSP_OBJS = pspmc.o audiolib.o mp3/mp3player.o ogg/oggplayer.o mod/modplayer.o
-PSP_LIBS = -ldebug -lmad -lvorbisidec -lc
-PSP_CFLAGS := $(PSP_CFLAGS) -I../libmad/include -I../libTremor/include
-PSP_LDFLAGS :=  -v $(PSP_LDFLAGS) -L../libmad/lib -L../libTremor/lib
+PSP_LIBS = -ldebug -lmad -lvorbisidec -lpspc -lgcc -lm 
+#-lxvidcore -lnewlib-fix 
+PSP_CFLAGS := $(PSP_CFLAGS) -I../libmad/include -I../libTremor/include -I../xvidcore-1.1.0-beta2/src
+PSP_LDFLAGS :=  -v $(PSP_LDFLAGS) -L../libmad/lib -L../libTremor/lib -L../xvidcore-1.1.0-beta2/ -Lnewlib-fix
 
 
 # EBOOT.PBP Settings, to save hand editing
@@ -12,18 +13,21 @@ PSP_EBOOT_ICON = media/pspdev.png
 PSP_EBOOT_TITLE = "PSP Media Center v1.0"
 PSP_MSDIR = /cygdrive/I/PSP/GAME/PSPMC
 
-all: release
+all: deps release
 
+deps: 
+	make -C newlib-fix
 release : $(PSP_BIN)
 
 clean:
+	make -C newlib-fix clean
 	rm -f *.elf *.o mp3/*.o ogg/*.o mod/*.o *.a $(PSP_EBOOT) $(PSP_BIN).fix release/* release/PSPMC/* release/PSPMC%/* 2> /dev/null
 
 cleanup:
-	rm -f *.bak *.?~ mp3/*.bak mp3/*.?~ ogg/*.bak ogg/*.?~ mod/*.bak mod/*.?~
+	rm -f *.bak *.?~ mp3/*.bak mp3/*.?~ ogg/*.bak ogg/*.?~ mod/*.bak mod/*.?~ newlib-fix/*.?~ newlib-fix/*.bak
 
 indent:
-	indent -kr -l120  *.c *.h mp3/*.c mp3/*.h ogg/*.c ogg/*.h mod/*.c mod/*.h ogg/*.c ogg/*.h
+	indent -kr -l120  *.c *.h mp3/*.c mp3/*.h ogg/*.c ogg/*.h mod/*.c mod/*.h ogg/*.c ogg/*.h newlib-fix/*.c
 	
 pbp:
 	psp-strip --strip-all $(PSP_BIN)
