@@ -1,6 +1,6 @@
-// modplayer.h: headers for psp modplayer code
+// mp3player.h: headers for psp mp3player code
 //
-// All public functions for modplayer
+// All public functions for mp3player
 //
 //////////////////////////////////////////////////////////////////////
 #ifndef _MP3PLAYER_H_

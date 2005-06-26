@@ -1,15 +1,6 @@
 #ifndef _CODEC_H_
 #define _CODEC_H_
 
-typedef enum {
-    CODEC_MP3,
-    CODEC_OGG,
-    CODEC_MOD,
-    MAX_CODECS
-} codecIndex;
-
-char validExtensions[MAX_CODECS][3];
-
 typedef void (*fd_initFunc) (int);
 typedef int (*fd_loadFunc) (char *);
 typedef int (*fd_playFunc) (void);
@@ -26,6 +17,8 @@ typedef struct {
     fd_stopFunc stop;
     fd_endFunc end;
     fd_tickFunc tick;
+    char extension[4];
 } codecStubs;
+
 
 #endif
