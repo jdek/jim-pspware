@@ -5,7 +5,7 @@ PSP_BIN = pspmc.elf
 # EBOOT.PBP Settings, to save hand editing
 PSP_EBOOT_SFO = media/PARAM.SFO
 PSP_EBOOT_ICON = media/pspdev.png
-PSP_EBOOT_TITLE = "PSP Media Center v0.7"
+PSP_EBOOT_TITLE = "PSP Media Center v0.71"
 PSP_MSDIR = /cygdrive/I/PSP/GAME/PSPMC
 
 # Work thru the codecs, and sort out settings

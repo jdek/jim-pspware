@@ -35,7 +35,7 @@ MODULE_INFO("PSPMC", 0x01010000)
 #define printf  pspDebugScreenPrintf
 codecStubs stubs[100];
 codecStubs *decoder;
-static unsigned char banner[] = "PSP Media Center v0.7 by John_K & adresd\0";
+static unsigned char banner[] = "PSP Media Center v0.71 by John_K & adresd\0";
 
 int codecnum = 0;
 

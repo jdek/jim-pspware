@@ -72,22 +72,34 @@ void OGGsetStubs(codecStubs * stubs)
 
 static void OGGCallback(short *_buf, unsigned long numSamples)
 {
-    unsigned long bytesRequired = numSamples * 2 * 2;
-    if (isPlaying == TRUE) {	//  Playing , so mix up a buffer
-	//do decoding here
-	while (bytesRequired > 0) {
-	    unsigned long ret = ov_read(&vf, (char *) _buf, bytesRequired, &current_section);
-	    /*if (ret != bytesRequired) {
-	       underruns++;
-	       printf("requested %d got %d, underrun %d\n", bytesRequired, ret, underruns);
-	       } */
-	    bytesRequired -= ret;
-	}
-    } else {			//  Not Playing , so clear buffer
-	int count;
-	for (count = 0; count < numSamples * 2; count++)
-	    *(_buf + count) = 0;
+static short tempmixbuf[AUDIO_SAMPLES*2*2];
+static unsigned long tempmixleft=0;
+  
+  if (isPlaying == TRUE) { // Playing , so mix up a buffer
+    while (tempmixleft < numSamples)
+    { //  Not enough in buffer, so we must mix more
+      unsigned long bytesRequired = (numSamples - tempmixleft) * 4; // 2channels, 16bit = 4 bytes per sample
+      unsigned long ret = ov_read(&vf, (char *) &tempmixbuf[tempmixleft*2], bytesRequired, &current_section);
+      tempmixleft += ret/4; // back down to sample num
     }
+    if(tempmixleft >= numSamples)
+    { //  Buffer has enough, so copy across
+      int count,count2;
+      short *_buf2;
+      for(count=0;count<numSamples;count++) {
+        count2 = count + count;
+        _buf2 = _buf + count2;
+        // Double up for stereo
+        *(_buf2) = tempmixbuf[count2];
+        *(_buf2+1) = tempmixbuf[count2+1];
+      }
+      //  Move the pointers
+      tempmixleft-=numSamples;
+      //  Now shuffle the buffer along
+      for(count=0;count<tempmixleft;count++)
+        tempmixbuf[count] = tempmixbuf[numSamples+count];
+    }
+
 }
 
 //////////////////////////////////////////////////////////////////////
