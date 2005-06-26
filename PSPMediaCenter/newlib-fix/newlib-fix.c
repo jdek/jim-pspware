@@ -40,7 +40,7 @@ int isatty(int desc)
 
 pid_t getpid()
 {
-    pid_t pid=0;
+    pid_t pid = 0;
     return pid;
 }
 int fstat(int fd, struct stat *buf)

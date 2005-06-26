@@ -60,34 +60,34 @@ u32 outputBufferLevel;
 */
 void OGGsetStubs(codecStubs * stubs)
 {
-  stubs->init = OGG_Init;
-  stubs->load = OGG_Load;
-  stubs->play = OGG_Play;
-  stubs->pause = OGG_Pause;
-  stubs->stop = OGG_Stop;
-  stubs->end = OGG_End;
-  stubs->tick = NULL;
-  memcpy(stubs->extension, "ogg\0", 4);
+    stubs->init = OGG_Init;
+    stubs->load = OGG_Load;
+    stubs->play = OGG_Play;
+    stubs->pause = OGG_Pause;
+    stubs->stop = OGG_Stop;
+    stubs->end = OGG_End;
+    stubs->tick = NULL;
+    memcpy(stubs->extension, "ogg\0", 4);
 }
 
 static void OGGCallback(short *_buf, unsigned long numSamples)
 {
-  unsigned long bytesRequired = numSamples * 2 * 2;
-  if (isPlaying == TRUE) {	//  Playing , so mix up a buffer
-    //do decoding here
-    while (bytesRequired > 0) {
-      unsigned long ret = ov_read(&vf, (char *) _buf, bytesRequired, &current_section);
-      /*if (ret != bytesRequired) {
-      underruns++;
-      printf("requested %d got %d, underrun %d\n", bytesRequired, ret, underruns);
-      } */
-      bytesRequired -= ret;
+    unsigned long bytesRequired = numSamples * 2 * 2;
+    if (isPlaying == TRUE) {	//  Playing , so mix up a buffer
+	//do decoding here
+	while (bytesRequired > 0) {
+	    unsigned long ret = ov_read(&vf, (char *) _buf, bytesRequired, &current_section);
+	    /*if (ret != bytesRequired) {
+	       underruns++;
+	       printf("requested %d got %d, underrun %d\n", bytesRequired, ret, underruns);
+	       } */
+	    bytesRequired -= ret;
+	}
+    } else {			//  Not Playing , so clear buffer
+	int count;
+	for (count = 0; count < numSamples * 2; count++)
+	    *(_buf + count) = 0;
     }
-  } else {			//  Not Playing , so clear buffer
-    int count;
-    for (count = 0; count < numSamples * 2; count++)
-      *(_buf + count) = 0;
-  }
 }
 
 //////////////////////////////////////////////////////////////////////
@@ -102,85 +102,85 @@ static void OGGCallback(short *_buf, unsigned long numSamples)
 //  has returned the buffer at 'data' will not be needed again.
 int OGG_Load(char *filename)
 {
-  isPlaying = 0;
+    isPlaying = 0;
 
-  fp = fopen(filename, "r");
-  if (!fp) {
-    printf("could not open file %s\n", filename);
-    sceDisplayWaitVblankStart();
-    sceDisplayWaitVblankStart();
-    sceKernelDelayThread(500000);
-    return 0;
-  }
+    fp = fopen(filename, "r");
+    if (!fp) {
+	printf("could not open file %s\n", filename);
+	sceDisplayWaitVblankStart();
+	sceDisplayWaitVblankStart();
+	sceKernelDelayThread(500000);
+	return 0;
+    }
 
-  printf("opening oggfile\n");
-  sceDisplayWaitVblankStart();
-  sceDisplayWaitVblankStart();
-  if (ov_open(fp, &vf, NULL, 0) < 0) {
-    printf("Input does not appear to be an Ogg bitstream.\n");
+    printf("opening oggfile\n");
     sceDisplayWaitVblankStart();
     sceDisplayWaitVblankStart();
-    sceKernelDelayThread(500000);
-    return 0;
-  } else {
-    printf("here is ogg info:\n");
-    sceDisplayWaitVblankStart();
-    sceDisplayWaitVblankStart();
-    oggComments = ov_comment(&vf, -1)->user_comments;
-    vi = ov_info(&vf, -1);
-    printf("\nBitstream is %d channel, %ldHz\n", vi->channels, vi->rate);
-    printf("\nDecoded length: %ld samples\n", (long) ov_pcm_total(&vf, -1));
-    printf("Encoded by: %s\n\n", ov_comment(&vf, -1)->vendor);
-  }
+    if (ov_open(fp, &vf, NULL, 0) < 0) {
+	printf("Input does not appear to be an Ogg bitstream.\n");
+	sceDisplayWaitVblankStart();
+	sceDisplayWaitVblankStart();
+	sceKernelDelayThread(500000);
+	return 0;
+    } else {
+	printf("here is ogg info:\n");
+	sceDisplayWaitVblankStart();
+	sceDisplayWaitVblankStart();
+	oggComments = ov_comment(&vf, -1)->user_comments;
+	vi = ov_info(&vf, -1);
+	printf("\nBitstream is %d channel, %ldHz\n", vi->channels, vi->rate);
+	printf("\nDecoded length: %ld samples\n", (long) ov_pcm_total(&vf, -1));
+	printf("Encoded by: %s\n\n", ov_comment(&vf, -1)->vendor);
+    }
 
-  return 1;
+    return 1;
 }
 
 void OGG_Init(int channel)
 {
-  myChannel = channel;
-  isPlaying = FALSE;
-  AudioSetChannelCallback(myChannel, OGGCallback);
+    myChannel = channel;
+    isPlaying = FALSE;
+    AudioSetChannelCallback(myChannel, OGGCallback);
 }
 
 // This function initialises for playing, and starts
 int OGG_Play()
 {
-  // See if I'm already playing
-  if (isPlaying)
-    return FALSE;
+    // See if I'm already playing
+    if (isPlaying)
+	return FALSE;
 
-  isPlaying = TRUE;
-  return TRUE;
+    isPlaying = TRUE;
+    return TRUE;
 }
 
 int OGG_Stop()
 {
-  //stop playing
-  isPlaying = FALSE;
-  OGG_FreeTune();
-  //seek to beginning of file
-  //sceIoLseek(BstdFile->fd, 0, SEEK_SET);
+    //stop playing
+    isPlaying = FALSE;
+    OGG_FreeTune();
+    //seek to beginning of file
+    //sceIoLseek(BstdFile->fd, 0, SEEK_SET);
 
-  return TRUE;
+    return TRUE;
 }
 
 
 void OGG_Pause()
 {
-  isPlaying = !isPlaying;
+    isPlaying = !isPlaying;
 }
 
 void OGG_FreeTune()
 {
-  ov_clear(&vf);
-  if (fp)
-    fclose(fp);
+    ov_clear(&vf);
+    if (fp)
+	fclose(fp);
 }
 
 void OGG_End()
 {
-  OGG_Stop();
-  AudioSetChannelCallback(myChannel, 0);
-  OGG_FreeTune();
+    OGG_Stop();
+    AudioSetChannelCallback(myChannel, 0);
+    OGG_FreeTune();
 }
