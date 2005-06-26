@@ -1,3 +1,5 @@
+PSPSDK=$(shell psp-config --pspsdk-path)
+
 PSP_LIB = libnewlib-fix.a
 PSP_OBJS = newlib-fix.o
 
@@ -10,6 +12,5 @@ release : $(PSP_LIB)
 clean:
 	rm -f *.a *.o
 
-include $(PSPSDK)/build/Makefile.pref
-include $(PSPSDK)/build/Makefile.global
+include $(PSPSDK)/lib/Makefile
 

@@ -1,4 +1,5 @@
 # Makefile for PSP MediaCenter
+PSPSDK=$(shell psp-config --pspsdk-path)
 PSP_EBOOT = EBOOT.PBP
 PSP_BIN = pspmc.elf
 
@@ -13,14 +14,16 @@ include codec.conf
 
 # Now postprocess the values
 PSP_OBJS := pspmc.o audiolib.o $(PSP_OBJS)
-PSP_LIBS = -ldebug $(PLAYER_LIBS) -lc -lgcc -lm 
+PSP_LIBS = -lpspdebug $(PLAYER_LIBS) -lpspaudio -lpsplibc
+#-lc -lgcc -lm 
 PSP_CFLAGS  := $(PSP_CFLAGS)
-PSP_LDFLAGS := -v $(PSP_LDFLAGS) -Lnewlib-fix
+PSP_LDFLAGS := $(PSP_LDFLAGS) -Lnewlib-fix
 
 all: deps release
 
 deps: 
 	make -C newlib-fix
+
 release : header $(PSP_BIN)
 
 clean:
@@ -55,6 +58,5 @@ upload10:
 upload15:
 	cp release/PSPMC/EBOOT.PBP $(PSP_MSDIR)/EBOOT.PBP
 	
-include $(PSPSDK)/build/Makefile.pref
-include $(PSPSDK)/build/Makefile.global
+include $(PSPSDK)/lib/Makefile
 

@@ -10,13 +10,12 @@
 # $Id: AHX.c,v 1.2 2004/09/14 14:02:35 adresd Exp $
 */
 
-#include <kernel.h>
-#include <debug.h>
+#include <pspkernel.h>
+#include <pspdebug.h>
+#include <pspiofilemgr.h>
+#include <pspctrl.h>
 #include <stdlib.h>
 #include <string.h>
-#include <fileio.h>
-#include <ctrl.h>
-#include <audio.h>
 
 #include "audiolib.h"
 #include "codec.h"

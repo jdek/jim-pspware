@@ -4,12 +4,12 @@
 // adresd 2005
 // based off nem's work
 
-#include <kernel.h>
-#include <debug.h>
+#include <pspkernel.h>
+#include <pspdebug.h>
+#include <pspthreadman.h>
+#include <pspaudio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <threadman.h>
-#include <audio.h>
 
 #include "audiolib.h"
 

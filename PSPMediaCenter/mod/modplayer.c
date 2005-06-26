@@ -19,14 +19,12 @@
 //                   -- adresd
 ////////////////////////////////////////////////////////////////////////////
 
-#include <kernel.h>
-#include <debug.h>
+#include <pspkernel.h>
+#include <pspdebug.h>
 #include <stdlib.h>
 #include <string.h>
-#include <audio.h>
+
 #include "codec.h"
-
-
 #include "../audiolib.h"
 #include "modplayer.h"
 #include "modplayeri.h"

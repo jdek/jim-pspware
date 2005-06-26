@@ -2,15 +2,14 @@
 //
 ////////////////////////////////////////////////////////////////////////////
 
-#include <kernel.h>
-#include <debug.h>
+#include <pspkernel.h>
+#include <pspdebug.h>
+#include <pspiofilemgr.h>
+#include <pspdisplay.h>
 #include <stdlib.h>
 #include <string.h>
-#include <audio.h>
-#include <fileio.h>
 #include <limits.h>
 #include <errno.h>
-#include <display.h>
 
 #include "audiolib.h"
 #include "mp3player.h"

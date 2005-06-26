@@ -1,6 +1,7 @@
-#include <fileio.h>
 #include <stdlib.h>
-#include <kernel.h>
+#include <pspiofilemgr.h>
+#include <pspkernel.h>
+
 int open(const char *fname, int flags, ...)
 {
     return sceIoOpen(fname, flags, 0777);
@@ -43,7 +44,8 @@ pid_t getpid()
     pid_t pid = 0;
     return pid;
 }
-int fstat(int fd, struct stat *buf)
+
+int fstat(int fd, io_stat_t * buf)
 {
 /*
 struct stat {

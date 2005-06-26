@@ -19,17 +19,17 @@
 //                   -- adresd
 ////////////////////////////////////////////////////////////////////////////
 
-#include <kernel.h>
-#include <debug.h>
+#include <pspkernel.h>
+#include <pspdebug.h>
+#include <pspdisplay.h>
 #include <stdlib.h>
 #include <string.h>
-#include <audio.h>
 #include <stdio.h>
 #include <limits.h>
 #include <errno.h>
-#include <display.h>
 #include <ctype.h>
-#include <audiolib.h>
+
+#include "audiolib.h"
 #include "oggplayer.h"
 #include "codec.h"
 
@@ -48,7 +48,7 @@ int eof = 0;
 int current_section;
 char **oggComments;
 vorbis_info *vi;
-int errno, __errno;
+int errno;			// __errno;
 FILE *fp;
 static int isPlaying;		// Set to true when a mod is being played
 static int myChannel;
@@ -72,34 +72,33 @@ void OGGsetStubs(codecStubs * stubs)
 
 static void OGGCallback(short *_buf, unsigned long numSamples)
 {
-static short tempmixbuf[AUDIO_SAMPLES*2*2];
-static unsigned long tempmixleft=0;
-  
-  if (isPlaying == TRUE) { // Playing , so mix up a buffer
-    while (tempmixleft < numSamples)
-    { //  Not enough in buffer, so we must mix more
-      unsigned long bytesRequired = (numSamples - tempmixleft) * 4; // 2channels, 16bit = 4 bytes per sample
-      unsigned long ret = ov_read(&vf, (char *) &tempmixbuf[tempmixleft*2], bytesRequired, &current_section);
-      tempmixleft += ret/4; // back down to sample num
-    }
-    if(tempmixleft >= numSamples)
-    { //  Buffer has enough, so copy across
-      int count,count2;
-      short *_buf2;
-      for(count=0;count<numSamples;count++) {
-        count2 = count + count;
-        _buf2 = _buf + count2;
-        // Double up for stereo
-        *(_buf2) = tempmixbuf[count2];
-        *(_buf2+1) = tempmixbuf[count2+1];
-      }
-      //  Move the pointers
-      tempmixleft-=numSamples;
-      //  Now shuffle the buffer along
-      for(count=0;count<tempmixleft;count++)
-        tempmixbuf[count] = tempmixbuf[numSamples+count];
-    }
+    static short tempmixbuf[AUDIO_SAMPLES * 2 * 2];
+    static unsigned long tempmixleft = 0;
 
+    if (isPlaying == TRUE) {	// Playing , so mix up a buffer
+	while (tempmixleft < numSamples) {	//  Not enough in buffer, so we must mix more
+	    unsigned long bytesRequired = (numSamples - tempmixleft) * 4;	// 2channels, 16bit = 4 bytes per sample
+	    unsigned long ret = ov_read(&vf, (char *) &tempmixbuf[tempmixleft * 2], bytesRequired, &current_section);
+	    tempmixleft += ret / 4;	// back down to sample num
+	}
+	if (tempmixleft >= numSamples) {	//  Buffer has enough, so copy across
+	    int count, count2;
+	    short *_buf2;
+	    for (count = 0; count < numSamples; count++) {
+		count2 = count + count;
+		_buf2 = _buf + count2;
+		// Double up for stereo
+		*(_buf2) = tempmixbuf[count2];
+		*(_buf2 + 1) = tempmixbuf[count2 + 1];
+	    }
+	    //  Move the pointers
+	    tempmixleft -= numSamples;
+	    //  Now shuffle the buffer along
+	    for (count = 0; count < tempmixleft; count++)
+		tempmixbuf[count] = tempmixbuf[numSamples + count];
+	}
+
+    }
 }
 
 //////////////////////////////////////////////////////////////////////

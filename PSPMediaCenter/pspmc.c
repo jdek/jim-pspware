@@ -3,17 +3,16 @@
  *  Main file for modplayer sample for PSP
  *  adresd 2005
  */
-#include <kernel.h>
-#include <debug.h>
+#include <pspkernel.h>
+#include <pspdebug.h>
+#include <pspiofilemgr.h>
+#include <pspctrl.h>
+#include <pspaudio.h>
+#include <pspdisplay.h>
 #include <stdlib.h>
 #include <string.h>
-#include <fileio.h>
-#include <ctrl.h>
-#include <audio.h>
-#include <display.h>
 
 #include "audiolib.h"
-
 #include "codec.h"
 
 //  These are the headers for the different codecs
@@ -21,12 +20,12 @@
 #include "codecincs.h"
 
 
-
+/*
 // Now sbrk def
 void *sbrk(int incr)
 {
     return ps2_sbrk(incr);
-}
+}*/
 
 /* Define the module info section */
 MODULE_INFO("PSPMC", 0x01010000)
