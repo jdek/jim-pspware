@@ -20,5 +20,4 @@ typedef struct {
     char extension[4];
 } codecStubs;
 
-
 #endif

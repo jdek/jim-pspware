@@ -11,7 +11,7 @@
 #include <pspdisplay.h>
 #include <stdlib.h>
 #include <string.h>
-
+#include <pspmoduleinfo.h>
 #include "audiolib.h"
 #include "codec.h"
 
@@ -20,22 +20,23 @@
 #include "codecincs.h"
 
 
-/*
+
 // Now sbrk def
 void *sbrk(int incr)
 {
     return ps2_sbrk(incr);
-}*/
+}
 
 /* Define the module info section */
-MODULE_INFO("PSPMC", 0x01010000)
+PSP_MODULE_INFO("PSPMC", 0, 0, 71);
 
 /* Define printf, just to make typing easier */
 #define printf  pspDebugScreenPrintf
+
 codecStubs stubs[100];
 codecStubs *decoder;
 static unsigned char banner[] = "PSP Media Center v0.71 by John_K & adresd\0";
-
+int errno, __errno;
 int codecnum = 0;
 
 /* Exit callback */
@@ -68,7 +69,7 @@ unsigned char *load_file(const char *filename, long *size)
 {
     unsigned char *ptr = 0;
     int fileid;
-    if ((fileid = sceIoOpen((char *) filename, O_RDONLY, 777)) > 0) {	//  opened file, so get size now
+    if ((fileid = sceIoOpen((char *) filename, PSP_O_RDONLY, 777)) > 0) {	//  opened file, so get size now
 	long filelen;
 	filelen = sceIoLseek(fileid, 0, SEEK_END);
 	sceIoLseek(fileid, 0, SEEK_SET);
@@ -159,7 +160,6 @@ void playmedia(char *rootpath, char *modname)
 }
 
 static io_dirent_t dirent;
-static io_dirent_t dirent2;
 
 char *mods_infoname[100];
 int mods_infonum;

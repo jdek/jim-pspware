@@ -17,7 +17,7 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include "audiolib.h"
+#include "audiolib.h"i
 #include "codec.h"
 #include "ahx.h"
 
@@ -108,10 +108,10 @@ int AHXPlayer_Load(char *filename)
   int fd;
   unsigned char *data;
   long size;
-  if ((fd = sceIoOpen(filename, O_RDONLY, 0777)) > 0) {
+  if ((fd = sceIoOpen(filename, PSP_O_RDONLY, 0777)) > 0) {
   	//  opened file, so get size now
-  	size = sceIoLseek(fd, 0, SEEK_END);
-  	sceIoLseek(fd, 0, SEEK_SET);
+  	size = sceIoLseek(fd, 0, PSP_SEEK_END);
+  	sceIoLseek(fd, 0, PSP_SEEK_SET);
   	data = (unsigned char *) malloc(size + 8);
   	memset(data, 0, size + 8);
   	if (data != 0) {	// Read file in

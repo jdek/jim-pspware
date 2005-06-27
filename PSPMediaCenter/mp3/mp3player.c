@@ -562,10 +562,10 @@ int MP3_Load(char *filename)
     int fd;
     //psp_stats pstat;
     //sceIoGetstat(filename, &pstat);
-    if ((fd = sceIoOpen(filename, O_RDONLY, 0777)) > 0) {
+    if ((fd = sceIoOpen(filename, PSP_O_RDONLY, 0777)) > 0) {
 	//  opened file, so get size now
-	size = sceIoLseek(fd, 0, SEEK_END);
-	sceIoLseek(fd, 0, SEEK_SET);
+	size = sceIoLseek(fd, 0, PSP_SEEK_END);
+	sceIoLseek(fd, 0, PSP_SEEK_SET);
 	ptr = (unsigned char *) malloc(size + 8);
 	memset(ptr, 0, size + 8);
 	if (ptr != 0) {		// Read file in
