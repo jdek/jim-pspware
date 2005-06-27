@@ -17,7 +17,8 @@ PSP_OBJS := pspmc.o audiolib.o $(PSP_OBJS)
 PSP_LIBS = -lpspdebug $(PLAYER_LIBS) -lpspaudio -lpsplibc
 #-lc -lgcc -lm 
 PSP_CFLAGS  := $(PSP_CFLAGS)
-PSP_LDFLAGS := $(PSP_LDFLAGS) -Lnewlib-fix
+PSP_LDFLAGS := $(PSP_LDFLAGS) 
+#-Lnewlib-fix
 
 all: deps release
 

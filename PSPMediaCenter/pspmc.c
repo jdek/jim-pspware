@@ -22,10 +22,10 @@
 
 
 // Now sbrk def
-void *sbrk(int incr)
+/*void *sbrk(int incr)
 {
     return ps2_sbrk(incr);
-}
+}*/
 
 /* Define the module info section */
 PSP_MODULE_INFO("PSPMC", 0, 0, 71);
@@ -71,8 +71,8 @@ unsigned char *load_file(const char *filename, long *size)
     int fileid;
     if ((fileid = sceIoOpen((char *) filename, PSP_O_RDONLY, 777)) > 0) {	//  opened file, so get size now
 	long filelen;
-	filelen = sceIoLseek(fileid, 0, SEEK_END);
-	sceIoLseek(fileid, 0, SEEK_SET);
+	filelen = sceIoLseek(fileid, 0, PSP_SEEK_END);
+	sceIoLseek(fileid, 0, PSP_SEEK_SET);
 	ptr = (unsigned char *) malloc(filelen);
 	if (ptr != 0) {		// Read file in
 	    sceIoRead(fileid, ptr, filelen);

@@ -113,6 +113,7 @@ static void OGGCallback(short *_buf, unsigned long numSamples)
 //  has returned the buffer at 'data' will not be needed again.
 int OGG_Load(char *filename)
 {
+int size = 0;
     isPlaying = 0;
 
     fp = fopen(filename, "r");
@@ -123,8 +124,11 @@ int OGG_Load(char *filename)
 	sceKernelDelayThread(500000);
 	return 0;
     }
-
-    printf("opening oggfile\n");
+	printf("getting size\n");
+	fseek(fp, 0, PSP_SEEK_END);
+	size = ftell(fp);
+	fseek(fp, 0, PSP_SEEK_SET);
+    printf("opening oggfile (size: %d)\n", size);
     sceDisplayWaitVblankStart();
     sceDisplayWaitVblankStart();
     if (ov_open(fp, &vf, NULL, 0) < 0) {
