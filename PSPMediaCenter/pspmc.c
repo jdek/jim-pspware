@@ -12,7 +12,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <pspmoduleinfo.h>
-#include "audiolib.h"
+#include <pspaudiolib.h>
 #include "codec.h"
 
 //  These are the headers for the different codecs
@@ -153,7 +153,7 @@ void playmedia(char *rootpath, char *modname)
 	decoder->stop();
 	decoder->end();
 	if (finished == 2) {
-	    AudioEnd();
+	    pspAudioEnd();
 	    sceKernelExitGame();
 	}
     }
@@ -477,7 +477,7 @@ int main(int argc, char *argv[])
 
     fillmedialist(rootpath);
 
-    AudioInit();
+    pspAudioInit();
 
     //  Loop around, offering a mod, till they cancel
     modfile = 1;
@@ -501,7 +501,7 @@ int main(int argc, char *argv[])
 	    playmedia(rootpath, modfile);
 	}
     }
-    AudioEnd();
+    pspAudioEnd();
     sceKernelExitGame();
 
     // wait forever

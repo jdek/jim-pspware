@@ -13,8 +13,9 @@ PSP_MSDIR = /cygdrive/I/PSP/GAME/PSPMC
 include codec.conf
 
 # Now postprocess the values
-PSP_OBJS := pspmc.o audiolib.o $(PSP_OBJS)
-PSP_LIBS = -lpspdebug $(PLAYER_LIBS) -lpspaudio -lpsplibc
+PSP_OBJS := pspmc.o $(PSP_OBJS) 
+#audiolib.o
+PSP_LIBS = -lpspdebug $(PLAYER_LIBS) -lpspaudiolib -lpspaudio -lpsplibc
 #-lc -lgcc -lm 
 PSP_CFLAGS  := $(PSP_CFLAGS)
 PSP_LDFLAGS := $(PSP_LDFLAGS) 

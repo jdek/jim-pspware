@@ -25,7 +25,7 @@
 #include <string.h>
 
 #include "codec.h"
-#include "../audiolib.h"
+#include <pspaudiolib.h>
 #include "modplayer.h"
 #include "modplayeri.h"
 #include "modtables.h"
@@ -145,7 +145,7 @@ void Mod_Init(int channel)
 {
     modplayint_channel = channel;
     m_bPlaying = FALSE;
-    AudioSetChannelCallback(modplayint_channel, ModPlayCallback);
+    pspAudioSetChannelCallback(modplayint_channel, ModPlayCallback);
     //Mod_Load("",data);
 }
 
@@ -179,7 +179,7 @@ void Mod_FreeTune()
 void Mod_End()
 {
     Mod_Stop();
-    AudioSetChannelCallback(modplayint_channel, 0);
+    pspAudioSetChannelCallback(modplayint_channel, 0);
     Mod_FreeTune();
 }
 

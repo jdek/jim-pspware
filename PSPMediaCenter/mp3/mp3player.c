@@ -10,8 +10,7 @@
 #include <string.h>
 #include <limits.h>
 #include <errno.h>
-
-#include "audiolib.h"
+#include <pspaudiolib.h>
 #include "mp3player.h"
 
 
@@ -470,7 +469,7 @@ void MP3_Init(int channel)
 {
     myChannel = channel;
     isPlaying = FALSE;
-    AudioSetChannelCallback(myChannel, MP3Callback);
+    pspAudioSetChannelCallback(myChannel, MP3Callback);
     /* First the structures used by libmad must be initialized. */
     mad_stream_init(&Stream);
     mad_frame_init(&Frame);
@@ -543,7 +542,7 @@ void MP3_FreeTune()
 void MP3_End()
 {
     MP3_Stop();
-    AudioSetChannelCallback(myChannel, 0);
+    pspAudioSetChannelCallback(myChannel, 0);
     MP3_FreeTune();
 }
 

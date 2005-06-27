@@ -16,8 +16,7 @@
 #include <pspctrl.h>
 #include <stdlib.h>
 #include <string.h>
-
-#include "audiolib.h"i
+#include <pspaudiolib.h>
 #include "codec.h"
 #include "ahx.h"
 
@@ -1207,13 +1206,13 @@ void AHXPlayer_Init(int channel)
   }
   m_bPlaying = 0;
   ahx_channel = channel;
-  AudioSetChannelCallback(ahx_channel,AHXPlayCallback);
+  pspAudioSetChannelCallback(ahx_channel,AHXPlayCallback);
 
   tempmixleft = 0;
 }
 void AHXPlayer_End()
 {
-  AudioSetChannelCallback(ahx_channel,0);
+  pspAudioSetChannelCallback(ahx_channel,0);
 }
 // AHXPlayStop
 int AHXPlayer_Play()

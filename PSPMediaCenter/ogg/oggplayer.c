@@ -28,8 +28,7 @@
 #include <limits.h>
 #include <errno.h>
 #include <ctype.h>
-
-#include "audiolib.h"
+#include <pspaudiolib.h>
 #include "oggplayer.h"
 #include "codec.h"
 
@@ -52,7 +51,7 @@ int errno;			// __errno;
 FILE *fp;
 static int isPlaying;		// Set to true when a mod is being played
 static int myChannel;
-
+int fd = 0;
 /*
 #define PREBUFFER	2097152
 static short outputBuffer[PREBUFFER];
@@ -72,7 +71,7 @@ void OGGsetStubs(codecStubs * stubs)
 
 static void OGGCallback(short *_buf, unsigned long numSamples)
 {
-    static short tempmixbuf[AUDIO_SAMPLES * 2 * 2];
+    static short tempmixbuf[PSP_NUM_AUDIO_SAMPLES * 2 * 2];
     static unsigned long tempmixleft = 0;
 
     if (isPlaying == TRUE) {	// Playing , so mix up a buffer
@@ -111,27 +110,47 @@ static void OGGCallback(short *_buf, unsigned long numSamples)
 //
 //  It basically loads into an internal format, so once this function
 //  has returned the buffer at 'data' will not be needed again.
+
+size_t ogg_callback_read(void *ptr, size_t size, size_t nmemb, void *datasource) {
+	return sceIoRead(*(int *)datasource, ptr, size*nmemb);
+}
+int ogg_callback_seek(void *datasource, ogg_int64_t offset, int whence) {
+	return sceIoLseek32(*(int *)datasource, (unsigned int)offset, whence);
+}
+long ogg_callback_tell(void *datasource) {
+	return sceIoLseek32(*(int*)datasource, 0, SEEK_CUR);
+}
+int ogg_callback_close(void *datasource) {
+	return sceIoClose(*(int*)datasource);
+}
+
 int OGG_Load(char *filename)
 {
 int size = 0;
     isPlaying = 0;
-
-    fp = fopen(filename, "r");
-    if (!fp) {
+	ov_callbacks ogg_callbacks;
+	ogg_callbacks.read_func = ogg_callback_read;
+	ogg_callbacks.seek_func = ogg_callback_seek;
+	ogg_callbacks.close_func = ogg_callback_close;
+	ogg_callbacks.tell_func = ogg_callback_tell;
+	if ((fd = sceIoOpen(filename, PSP_O_RDONLY, 0777)) <= 0) {
+//    fp = fopen(filename, "r");
+//    if (!fp) {
 	printf("could not open file %s\n", filename);
 	sceDisplayWaitVblankStart();
 	sceDisplayWaitVblankStart();
 	sceKernelDelayThread(500000);
 	return 0;
     }
-	printf("getting size\n");
+/*	printf("getting size\n");
 	fseek(fp, 0, PSP_SEEK_END);
 	size = ftell(fp);
 	fseek(fp, 0, PSP_SEEK_SET);
     printf("opening oggfile (size: %d)\n", size);
     sceDisplayWaitVblankStart();
     sceDisplayWaitVblankStart();
-    if (ov_open(fp, &vf, NULL, 0) < 0) {
+    if (ov_open(fp, &vf, NULL, 0) < 0) {*/
+    if (ov_open_callbacks(&fd, &vf, NULL, 0, ogg_callbacks) < 0) {
 	printf("Input does not appear to be an Ogg bitstream.\n");
 	sceDisplayWaitVblankStart();
 	sceDisplayWaitVblankStart();
@@ -155,7 +174,7 @@ void OGG_Init(int channel)
 {
     myChannel = channel;
     isPlaying = FALSE;
-    AudioSetChannelCallback(myChannel, OGGCallback);
+    pspAudioSetChannelCallback(myChannel, OGGCallback);
 }
 
 // This function initialises for playing, and starts
@@ -196,6 +215,6 @@ void OGG_FreeTune()
 void OGG_End()
 {
     OGG_Stop();
-    AudioSetChannelCallback(myChannel, 0);
+    pspAudioSetChannelCallback(myChannel, 0);
     OGG_FreeTune();
 }
