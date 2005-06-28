@@ -12,5 +12,5 @@ release : $(PSP_LIB)
 clean:
 	rm -f *.a *.o
 
-include $(PSPSDK)/lib/Makefile
+include ../make.base
 

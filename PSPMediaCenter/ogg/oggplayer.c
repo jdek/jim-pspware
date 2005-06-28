@@ -111,29 +111,33 @@ static void OGGCallback(short *_buf, unsigned long numSamples)
 //  It basically loads into an internal format, so once this function
 //  has returned the buffer at 'data' will not be needed again.
 
-size_t ogg_callback_read(void *ptr, size_t size, size_t nmemb, void *datasource) {
-	return sceIoRead(*(int *)datasource, ptr, size*nmemb);
+size_t ogg_callback_read(void *ptr, size_t size, size_t nmemb, void *datasource)
+{
+    return sceIoRead(*(int *) datasource, ptr, size * nmemb);
 }
-int ogg_callback_seek(void *datasource, ogg_int64_t offset, int whence) {
-	return sceIoLseek32(*(int *)datasource, (unsigned int)offset, whence);
+int ogg_callback_seek(void *datasource, ogg_int64_t offset, int whence)
+{
+    return sceIoLseek32(*(int *) datasource, (unsigned int) offset, whence);
 }
-long ogg_callback_tell(void *datasource) {
-	return sceIoLseek32(*(int*)datasource, 0, SEEK_CUR);
+long ogg_callback_tell(void *datasource)
+{
+    return sceIoLseek32(*(int *) datasource, 0, SEEK_CUR);
 }
-int ogg_callback_close(void *datasource) {
-	return sceIoClose(*(int*)datasource);
+int ogg_callback_close(void *datasource)
+{
+    return sceIoClose(*(int *) datasource);
 }
 
 int OGG_Load(char *filename)
 {
-int size = 0;
+    int size = 0;
     isPlaying = 0;
-	ov_callbacks ogg_callbacks;
-	ogg_callbacks.read_func = ogg_callback_read;
-	ogg_callbacks.seek_func = ogg_callback_seek;
-	ogg_callbacks.close_func = ogg_callback_close;
-	ogg_callbacks.tell_func = ogg_callback_tell;
-	if ((fd = sceIoOpen(filename, PSP_O_RDONLY, 0777)) <= 0) {
+    ov_callbacks ogg_callbacks;
+    ogg_callbacks.read_func = ogg_callback_read;
+    ogg_callbacks.seek_func = ogg_callback_seek;
+    ogg_callbacks.close_func = ogg_callback_close;
+    ogg_callbacks.tell_func = ogg_callback_tell;
+    if ((fd = sceIoOpen(filename, PSP_O_RDONLY, 0777)) <= 0) {
 //    fp = fopen(filename, "r");
 //    if (!fp) {
 	printf("could not open file %s\n", filename);

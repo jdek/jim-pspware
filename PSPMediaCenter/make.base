@@ -1,0 +1,95 @@
+# _____     ___ ____     ___ ____
+#  ____|   |   |____|   |        | |____|
+# |     ___|   |     ___|    ____| |    \    PSPDEV Open Source Project.
+#-----------------------------------------------------------------------
+# Review pspsdk README & LICENSE files for further details.
+#
+# $Id: Makefile.global 185 2005-06-15 20:58:50Z warren $
+
+# Include directories
+PSP_INCS := -I$(PSPSDK)/include -I. $(PSP_INCS)
+
+# C compiler flags
+PSP_CFLAGS := -O2 -G0 -Wall $(PSP_CFLAGS)
+
+# C++ compiler flags
+PSP_CXXFLAGS := -O2 -G0 -Wall $(PSP_CXXFLAGS)
+
+# Linker flags
+PSP_LDFLAGS := -O0 -G0 -L$(PSPSDK)/lib$(PSP_LDFLAGS)
+
+# Assembler flags
+PSP_ASFLAGS := -G0 $(PSP_ASFLAGS)
+
+# Link with following libraries.  This is a special case, and instead of
+# allowing the user to override the library order, we always make sure
+# libkernel is the last library to be linked.
+PSP_LIBS += -lpspkernel
+
+# Define the overridable parameters for the EBOOT
+
+ifndef PSP_EBOOT_TITLE
+PSP_EBOOT_TITLE = PSPSDK
+endif
+
+ifndef PSP_EBOOT_SFO
+PSP_EBOOT_SFO = PARAM.SFO
+endif
+
+ifndef PSP_EBOOT_ICON
+PSP_EBOOT_ICON = $(PSPSDK)/build/res/ICON0.PNG
+endif
+
+ifndef PSP_EBOOT_ICON1
+PSP_EBOOT_ICON1 = NULL
+endif
+
+ifndef PSP_EBOOT_UNKPNG
+PSP_EBOOT_UNKPNG = NULL
+endif
+
+ifndef PSP_EBOOT_PIC1
+PSP_EBOOT_PIC1 = NULL
+endif
+
+ifndef PSP_EBOOT_SND0
+PSP_EBOOT_SND0 = NULL
+endif
+
+ifndef PSP_EBOOT_PSAR
+PSP_EBOOT_PSAR = NULL
+endif
+
+# Externally defined variables: PSP_BIN, PSP_OBJS, PSP_LIB
+
+# These macros can be used to simplify certain build rules.
+PSP_C_COMPILE = psp-cc $(PSP_CFLAGS) $(PSP_INCS)
+PSP_CXX_COMPILE = psp-g++ $(PSP_CXXFLAGS) $(PSP_INCS)
+
+%.o : %.c
+	psp-gcc $(PSP_CFLAGS) $(PSP_INCS) -c $< -o $@
+
+%.o : %.cpp
+	psp-g++ $(PSP_CXXFLAGS) $(PSP_INCS) -c $< -o $@
+
+%.o : %.S
+	psp-gcc $(PSP_CFLAGS) $(PSP_INCS) -c $< -o $@
+
+%.o : %.s
+	psp-as $(PSP_ASFLAGS) $< -o $@
+
+%.SFO : 
+	mksfo '$(PSP_EBOOT_TITLE)' $(PSP_EBOOT_SFO)
+
+$(PSP_BIN) : $(PSP_OBJS) 
+	psp-gcc $(PSP_LDFLAGS) -o $(PSP_BIN).fix $(PSP_OBJS) $(PSP_LIBS) $(PSPSDK)/../psp/lib/crt0.o 
+	$(PSPSDK)/../bin/prxtool -p -o $(PSP_BIN) $(PSP_BIN).fix 
+	rm -f $(PSP_BIN).fix
+
+$(PSP_LIB) : $(PSP_OBJS)
+	psp-ar cru $(PSP_LIB) $(PSP_OBJS)
+
+$(PSP_EBOOT) : $(PSP_BIN) $(PSP_EBOOT_SFO)
+	pack-pbp EBOOT.PBP $(PSP_EBOOT_SFO) $(PSP_EBOOT_ICON)  \
+		     $(PSP_EBOOT_ICON1) $(PSP_EBOOT_UNKPNG) $(PSP_EBOOT_PIC1)  \
+			 $(PSP_EBOOT_SND0)  $(PSP_BIN) $(PSP_EBOOT_PSAR)
