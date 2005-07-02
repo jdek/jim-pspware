@@ -4,8 +4,9 @@ PSPMediaCenter by John_K & adresd
 v0.79 - July 2 2005
 -------------------------------------------------------------
 Fixed up to build with new pspsdk setup.
-Left and Right top buttons now do previous/next tune.
-Ogg seems slightly broken, investigating.
+Left and Right top buttons now do previous/next tune when playing.
+Left and Right d-pad goes up/down 10 tunes in the playlist view.
+Ogg seems slightly broken, investigating. So using old compile at moment.
 
 v0.7 - June 25 2005
 -------------------------------------------------------------

@@ -301,6 +301,16 @@ char *selectmedia()
 	sceCtrlReadBufferPositive(&pad, 1);
 
 	if (buttonsold != pad.buttons) {
+    if (pad.buttons & CTRL_RIGHT)
+      if (highlight < (mods_infonum - 11))
+        highlight += 10;
+      else
+        highlight = mods_infonum-1;
+    if (pad.buttons & CTRL_LEFT)
+      if (highlight >= 10)
+        highlight -= 10;
+      else
+        highlight = 0;
 	    if (pad.buttons & CTRL_UP)
 		if (highlight >= 1)
 		    highlight--;
