@@ -45,7 +45,7 @@ pid_t getpid()
     return pid;
 }
 
-int fstat(int fd, io_stat_t * buf)
+int fstat(int fd, SceIoStat * buf)
 {
 /*
 struct stat {
