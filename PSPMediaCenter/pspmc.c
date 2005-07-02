@@ -99,6 +99,7 @@ void strcat2(char *dest, char *src)
     *(dest + pos2) = 0;
 }
 
+static int forceskip;
 void playmedia(char *rootpath, char *modname)
 {
     char filename[200];
@@ -131,6 +132,8 @@ void playmedia(char *rootpath, char *modname)
 	pspDebugScreenSetXY(0, 26);
 	printf("Playing\n\n");
 
+  forceskip = 0;
+
 	sceCtrlReadBufferPositive(&pad, 1);
 	buttonsold = pad.buttons;
 	while (finished == 0) {
@@ -138,6 +141,14 @@ void playmedia(char *rootpath, char *modname)
 	    sceCtrlReadBufferPositive(&pad, 1);
 
 	    if (pad.buttons != buttonsold) {
+        if (pad.buttons & CTRL_LTRIGGER) { // Previous tune
+          forceskip = 1;
+          finished = 1;
+        }
+        if (pad.buttons & CTRL_RTRIGGER) {  // Next tune
+          forceskip = 2;
+          finished = 1;
+        }
 		if (pad.buttons & CTRL_CIRCLE)
 		    decoder->stop();
 		if (pad.buttons & CTRL_CROSS)
@@ -242,6 +253,17 @@ char *selectmedia()
     int x, y;
     u32 buttonsold = 0;
     int basepos;
+
+    if (forceskip != 0) { // we are forcing a skip
+      if (forceskip == 1) { // previous tune
+        if (highlight != 0) highlight--;
+      }
+      else if (forceskip == 2) { // next tune
+        if (highlight != mods_infonum) highlight++;
+      }
+  		return mods_infoname[highlight];
+    }
+
     printf("Select media to play:\n\n");
     // Save screen position
     x = pspDebugScreenGetX();
@@ -480,6 +502,7 @@ int main(int argc, char *argv[])
 
     //  Loop around, offering a mod, till they cancel
     modfile = 1;
+    forceskip = 0;
     while (modfile != 0) {
 	// Setup screen  so it doesnt get messy
 	pspDebugScreenClear();

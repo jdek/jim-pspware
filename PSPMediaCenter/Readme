@@ -1,6 +1,12 @@
 PSPMediaCenter by John_K & adresd
 =================================
 
+v0.79 - July 2 2005
+-------------------------------------------------------------
+Fixed up to build with new pspsdk setup.
+Left and Right top buttons now do previous/next tune.
+Ogg seems slightly broken, investigating.
+
 v0.7 - June 25 2005
 -------------------------------------------------------------
 Currently plays MP3s, AHXs, MODs and partially OGGs (they jitter).

@@ -131,7 +131,7 @@ void Mod_DebugPrint()
 
     x = pspDebugScreenGetX();
     y = pspDebugScreenGetY();
-    for (count = 0; count < m_Samples_num; count++) {
+    for (count = 1; count < m_Samples_num; count++) {
 	if (count == (m_Samples_num / 2)) {
 	    x += 30;
 	    y -= count;
