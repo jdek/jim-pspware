@@ -50,7 +50,7 @@ pbp:
 	mksfo $(PSP_EBOOT_TITLE) $(PSP_EBOOT_SFO)
 	pack-pbp release/v1.0/$(PSP_EBOOT) $(PSP_EBOOT_SFO) $(PSP_EBOOT_ICON) NULL NULL NULL NULL $(FINAL_TARGET) NULL
 	pack-pbp release/PSPMC%/$(PSP_EBOOT) $(PSP_EBOOT_SFO) $(PSP_EBOOT_ICON) NULL NULL NULL NULL NULL NULL
-	cp -rf $(PSP_BIN).fix release/PSPMC/EBOOT.PBP
+	cp -rf $(FINAL_TARGET) release/PSPMC/EBOOT.PBP
 	cp -rf Readme release/Readme.txt
 	
 # Upload PBP to MemoryStick	
