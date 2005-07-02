@@ -1,34 +1,35 @@
 # Makefile for PSP MediaCenter
 PSPSDK=$(shell psp-config --pspsdk-path)
 PSP_EBOOT = EBOOT.PBP
-PSP_BIN = pspmc.elf
+TARGET = pspmc
 
 # EBOOT.PBP Settings, to save hand editing
 PSP_EBOOT_SFO = media/PARAM.SFO
 PSP_EBOOT_ICON = media/pspdev.png
-PSP_EBOOT_TITLE = "PSP Media Center v0.71"
+PSP_EBOOT_TITLE = "PSP Media Center v0.79"
 PSP_MSDIR = /cygdrive/I/PSP/GAME/PSPMC
 
 # Work thru the codecs, and sort out settings
 include codec.conf
 
 # Now postprocess the values
-PSP_OBJS := pspmc.o audiolib.o $(PSP_OBJS)
-PSP_LIBS = -lpspdebug $(PLAYER_LIBS) -lpspaudio -lpsplibc
-#-lc -lgcc -lm 
-PSP_CFLAGS  := $(PSP_CFLAGS)
-PSP_LDFLAGS := $(PSP_LDFLAGS) -Lnewlib-fix
+OBJS := pspmc.o $(PSP_OBJS)
+LIBS = $(PLAYER_LIBS) -lpspaudiolib  -lpspaudio -lpsplibc
+# Take cflags and ldflags from codec script and add them in
+CFLAGS  := $(PSP_CFLAGS)
+LDFLAGS := $(PSP_LDFLAGS) -Lnewlib-fix
+EXTRA_TARGETS := deps header 
 
-all: deps release
+# This must be included here
+include $(PSPSDK)/lib/build.mak
 
+# Now our own build targets
 deps: 
 	make -C newlib-fix
 
-release : header $(PSP_BIN)
-
-clean:
+cleanall:
 	make -C newlib-fix clean
-	rm -f *.elf *.o *.a $(PSP_EBOOT) $(PSP_BIN).fix release/* release/v1.0/* release/PSPMC/* release/PSPMC%/* codecincs.h $(PSP_OBJS) 2> /dev/null
+	rm -f *.elf *.o *.a $(PSP_EBOOT) $(FINAL_TARGET) release/* release/v1.0/* release/PSPMC/* release/PSPMC%/* codecincs.h $(PSP_OBJS) 2> /dev/null
 
 cleanup:
 	rm -f *.bak *.?~ mp3/*.bak mp3/*.?~ ogg/*.bak ogg/*.?~ mod/*.bak mod/*.?~ newlib-fix/*.?~ newlib-fix/*.bak
@@ -45,9 +46,9 @@ header:
 
 # Build a PBP file	
 pbp:
-	psp-strip --strip-all $(PSP_BIN).fix
+	psp-strip --strip-all $(FINAL_TARGET)
 	mksfo $(PSP_EBOOT_TITLE) $(PSP_EBOOT_SFO)
-	pack-pbp release/v1.0/$(PSP_EBOOT) $(PSP_EBOOT_SFO) $(PSP_EBOOT_ICON) NULL NULL NULL NULL $(PSP_BIN).fix NULL
+	pack-pbp release/v1.0/$(PSP_EBOOT) $(PSP_EBOOT_SFO) $(PSP_EBOOT_ICON) NULL NULL NULL NULL $(FINAL_TARGET) NULL
 	pack-pbp release/PSPMC%/$(PSP_EBOOT) $(PSP_EBOOT_SFO) $(PSP_EBOOT_ICON) NULL NULL NULL NULL NULL NULL
 	cp -rf $(PSP_BIN).fix release/PSPMC/EBOOT.PBP
 	cp -rf Readme release/Readme.txt
@@ -58,4 +59,3 @@ upload10:
 upload15:
 	cp release/PSPMC/EBOOT.PBP $(PSP_MSDIR)/EBOOT.PBP
 	
-include make.base
