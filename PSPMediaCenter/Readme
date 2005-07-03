@@ -1,6 +1,10 @@
 PSPMediaCenter by John_K & adresd
 =================================
 
+v0.80 - July 3 2005
+-------------------------------------------------------------
+Added a base XM player.
+
 v0.79 - July 2 2005
 -------------------------------------------------------------
 Fixed up to build with new pspsdk setup.
