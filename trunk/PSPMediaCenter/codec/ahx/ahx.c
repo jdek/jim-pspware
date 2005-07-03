@@ -17,7 +17,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <pspaudiolib.h>
-#include "codec.h"
+#include "../../codec.h"
 #include "ahx.h"
 
 // if this is defined will be compiled without PRINTF output
