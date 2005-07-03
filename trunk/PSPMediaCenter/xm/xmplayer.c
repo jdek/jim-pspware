@@ -39,6 +39,7 @@ static short *buffer;
 static int bufferSize;
 
 static int myChannel;
+static unsigned char *filedataptr;
 
 #define printf pspDebugScreenPrintf
 
@@ -140,6 +141,7 @@ void XMsetStubs(codecStubs * stubs)
 
 void XM_Init(int channel)
 {
+  filedataptr = 0;
   myChannel = channel;
   m_bPlaying = 0;
   pspAudioSetChannelCallback(myChannel, XMPlayCallback);
@@ -148,6 +150,10 @@ void XM_End()
 {
   XM_Stop();
   pspAudioSetChannelCallback(myChannel, 0);
+  if (filedataptr != 0) {
+    free(filedataptr);
+    filedataptr = 0;
+  }
 }
 
 int XM_InitTune(unsigned char *ptr, long size)
@@ -210,8 +216,15 @@ int XM_Load(char *filename)
     //  opened file, so get size now
     size = sceIoLseek(fd, 0, PSP_SEEK_END);
     sceIoLseek(fd, 0, PSP_SEEK_SET);
+
+    if (filedataptr != 0) {
+      free(filedataptr);
+      filedataptr = 0;
+    }
+
     ptr = (unsigned char *) malloc(size + 8);
     if (ptr != 0) {		// Read file in
+      filedataptr = ptr;
       memset(ptr, 0, size + 8);
       sceIoRead(fd, ptr, size);
       // ok, read the file in, now do our stuff
