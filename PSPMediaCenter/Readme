@@ -1,6 +1,13 @@
 PSPMediaCenter by John_K & adresd
 =================================
 
+v0.81 - July 3 2005
+-------------------------------------------------------------
+Re-organisation to split the gui's into configurable options.
+This allows a debug version for audio codecs, and a debug one
+for video codecs, as well as the 'full' nice interface for 
+release builds.
+
 v0.80 - July 3 2005
 -------------------------------------------------------------
 Added a base XM player.
