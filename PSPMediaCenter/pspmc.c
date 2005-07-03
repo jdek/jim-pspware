@@ -261,6 +261,7 @@ char *selectmedia()
       else if (forceskip == 2) { // next tune
         if (highlight != mods_infonum) highlight++;
       }
+      forceskip = 0;
   		return mods_infoname[highlight];
     }
 
@@ -273,7 +274,7 @@ char *selectmedia()
     buttonsold = pad.buttons;
 
     pspDebugScreenSetXY(0, 32);
-    printf("Up/Down = Move cursor.  X = Select.  START/SELECT = Exit.\n");
+    printf("Up/Down = Move cursor.  X = Select.  SELECT = Exit.\n");
 
     highlightold = -1;
     while (finished == 0) {	// Draw the menu firstly
@@ -319,8 +320,6 @@ char *selectmedia()
 		    highlight++;
 	    if (pad.buttons & CTRL_CROSS)
 		return mods_infoname[highlight];
-	    if (pad.buttons & CTRL_START)
-		return 0;
 	    if (pad.buttons & CTRL_SELECT)
 		return 0;
 	}
