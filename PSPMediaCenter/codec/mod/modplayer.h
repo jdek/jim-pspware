@@ -6,7 +6,7 @@
 #ifndef _MODPLAYER_GENERAL_H
 #define _MODPLAYER_GENERAL_H
 
-#include "../codec.h"
+#include "../../codec.h"
 
 #ifdef __cplusplus
 extern "C" {

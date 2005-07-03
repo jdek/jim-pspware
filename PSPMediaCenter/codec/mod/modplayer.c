@@ -23,8 +23,6 @@
 #include <pspdebug.h>
 #include <stdlib.h>
 #include <string.h>
-
-#include "codec.h"
 #include <pspaudiolib.h>
 #include "modplayer.h"
 #include "modplayeri.h"

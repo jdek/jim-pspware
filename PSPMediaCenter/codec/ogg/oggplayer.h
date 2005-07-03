@@ -8,7 +8,7 @@
 
 #include <ivorbiscodec.h>
 #include <ivorbisfile.h>
-#include "../codec.h"
+#include "../../codec.h"
 
 #ifdef __cplusplus
 extern "C" {

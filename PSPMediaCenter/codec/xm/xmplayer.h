@@ -6,7 +6,7 @@
 #ifndef _XMPLAYER_H_
 #define _XMPLAYER_H_
 
-#include "../codec.h"
+#include "../../codec.h"
 
 #ifdef __cplusplus
 extern "C" {
