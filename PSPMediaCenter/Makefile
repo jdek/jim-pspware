@@ -57,7 +57,7 @@ pbp:
 	
 # Upload PBP to MemoryStick	
 upload10:
-	cp release/v1.0/$(PSP_EBOOT) $(PSP_MSDIR)/EBOOT.PBP
+	cp release/PSPMC/$(PSP_EBOOT) $(PSP_MSDIR)/EBOOT.PBP
 upload15:
 	cp release/PSPMC/EBOOT.PBP $(PSP_MSDIR)/EBOOT.PBP
 	
