@@ -1,22 +1,5 @@
-// modplayer.c: Module Player Implementation in C for Sony PSP
+// oggplayer.c: OGG Player Implementation in C for Sony PSP
 //
-// "PSP ModPlayer v1.0" by adresd
-//
-// Much of the information in this file (particularly the code used to do 
-// the effects) came from Brett Paterson's MOD Player Tutorial.
-// Also contains some code by Mark Feldman, which is not subject to a license
-// of any kind.
-//
-// This is not the most efficient bit of code in the world and there are a lot
-// of optimisations that could be done, but it is released as a working 
-// modplayer for PSP which can be used and expanded upon by others.
-// I would ask that anyone who expands or improves it considers releasing
-// an updated version of the source, as a courtesy.
-//
-// This code is released with no implied warranty or assurance that it works
-// it is not subject to any GPL or suchlike license, so use and enjoy.
-//
-//                   -- adresd
 ////////////////////////////////////////////////////////////////////////////
 
 #include <pspkernel.h>
@@ -48,10 +31,10 @@ int current_section;
 char **oggComments;
 vorbis_info *vi;
 int errno;			// __errno;
-FILE *fp;
 static int isPlaying;		// Set to true when a mod is being played
 static int myChannel;
 int fd = 0;
+
 /*
 #define PREBUFFER	2097152
 static short outputBuffer[PREBUFFER];
@@ -78,6 +61,17 @@ static void OGGCallback(short *_buf, unsigned long numSamples)
 	while (tempmixleft < numSamples) {	//  Not enough in buffer, so we must mix more
 	    unsigned long bytesRequired = (numSamples - tempmixleft) * 4;	// 2channels, 16bit = 4 bytes per sample
 	    unsigned long ret = ov_read(&vf, (char *) &tempmixbuf[tempmixleft * 2], bytesRequired, &current_section);
+	    if (ret == 0) { //EOF
+	        if(ov_pcm_seek_page(&vf, 0) != 0) {
+	            printf("Could not seek to start of file\n");
+	            OGG_End();
+	        }
+	        return;
+	    } else if (ret < 0) {
+	    	printf("Error occured during ov_read: %d\n", ret);
+	    	sceKernelDelayThread(500000);
+	    	return;
+	    }
 	    tempmixleft += ret / 4;	// back down to sample num
 	}
 	if (tempmixleft >= numSamples) {	//  Buffer has enough, so copy across
@@ -97,19 +91,16 @@ static void OGGCallback(short *_buf, unsigned long numSamples)
 		tempmixbuf[count] = tempmixbuf[numSamples + count];
 	}
 
+    } else {			//  Not Playing , so clear buffer
+	    int count;
+	    for (count = 0; count < numSamples * 2; count++)
+		*(_buf + count) = 0;
     }
 }
 
 //////////////////////////////////////////////////////////////////////
 // Functions - Local and not public
 //////////////////////////////////////////////////////////////////////
-
-//  This is the initialiser and module loader
-//  This is a general call, which loads the module from the 
-//  given address into the modplayer
-//
-//  It basically loads into an internal format, so once this function
-//  has returned the buffer at 'data' will not be needed again.
 
 size_t ogg_callback_read(void *ptr, size_t size, size_t nmemb, void *datasource)
 {
@@ -133,44 +124,30 @@ int OGG_Load(char *filename)
     int size = 0;
     isPlaying = 0;
     ov_callbacks ogg_callbacks;
+    
     ogg_callbacks.read_func = ogg_callback_read;
     ogg_callbacks.seek_func = ogg_callback_seek;
     ogg_callbacks.close_func = ogg_callback_close;
     ogg_callbacks.tell_func = ogg_callback_tell;
+    
     if ((fd = sceIoOpen(filename, PSP_O_RDONLY, 0777)) <= 0) {
-//    fp = fopen(filename, "r");
-//    if (!fp) {
 	printf("could not open file %s\n", filename);
 	sceDisplayWaitVblankStart();
 	sceDisplayWaitVblankStart();
 	sceKernelDelayThread(500000);
 	return 0;
     }
-/*	printf("getting size\n");
-	fseek(fp, 0, PSP_SEEK_END);
-	size = ftell(fp);
-	fseek(fp, 0, PSP_SEEK_SET);
-    printf("opening oggfile (size: %d)\n", size);
-    sceDisplayWaitVblankStart();
-    sceDisplayWaitVblankStart();
-    if (ov_open(fp, &vf, NULL, 0) < 0) {*/
     if (ov_open_callbacks(&fd, &vf, NULL, 0, ogg_callbacks) < 0) {
 	printf("Input does not appear to be an Ogg bitstream.\n");
-	sceDisplayWaitVblankStart();
-	sceDisplayWaitVblankStart();
 	sceKernelDelayThread(500000);
 	return 0;
     } else {
-	printf("here is ogg info:\n");
-	sceDisplayWaitVblankStart();
-	sceDisplayWaitVblankStart();
 	oggComments = ov_comment(&vf, -1)->user_comments;
 	vi = ov_info(&vf, -1);
-	printf("\nBitstream is %d channel, %ldHz\n", vi->channels, vi->rate);
-	printf("\nDecoded length: %ld samples\n", (long) ov_pcm_total(&vf, -1));
-	printf("Encoded by: %s\n\n", ov_comment(&vf, -1)->vendor);
+	pspDebugScreenSetXY(0, 29);
+	printf("%d channel, %lu kb/s %s OGG Vorbis audio stream at %ldHz\n", vi->channels, vi->bitrate_nominal/1000, vi->bitrate_upper == vi->bitrate_nominal ? "CBR" : "VBR", vi->rate);
+	printf("Encoded by: %s\n", ov_comment(&vf, -1)->vendor);
     }
-
     return 1;
 }
 
@@ -196,13 +173,9 @@ int OGG_Stop()
 {
     //stop playing
     isPlaying = FALSE;
-    OGG_FreeTune();
-    //seek to beginning of file
-    //sceIoLseek(BstdFile->fd, 0, SEEK_SET);
 
     return TRUE;
 }
-
 
 void OGG_Pause()
 {
@@ -212,8 +185,8 @@ void OGG_Pause()
 void OGG_FreeTune()
 {
     ov_clear(&vf);
-    if (fp)
-	fclose(fp);
+    if (fd)
+	sceIoClose(fd);
 }
 
 void OGG_End()

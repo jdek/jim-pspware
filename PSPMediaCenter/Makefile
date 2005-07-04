@@ -6,7 +6,7 @@ TARGET = pspmc
 # EBOOT.PBP Settings, to save hand editing
 PSP_EBOOT_SFO = media/PARAM.SFO
 PSP_EBOOT_ICON = media/pspdev.png
-PSP_EBOOT_TITLE = "PSP Media Center v0.81"
+PSP_EBOOT_TITLE = "PSP Media Center v0.82"
 PSP_MSDIR = /cygdrive/I/PSP/GAME/PSPMC
 
 # Work thru the codecs, and sort out settings
@@ -16,7 +16,7 @@ include codec.conf
 OBJS := pspmc.o $(PSP_OBJS)
 LIBS = $(PLAYER_LIBS) -lpspaudiolib  -lpspaudio -lpsplibc
 # Take cflags and ldflags from codec script and add them in
-CFLAGS  := $(PSP_CFLAGS)
+CFLAGS  := -G0 $(PSP_CFLAGS)
 LDFLAGS := $(PSP_LDFLAGS) -Lnewlib-fix
 EXTRA_TARGETS := deps header 
 
@@ -48,10 +48,12 @@ header:
 pbp:
 	psp-strip --strip-all $(FINAL_TARGET)
 	mksfo $(PSP_EBOOT_TITLE) $(PSP_EBOOT_SFO)
-	pack-pbp release/v1.0/$(PSP_EBOOT) $(PSP_EBOOT_SFO) $(PSP_EBOOT_ICON) NULL NULL NULL NULL $(FINAL_TARGET) NULL
-	pack-pbp release/PSPMC%/$(PSP_EBOOT) $(PSP_EBOOT_SFO) $(PSP_EBOOT_ICON) NULL NULL NULL NULL NULL NULL
-	cp -rf $(FINAL_TARGET) release/PSPMC/EBOOT.PBP
+	mkdir -p release/PSPMC release/kxploit/PSPMC_~1% release/kxploit/PSPMC\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ _
+	pack-pbp release/PSPMC/$(PSP_EBOOT) $(PSP_EBOOT_SFO) $(PSP_EBOOT_ICON) NULL NULL NULL NULL $(FINAL_TARGET) NULL
+	pack-pbp release/kxploit/PSPMC_~1%/$(PSP_EBOOT) $(PSP_EBOOT_SFO) $(PSP_EBOOT_ICON) NULL NULL NULL NULL NULL NULL
+	cp -rf $(FINAL_TARGET) release/kxploit/PSPMC\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ _/EBOOT.PBP
 	cp -rf Readme release/Readme.txt
+	unix2dos -D release/Readme.txt
 	
 # Upload PBP to MemoryStick	
 upload10:
