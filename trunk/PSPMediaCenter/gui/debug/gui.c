@@ -26,9 +26,10 @@
 // Common externs
 extern unsigned char banner[];
 extern codecStubs stubs[100];
-extern codecStubs *decoder;
 extern int errno, __errno;
 extern int codecnum ;
+
+static codecStubs *decoder;
 
 static void strcat2(char *dest, char *src)
 {
