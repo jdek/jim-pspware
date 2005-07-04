@@ -97,7 +97,7 @@ static int m_TrackDat_num;
 static TrackData *m_TrackDat;	// Stores info for each track being played
 static RowData *m_CurrentRow;	// Pointer to the current row being played
 static int m_bPlaying;		// Set to true when a mod is being played
-u8 *data;
+static u8 *data;
 int size = 0;
 //////////////////////////////////////////////////////////////////////
 // These are the public functions
