@@ -1,6 +1,13 @@
 PSPMediaCenter by John_K & adresd
 =================================
 
+v0.82 - July 3 2005
+-------------------------------------------------------------
+Fixed OGG crashing at end of file
+Made OGGs loop
+Cleaned up OGG printfs
+Fixed slight ommission when adresd changed makefile to use build.mak in v0.79 (added -G0 to CFLAGS)
+
 v0.81 - July 3 2005
 -------------------------------------------------------------
 Re-organisation to split the gui's into configurable options.
@@ -19,18 +26,19 @@ Left and Right top buttons now do previous/next tune when playing.
 Left and Right d-pad goes up/down 10 tunes in the playlist view.
 Ogg seems slightly broken, investigating. So using old compile at moment.
 
+v0.71 - June 27 2005
+-------------------------------------------------------------
+44kHz OGG Decoding fixed
+AAC code added. Not working yet.
+new toolchain / PSPSDK broke libTremor just after we fixed it, OGG no longer works at all
+
 v0.7 - June 25 2005
 -------------------------------------------------------------
-Currently plays MP3s, AHXs, MODs and partially OGGs (they jitter).
-Uses libMad, Tremor and adresd's MOD code.
-
+Added AHX support
 For this version, codec config moved to 'codec.conf' so player app doesnt
 need to be changed to add/remove codecs.
 
-Place media files in /PSP/MUSIC but not in a subdir.
-For MODs, only .mod will work. For AHX, only .ahx will work.
 
-only 44khz files are currently supported, although others may partially work.
 
 v0.5b - June 23 2005
 -------------------------------------------------------------

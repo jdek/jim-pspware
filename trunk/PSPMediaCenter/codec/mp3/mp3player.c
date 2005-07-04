@@ -145,11 +145,9 @@ static int PrintFrameInfo(struct mad_header *Header)
 	Emphasis = "(unexpected emphasis value)";
 	break;
     }
-
-    printf("%lu kb/s audio MPEG layer %s stream %s CRC, "
-	   "%s with %s emphasis at %d Hz sample rate\n",
-	   Header->bitrate, Layer,
-	   Header->flags & MAD_FLAG_PROTECTION ? "with" : "without", Mode, Emphasis, Header->samplerate);
+    pspDebugScreenSetXY(0, 29);
+    printf("%lu kb/s audio MPEG layer %s stream at %dHz\n",
+	   Header->bitrate/1000, Layer, Header->samplerate);
     sceDisplayWaitVblankStart();
     return (0);
 }
