@@ -57,6 +57,7 @@ void AACsetStubs(codecStubs * stubs)
     stubs->pause = AAC_Pause;
     stubs->stop = AAC_Stop;
     stubs->end = AAC_End;
+    stubs->time = NULL;
     stubs->tick = NULL;
     memcpy(stubs->extension, "aac\0", 4);
 }

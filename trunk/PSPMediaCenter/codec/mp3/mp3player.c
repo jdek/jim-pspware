@@ -78,6 +78,7 @@ void MP3setStubs(codecStubs * stubs)
     stubs->pause = MP3_Pause;
     stubs->stop = MP3_Stop;
     stubs->end = MP3_End;
+    stubs->time = MP3_GetTimeString;
     stubs->tick = NULL;
     memcpy(stubs->extension, "mp3\0", 4);
 }
@@ -612,4 +613,10 @@ int MP3_Stop()
     //sceIoLseek(BstdFile->fd, 0, SEEK_SET);
 
     return TRUE;
+}
+
+void MP3_GetTimeString(char *dest)
+{
+  mad_timer_string(Timer, dest, "%02lu:%02u:%02u", MAD_UNITS_HOURS,
+                   MAD_UNITS_MILLISECONDS, 0);
 }

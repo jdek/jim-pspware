@@ -107,6 +107,7 @@ int AHXPlayer_Play();
 int AHXPlayer_Stop();
 int AHXPlayer_Load(char *filename);
 void AHXsetStubs(codecStubs * stubs);
+void AHXPlayer_GetTimeString(char *dest);
 
 
 int  AHXPlayer_LoadSongBuffer(unsigned char* Buffer, int Len);

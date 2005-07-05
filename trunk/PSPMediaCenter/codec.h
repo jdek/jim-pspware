@@ -8,6 +8,7 @@ typedef void (*fd_pauseFunc) (void);
 typedef int (*fd_stopFunc) (void);
 typedef void (*fd_endFunc) (void);
 typedef void (*fd_tickFunc) (void);
+typedef void (*fd_timeFunc) (char *);
 
 typedef struct {
     fd_initFunc init;
@@ -17,6 +18,7 @@ typedef struct {
     fd_stopFunc stop;
     fd_endFunc end;
     fd_tickFunc tick;
+    fd_timeFunc time;
     char extension[4];
 } codecStubs;
 

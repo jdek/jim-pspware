@@ -105,6 +105,16 @@ static void playmedia(char *rootpath, char *modname)
             finished = 2;
           buttonsold = pad.buttons;
         }
+
+        if (decoder->time != NULL)
+        {
+          char time[200];
+          decoder->time(time);
+          pspDebugScreenSetXY(58, 0);
+          printf("%s",time);
+          pspDebugScreenSetXY(0, 32);
+        }
+
       }
       decoder->stop();
       decoder->end();

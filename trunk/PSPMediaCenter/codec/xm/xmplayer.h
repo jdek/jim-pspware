@@ -22,6 +22,7 @@ extern "C" {
     int XM_Stop();
     void XM_End();
     int XM_Load(char *filename);
+    void XM_GetTimeString(char *dest);
 
 #ifdef __cplusplus
 }

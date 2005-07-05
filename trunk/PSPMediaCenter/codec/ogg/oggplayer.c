@@ -48,9 +48,11 @@ void OGGsetStubs(codecStubs * stubs)
     stubs->pause = OGG_Pause;
     stubs->stop = OGG_Stop;
     stubs->end = OGG_End;
+    stubs->time = OGG_GetTimeString;
     stubs->tick = NULL;
     memcpy(stubs->extension, "ogg\0", 4);
 }
+
 
 static void OGGCallback(short *_buf, unsigned long numSamples)
 {
@@ -194,4 +196,23 @@ void OGG_End()
     OGG_Stop();
     pspAudioSetChannelCallback(myChannel, 0);
     OGG_FreeTune();
+}
+
+void OGG_GetTimeString(char *dest)
+{
+//extern ogg_int64_t ov_time_tell(OggVorbis_File *vf);
+  unsigned int time = (unsigned int) ov_time_tell(&vf);
+#define F_MULT 1000
+#define S_MULT 60
+#define M_MULT 60
+#define H_MULT 60
+  unsigned int timeS,timeM,timeH,timeF;
+  timeF = time % F_MULT;
+  time -= timeF;  time /= F_MULT;
+  timeS = time % S_MULT;
+  time -= timeS;  time /= S_MULT;
+  timeM = time % M_MULT;
+  time -= timeM;  time /= M_MULT;
+  timeH = time;
+  sprintf(dest,"%02d:%02d:%02d",timeH,timeM,timeS);
 }

@@ -98,8 +98,14 @@ void AHXsetStubs(codecStubs * stubs)
     stubs->pause = NULL;
     stubs->stop = AHXPlayer_Stop;
     stubs->end = AHXPlayer_End;
+    stubs->time = AHXPlayer_GetTimeString;
     stubs->tick = NULL;
     memcpy(stubs->extension, "ahx\0", 4);
+}
+
+void AHXPlayer_GetTimeString(char *dest)
+{
+  sprintf(dest,"%02d:%02d:%02d",0,PosNr,NoteNr);
 }
 
 int AHXPlayer_Load(char *filename)

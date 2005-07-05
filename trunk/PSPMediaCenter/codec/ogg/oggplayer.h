@@ -27,6 +27,8 @@ extern "C" {
     void OGG_Tick();
     void OGG_Close();
     void OGG_FreeTune();
+    void OGG_GetTimeString(char *dest);
+
 
 #ifdef __cplusplus
 }
