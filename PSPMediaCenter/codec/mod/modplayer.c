@@ -115,8 +115,16 @@ void MODsetStubs(codecStubs * stubs)
     stubs->pause = Mod_Pause;
     stubs->stop = Mod_Stop;
     stubs->end = Mod_End;
+    stubs->time = Mod_GetTimeString;
     stubs->tick = NULL;
     memcpy(stubs->extension, "mod\0", 4);
+}
+
+void Mod_GetTimeString(char *dest)
+{
+  *dest = '\0';
+  //HH:MM:SS
+  sprintf(dest,"%02d:%02d:%02d",m_nOrder,m_nRow,m_nTick);
 }
 
 void Mod_DebugPrint()

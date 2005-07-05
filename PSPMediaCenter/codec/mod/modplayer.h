@@ -25,6 +25,8 @@ extern "C" {
     void Mod_Tick();
     void Mod_Close();
 
+    void Mod_GetTimeString(char *);
+
 #ifdef __cplusplus
 }
 #endif

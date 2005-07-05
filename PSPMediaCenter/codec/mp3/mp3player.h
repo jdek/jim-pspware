@@ -24,6 +24,7 @@ extern "C" {
     void MP3_End();
     int MP3_Load(char *filename);
 
+    void MP3_GetTimeString(char *dest);
 
 #ifdef __cplusplus
 }

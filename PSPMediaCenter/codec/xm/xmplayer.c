@@ -135,6 +135,7 @@ void XMsetStubs(codecStubs * stubs)
   stubs->pause = XM_Pause;
   stubs->stop = XM_Stop;
   stubs->end = XM_End;
+  stubs->time = XM_GetTimeString;
   stubs->tick = NULL;
   memcpy(stubs->extension, ".xm\0", 4);
 }
@@ -154,6 +155,13 @@ void XM_End()
     free(filedataptr);
     filedataptr = 0;
   }
+}
+
+void XM_GetTimeString(char *dest)
+{
+  *dest = '\0';
+  //HH:MM:SS
+  sprintf(dest,"%02d:%02d:%02d",0,0,0);
 }
 
 int XM_InitTune(unsigned char *ptr, long size)

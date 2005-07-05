@@ -28,7 +28,7 @@ PSP_MODULE_INFO("PSPMC", 0, 0, 71);
 
 codecStubs stubs[100];
 codecStubs *decoder;
-unsigned char banner[] = "PSP Media Center v0.82 by John_K & adresd\0";
+unsigned char banner[] = "PSP Media Center v0.83 by John_K & adresd\0";
 int errno, __errno;
 int codecnum = 0;
 
