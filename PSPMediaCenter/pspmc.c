@@ -21,7 +21,8 @@
 #include "codecincs.h"
 
 /* Define the module info section */
-PSP_MODULE_INFO("PSPMC", 0, 0, 71);
+PSP_MODULE_INFO("PSPMC", 0x1000, 0, 71);
+PSP_MAIN_THREAD_ATTR(0);
 
 /* Define printf, just to make typing easier */
 #define printf  pspDebugScreenPrintf
@@ -57,13 +58,31 @@ int SetupCallbacks(void)
     return thid;
 }
 
+/* Example custom exception handler */
+void MyExceptionHandler(PspDebugRegBlock * regs)
+{
+    /* Do normal initial dump, setup screen etc */
+    pspDebugScreenInit();
+
+    /* I always felt BSODs were more interesting that white on black */
+    pspDebugScreenSetBackColor(0x00FF0000);
+    pspDebugScreenSetTextColor(0xFFFFFFFF);
+    pspDebugScreenClear();
+
+    pspDebugScreenPrintf("I regret to inform you your psp has just crashed\n");
+    pspDebugScreenPrintf("Please contact Sony technical support for further information\n\n");
+    pspDebugScreenPrintf("Exception Details:\n");
+    pspDebugDumpException(regs);
+    pspDebugScreenPrintf("\nBlame the 3rd party software, it cannot possibly be our fault!\n");
+}
+
 /* main routine */
 int main(int argc, char *argv[])
 {
     int stubnum;
 
     SetupCallbacks();
-
+    pspDebugInstallErrorHandler(MyExceptionHandler);
     // Setup Pad
     sceCtrlSetSamplingCycle(0);
     sceCtrlSetSamplingMode(0);

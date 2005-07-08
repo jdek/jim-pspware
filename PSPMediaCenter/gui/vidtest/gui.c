@@ -27,7 +27,7 @@ extern unsigned char banner[];
 extern codecStubs stubs[100];
 extern codecStubs *decoder;
 extern int errno, __errno;
-extern int codecnum ;
+extern int codecnum;
 
 
 

@@ -4,6 +4,6 @@
 #include "../vbf/vbf.h"
 #include <stdio.h>
 
-int vbf_std_open(vbf_t *vbf, void *buffer, int bufferSize);
+int vbf_std_open(vbf_t * vbf, void *buffer, int bufferSize);
 
 #endif
