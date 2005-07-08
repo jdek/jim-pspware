@@ -18,7 +18,7 @@
 #define TRUE !FALSE
 #define min(a,b) (((a)<(b))?(a):(b))
 #define max(a,b) (((a)>(b))?(a):(b))
-//#define OUTPUT_BUFFER_SIZE	2048	/* Must be an integer multiple of 4. */
+//#define OUTPUT_BUFFER_SIZE    2048    /* Must be an integer multiple of 4. */
 
 #ifdef AAC_ENABLE_SBR
 #define SBR_MUL		2
@@ -69,7 +69,7 @@ static void AACCallback(short *_buf, unsigned long numSamples)
     AACFrameInfo aacFrameInfo;
     int err;
     int bytesDecoded;
-    
+
     if (isPlaying == TRUE) {	//  Playing , so mix up a buffer
 	if (samplesInOutput > 0) {
 	    if (samplesInOutput > numSamples) {
@@ -83,30 +83,31 @@ static void AACCallback(short *_buf, unsigned long numSamples)
 	    }
 	}
 	while (samplesOut < numSamples) {
-	//decode samples into AACDecodeBuffer
+	    //decode samples into AACDecodeBuffer
 	    err = AACDecode(hAACDecoder, &readPtr, &bytesLeft, AACDecodeBuffer);
 	    if (err) {
 		printf("decoder threw error %d\n", err);
 	    }
 	    //get stats from last frame
 	    AACGetLastFrameInfo(hAACDecoder, &aacFrameInfo);
-	    pirntf("bitspersample: %d (%d bytes), samps: %d\n", aacFrameInfo.bitsPerSample, aacFrameInfo.bitsPerSample /8, aacFrameInfo.outputSamps);
+	    pirntf("bitspersample: %d (%d bytes), samps: %d\n", aacFrameInfo.bitsPerSample,
+		   aacFrameInfo.bitsPerSample / 8, aacFrameInfo.outputSamps);
 	    bytesDecoded = aacFrameInfo.bitsPerSample / 8, aacFrameInfo.outputSamps;
 	    //move # of requested samples into audio buffer
-	    if (samplesOut + aacFrameInfo.outputSamps <= numSamples*2) {
-	    	memcpy(&_buf[samplesOut*2*2], (char *)AACDecodeBuffer, bytesDecoded);
-	    	samplesOut += aacFrameInfo.outputSamps;
+	    if (samplesOut + aacFrameInfo.outputSamps <= numSamples * 2) {
+		memcpy(&_buf[samplesOut * 2 * 2], (char *) AACDecodeBuffer, bytesDecoded);
+		samplesOut += aacFrameInfo.outputSamps;
 	    } else {
-	    	memcpy(&_buf[samplesOut*2*2], (char *)AACDecodeBuffer, (numSamples-samplesOut)*2*2);
-	    	
-	    	for (i = 0; i < aacFrameInfo.outputSamps - (numSamples-samplesOut) ; i++)
-	    		AACOutputBuffer[i] = AACDecodeBuffer[(numSamples-samplesOut)+i];
-	    	
-	    	samplesOut += numSamples-samplesOut;
-	    	samplesInOutput += aacFrameInfo.outputSamps - (numSamples-samplesOut);
-	}
-	    	
-	    	
+		memcpy(&_buf[samplesOut * 2 * 2], (char *) AACDecodeBuffer, (numSamples - samplesOut) * 2 * 2);
+
+		for (i = 0; i < aacFrameInfo.outputSamps - (numSamples - samplesOut); i++)
+		    AACOutputBuffer[i] = AACDecodeBuffer[(numSamples - samplesOut) + i];
+
+		samplesOut += numSamples - samplesOut;
+		samplesInOutput += aacFrameInfo.outputSamps - (numSamples - samplesOut);
+	    }
+
+
 	}
     } else {			//  Not Playing , so clear buffer
 	{

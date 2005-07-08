@@ -122,9 +122,9 @@ void MODsetStubs(codecStubs * stubs)
 
 void Mod_GetTimeString(char *dest)
 {
-  *dest = '\0';
-  //HH:MM:SS
-  sprintf(dest,"%02d:%02d:%02d",m_nOrder,m_nRow,m_nTick);
+    *dest = '\0';
+    //HH:MM:SS
+    sprintf(dest, "%02d:%02d:%02d", m_nOrder, m_nRow, m_nTick);
 }
 
 void Mod_DebugPrint()

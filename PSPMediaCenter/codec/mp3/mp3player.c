@@ -147,8 +147,7 @@ static int PrintFrameInfo(struct mad_header *Header)
 	break;
     }
     pspDebugScreenSetXY(0, 29);
-    printf("%lu kb/s audio MPEG layer %s stream at %dHz\n",
-	   Header->bitrate/1000, Layer, Header->samplerate);
+    printf("%lu kb/s audio MPEG layer %s stream at %dHz\n", Header->bitrate / 1000, Layer, Header->samplerate);
     sceDisplayWaitVblankStart();
     return (0);
 }
@@ -617,6 +616,5 @@ int MP3_Stop()
 
 void MP3_GetTimeString(char *dest)
 {
-  mad_timer_string(Timer, dest, "%02lu:%02u:%02u", MAD_UNITS_HOURS,
-                   MAD_UNITS_MILLISECONDS, 0);
+    mad_timer_string(Timer, dest, "%02lu:%02u:%02u", MAD_UNITS_HOURS, MAD_UNITS_MILLISECONDS, 0);
 }

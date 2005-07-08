@@ -14,7 +14,7 @@ include codec.conf
 
 # Now postprocess the values
 OBJS := pspmc.o $(PSP_OBJS)
-LIBS = $(PLAYER_LIBS) -lpspaudiolib  -lpspaudio -lpsplibc
+LIBS = $(PLAYER_LIBS) -lpspaudiolib  -lpspaudio -lpsplibc -lpsphprm
 # Take cflags and ldflags from codec script and add them in
 CFLAGS  := -G0 $(PSP_CFLAGS)
 LDFLAGS := $(PSP_LDFLAGS) -Lnewlib-fix
@@ -35,7 +35,7 @@ cleanup:
 	rm -f *.bak *.?~ mp3/*.bak mp3/*.?~ ogg/*.bak ogg/*.?~ mod/*.bak mod/*.?~ newlib-fix/*.?~ newlib-fix/*.bak
 
 indent:
-	indent -kr -l120  *.c *.h mp3/*.c mp3/*.h ogg/*.c ogg/*.h mod/*.c mod/*.h ogg/*.c ogg/*.h newlib-fix/*.c aac/*.c aac/*.h
+	indent -kr -l120  *.c *.h codec/mp3/*.c codec/mp3/*.h codec/ogg/*.c codec/ogg/*.h codec/mod/*.c codec/mod/*.h codec/ogg/*.c codec/ogg/*.h newlib-fix/*.c codec/aac/*.c codec/aac/*.h gui/debug/*.h gui/debug/*.c gui/videotest/*.c gui/videotest/*.h
 
 # Generate the headerfile for included codecs
 header:
