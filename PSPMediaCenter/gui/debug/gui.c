@@ -50,7 +50,7 @@ static void playmedia(char *rootpath, char *modname)
 {
   char filename[200];
   u32 buttonsold;
-  ctrl_data_t pad;
+  SceCtrlData pad;
   int codec;
   int finished = 0;
 
@@ -81,29 +81,29 @@ static void playmedia(char *rootpath, char *modname)
       forceskip = 0;
 
       sceCtrlReadBufferPositive(&pad, 1);
-      buttonsold = pad.buttons;
+      buttonsold = pad.Buttons;
       while (finished == 0) {
         sceDisplayWaitVblankStart();
         sceCtrlReadBufferPositive(&pad, 1);
 
-        if (pad.buttons != buttonsold) {
-          if (pad.buttons & CTRL_LTRIGGER) { // Previous tune
+        if (pad.Buttons != buttonsold) {
+          if (pad.Buttons & PSP_CTRL_LTRIGGER) { // Previous tune
             forceskip = 1;
             finished = 1;
           }
-          if (pad.buttons & CTRL_RTRIGGER) {  // Next tune
+          if (pad.Buttons & PSP_CTRL_RTRIGGER) {  // Next tune
             forceskip = 2;
             finished = 1;
           }
-          if (pad.buttons & CTRL_CIRCLE)
+          if (pad.Buttons & PSP_CTRL_CIRCLE)
             decoder->stop();
-          if (pad.buttons & CTRL_CROSS)
+          if (pad.Buttons & PSP_CTRL_CROSS)
             decoder->pause();
-          if (pad.buttons & CTRL_START)
+          if (pad.Buttons & PSP_CTRL_START)
             finished = 1;
-          if (pad.buttons & CTRL_SELECT)
+          if (pad.Buttons & PSP_CTRL_SELECT)
             finished = 2;
-          buttonsold = pad.buttons;
+          buttonsold = pad.Buttons;
         }
 
         if (decoder->time != NULL)
@@ -201,7 +201,7 @@ static void fillmedialist(char *path)
 
 static char *selectmedia()
 {
-  ctrl_data_t pad;
+  SceCtrlData pad;
   static int highlight = 0;
   int highlightold;
   int finished = 0;
@@ -227,7 +227,7 @@ static char *selectmedia()
   y = pspDebugScreenGetY();
 
   sceCtrlReadBufferPositive(&pad, 1);
-  buttonsold = pad.buttons;
+  buttonsold = pad.Buttons;
 
   pspDebugScreenSetXY(0, 32);
   printf("Up/Down = Move cursor.  X = Select.  SELECT = Exit.\n");
@@ -257,29 +257,29 @@ static char *selectmedia()
     // Now read the keys and act appropriately
     sceCtrlReadBufferPositive(&pad, 1);
 
-    if (buttonsold != pad.buttons) {
-      if (pad.buttons & CTRL_RIGHT)
+    if (buttonsold != pad.Buttons) {
+      if (pad.Buttons & PSP_CTRL_RIGHT)
         if (highlight < (mods_infonum - 11))
           highlight += 10;
         else
           highlight = mods_infonum-1;
-      if (pad.buttons & CTRL_LEFT)
+      if (pad.Buttons & PSP_CTRL_LEFT)
         if (highlight >= 10)
           highlight -= 10;
         else
           highlight = 0;
-      if (pad.buttons & CTRL_UP)
+      if (pad.Buttons & PSP_CTRL_UP)
         if (highlight >= 1)
           highlight--;
-      if (pad.buttons & CTRL_DOWN)
+      if (pad.Buttons & PSP_CTRL_DOWN)
         if (highlight < (mods_infonum - 1))
           highlight++;
-      if (pad.buttons & CTRL_CROSS)
+      if (pad.Buttons & PSP_CTRL_CROSS)
         return mods_infoname[highlight];
-      if (pad.buttons & CTRL_SELECT)
+      if (pad.Buttons & PSP_CTRL_SELECT)
         return 0;
     }
-    buttonsold = pad.buttons;
+    buttonsold = pad.Buttons;
   }
 }
 
