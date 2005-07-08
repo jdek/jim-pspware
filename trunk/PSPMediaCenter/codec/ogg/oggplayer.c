@@ -63,16 +63,16 @@ static void OGGCallback(short *_buf, unsigned long numSamples)
 	while (tempmixleft < numSamples) {	//  Not enough in buffer, so we must mix more
 	    unsigned long bytesRequired = (numSamples - tempmixleft) * 4;	// 2channels, 16bit = 4 bytes per sample
 	    unsigned long ret = ov_read(&vf, (char *) &tempmixbuf[tempmixleft * 2], bytesRequired, &current_section);
-	    if (ret == 0) { //EOF
-	        if(ov_pcm_seek_page(&vf, 0) != 0) {
-	            printf("Could not seek to start of file\n");
-	            OGG_End();
-	        }
-	        return;
+	    if (ret == 0) {	//EOF
+		if (ov_pcm_seek_page(&vf, 0) != 0) {
+		    printf("Could not seek to start of file\n");
+		    OGG_End();
+		}
+		return;
 	    } else if (ret < 0) {
-	    	printf("Error occured during ov_read: %d\n", ret);
-	    	sceKernelDelayThread(500000);
-	    	return;
+		printf("Error occured during ov_read: %d\n", ret);
+		sceKernelDelayThread(500000);
+		return;
 	    }
 	    tempmixleft += ret / 4;	// back down to sample num
 	}
@@ -94,9 +94,9 @@ static void OGGCallback(short *_buf, unsigned long numSamples)
 	}
 
     } else {			//  Not Playing , so clear buffer
-	    int count;
-	    for (count = 0; count < numSamples * 2; count++)
-		*(_buf + count) = 0;
+	int count;
+	for (count = 0; count < numSamples * 2; count++)
+	    *(_buf + count) = 0;
     }
 }
 
@@ -126,12 +126,12 @@ int OGG_Load(char *filename)
     int size = 0;
     isPlaying = 0;
     ov_callbacks ogg_callbacks;
-    
+
     ogg_callbacks.read_func = ogg_callback_read;
     ogg_callbacks.seek_func = ogg_callback_seek;
     ogg_callbacks.close_func = ogg_callback_close;
     ogg_callbacks.tell_func = ogg_callback_tell;
-    
+
     if ((fd = sceIoOpen(filename, PSP_O_RDONLY, 0777)) <= 0) {
 	printf("could not open file %s\n", filename);
 	sceDisplayWaitVblankStart();
@@ -147,7 +147,8 @@ int OGG_Load(char *filename)
 	oggComments = ov_comment(&vf, -1)->user_comments;
 	vi = ov_info(&vf, -1);
 	pspDebugScreenSetXY(0, 29);
-	printf("%d channel, %lu kb/s %s OGG Vorbis audio stream at %ldHz\n", vi->channels, vi->bitrate_nominal/1000, vi->bitrate_upper == vi->bitrate_nominal ? "CBR" : "VBR", vi->rate);
+	printf("%d channel, %lu kb/s %s OGG Vorbis audio stream at %ldHz\n", vi->channels, vi->bitrate_nominal / 1000,
+	       vi->bitrate_upper == vi->bitrate_nominal ? "CBR" : "VBR", vi->rate);
 	printf("Encoded by: %s\n", ov_comment(&vf, -1)->vendor);
     }
     return 1;
@@ -201,18 +202,21 @@ void OGG_End()
 void OGG_GetTimeString(char *dest)
 {
 //extern ogg_int64_t ov_time_tell(OggVorbis_File *vf);
-  unsigned int time = (unsigned int) ov_time_tell(&vf);
+    unsigned int time = (unsigned int) ov_time_tell(&vf);
 #define F_MULT 1000
 #define S_MULT 60
 #define M_MULT 60
 #define H_MULT 60
-  unsigned int timeS,timeM,timeH,timeF;
-  timeF = time % F_MULT;
-  time -= timeF;  time /= F_MULT;
-  timeS = time % S_MULT;
-  time -= timeS;  time /= S_MULT;
-  timeM = time % M_MULT;
-  time -= timeM;  time /= M_MULT;
-  timeH = time;
-  sprintf(dest,"%02d:%02d:%02d",timeH,timeM,timeS);
+    unsigned int timeS, timeM, timeH, timeF;
+    timeF = time % F_MULT;
+    time -= timeF;
+    time /= F_MULT;
+    timeS = time % S_MULT;
+    time -= timeS;
+    time /= S_MULT;
+    timeM = time % M_MULT;
+    time -= timeM;
+    time /= M_MULT;
+    timeH = time;
+    sprintf(dest, "%02d:%02d:%02d", timeH, timeM, timeS);
 }
