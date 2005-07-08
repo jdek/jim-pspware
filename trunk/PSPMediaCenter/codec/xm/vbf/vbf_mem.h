@@ -3,6 +3,6 @@
 
 #include "../vbf/vbf.h"
 
-int vbf_mem_open(vbf_t *vbf, void *buffer, vbf_size_t size);
+int vbf_mem_open(vbf_t * vbf, void *buffer, vbf_size_t size);
 
 #endif

@@ -32,10 +32,11 @@ cleanall:
 	rm -f *.elf *.o *.a $(PSP_EBOOT) $(FINAL_TARGET) release/* release/v1.0/* release/PSPMC/* release/PSPMC%/* codecincs.h $(PSP_OBJS) 2> /dev/null
 
 cleanup:
-	rm -f *.bak *.?~ mp3/*.bak mp3/*.?~ ogg/*.bak ogg/*.?~ mod/*.bak mod/*.?~ newlib-fix/*.?~ newlib-fix/*.bak
+	@find -name "*.bak" -exec rm -f {} \;
+	@find -name "*.?~" -exec rm -f {} \;
 
 indent:
-	indent -kr -l120  *.c *.h codec/mp3/*.c codec/mp3/*.h codec/ogg/*.c codec/ogg/*.h codec/mod/*.c codec/mod/*.h codec/ogg/*.c codec/ogg/*.h newlib-fix/*.c codec/aac/*.c codec/aac/*.h gui/debug/*.h gui/debug/*.c gui/videotest/*.c gui/videotest/*.h
+	@find -name "*.[h|c]" -exec indent -kr -l120 '{}' \;
 
 # Generate the headerfile for included codecs
 header:
