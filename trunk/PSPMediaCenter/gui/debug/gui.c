@@ -90,7 +90,8 @@ static void playmedia(char *rootpath, char *modname)
 	while (finished == 0) {
 	    sceDisplayWaitVblankStart();
 	    sceCtrlReadBufferPositive(&pad, 1);
-
+	    sceHprmPeekCurrentKey(&remoteButtons);
+	    
 	    if (pad.Buttons != buttonsold) {
 		if (pad.Buttons & PSP_CTRL_LTRIGGER) {	// Previous tune
 		    forceskip = 1;
@@ -121,6 +122,7 @@ static void playmedia(char *rootpath, char *modname)
 		    forceskip = 2;
 		    finished = 1;
 		}
+		remoteButtonsOld = remoteButtons;
 	    }
 	    if (decoder->time != NULL) {
 		char time[200];
