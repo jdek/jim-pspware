@@ -1,0 +1,25 @@
+This is a version of the game "Trailblazer" which I believe
+originated on the Commodore 16. It is quite a simple game,
+the idea being to get to the end of the level - of which there are 14.
+
+Different colour tiles have different effects - I leave it to you to
+discover what :)
+
+It's pretty basic and poorly constructed - it's really just me playing
+with the SDL Library.
+
+Playing
+-------
+Keys are Z and X for steering, K and M for accelerate / slow down,
+and L to jump. There are a limited number of jumps per level.
+
+ESC to exit.
+
+Install
+-------
+untar the archive in a directory
+run "make" to make the code. You will need a recent version of SDL (built with 1.2.3)
+run "make install" to install it - it creates some files in /usr/share/trailblazer
+
+Paul Robson, June 2001.
+autismuk@autismuk.freeserve.co.uk
