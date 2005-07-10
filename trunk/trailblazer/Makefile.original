@@ -1,0 +1,30 @@
+#
+#   Trailblazer make
+#
+
+sources = game.c main.c road.c map.c gfx.c
+libs = `psp-config --pspsdk-path`/libs
+cflags = -O2 -Wall `sdl-config --cflags`
+version = 0.9
+bdir = /tmp/trailblazer-$(version)
+
+all:
+	$(CC) $(sources) -o trailblazer $(cflags) $(libs) 
+
+install:
+	cp trailblazer /usr/bin
+	mkdir -p /usr/share/trailblazer
+	chmod 777 /usr/share/trailblazer
+	echo "" >/usr/share/trailblazer/trail.time
+	cp trail.dat /usr/share/trailblazer
+	chmod 644 /usr/share/trailblazer/trail.dat
+	chmod 666 /usr/share/trailblazer/trail.time
+
+build-archive:
+	mkdir -p $(bdir)
+	rm -f $(bdir)/*
+	cp *.c *.h ../config.h README ../copying trail.dat $(bdir) -f
+	cp makefile.simple $(bdir)/Makefile -f
+	rm  -f /tmp/trailblazer-$(version).tgz
+	cd /tmp && tar -czf trailblazer-$(version).tgz trailblazer-$(version)/*
+	rm -Rf $(bdir)
