@@ -31,16 +31,13 @@ int GAMERun(ROAD *r,int Level)
 	while (r->RoadDone == 0) {
 		while (SDL_PollEvent(&event)) {
 			switch (event.type) {
-			case SDL_JOYBUTTONUP: // lame kludge thatll work
-				r->Control = 0;
-				break;
+			case SDL_JOYBUTTONUP: 
 			case SDL_JOYBUTTONDOWN:
-				r->Control = 0;
-				if(event.jbutton.button == 7) r->Control |= CTRL_LEFT;
-				if(event.jbutton.button == 9) r->Control |= CTRL_RIGHT;
-				if(event.jbutton.button == 8) r->Control |= CTRL_UP;
-				if(event.jbutton.button == 6) r->Control |= CTRL_DOWN;
-				if(event.jbutton.button == 2) r->Control |= CTRL_JUMP;
+				if(event.jbutton.button == 7) r->Control ^= CTRL_LEFT;
+				if(event.jbutton.button == 9) r->Control ^= CTRL_RIGHT;
+				if(event.jbutton.button == 8) r->Control ^= CTRL_UP;
+				if(event.jbutton.button == 6) r->Control ^= CTRL_DOWN;
+				if(event.jbutton.button == 2) r->Control ^= CTRL_JUMP;
 				break;
 			case SDL_KEYDOWN: /* for PC only */
 				if(event.key.keysym.sym == SDLK_SPACE)

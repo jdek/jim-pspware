@@ -42,6 +42,7 @@ int main(int argc, char *argv[])
 		exit(1);
     }
 
+	r.Control = 0;
     if(SDL_NumJoysticks()) {
 		joystick = SDL_JoystickOpen(0);
 	} else {
