@@ -1,3 +1,10 @@
+Prerequisites:
+
+   Vectoroids depends on the following libraries which can be found in the psp
+   Subversion repository at svn://svn.pspdev.org/psp/:
+
+   zlib, libpng, jpeg, SDL, SDL_image, SDL_mixer
+   
 To build:
 
    make -f Makefile.psp
