@@ -1,0 +1,15 @@
+TARGET = vectoroids
+PSPSDK = $(shell psp-config --pspsdk-path)
+PSPBIN = $(PSPSDK)/../bin
+
+OBJS = vectoroids.o
+
+JOY = YES
+CFLAGS = -Wall -Wno-long-long -O2 -G0 -DJOY_$(JOY)
+CFLAGS += $(shell $(PSPBIN)/sdl-config --cflags)
+
+LIBS = -lSDL_mixer -lSDL_image -lpng -lz -ljpeg $(shell $(PSPBIN)/sdl-config --libs) 
+
+EXTRA_TARGETS = EBOOT.PBP
+
+include $(PSPSDK)/lib/build.mak
