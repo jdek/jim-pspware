@@ -167,8 +167,21 @@ char * mus_game_name = DATA_PREFIX "music/decision.s3m";
 
 
 #ifdef JOY_YES
+#ifdef PSP
+#define JOY_CIRCLE 1
+#define JOY_CROSS 2
+#define JOY_START 11
+#define JOY_A JOY_CIRCLE	/* Thrust. */
+#define JOY_B JOY_CROSS		/* Fire. */
+#define JOY_LEFT 7
+#define JOY_RIGHT 9
+/* The PSP needs a bigger deadzone than the default. */
+#define JOY_DEADZONE (256 * 16)
+#else
+#define JOY_DEADZONE (256)
 #define JOY_A 0
 #define JOY_B 1
+#endif /* PSP */
 #define JOY_X 0
 #define JOY_Y 1
 #endif
@@ -807,6 +820,9 @@ int title(void)
 #ifdef JOY_YES
       else if (event.type == SDL_JOYBUTTONDOWN)
 	{
+#ifdef PSP
+	  if (event.jbutton.button == JOY_START)
+#endif
 	  done = 1;
 	}
 #endif
@@ -938,7 +954,11 @@ int title(void)
     }
 
     
+#if PSP
+    draw_text("PRESS START", (WIDTH - 110) / 2, 180, 5, mkcolor(0, 255, 0));
+#else
     draw_text("START", (WIDTH - 50) / 2, 180, 5, mkcolor(0, 255, 0));
+#endif
     
     if (game_pending)
       draw_text("CONTINUE", (WIDTH - 80) / 2, 200, 5, mkcolor(0, 255, 0));
@@ -1159,22 +1179,33 @@ int game(void)
 		}
 	    }
 #ifdef JOY_YES
-	  else if (event.type == SDL_JOYBUTTONDOWN &&
-		   player_alive)
+	  else if (event.type == SDL_JOYBUTTONDOWN)
 	    {
-	      if (event.jbutton.button == JOY_B)
+	      if (player_alive && event.jbutton.button == JOY_B)
 		{
 		  /* Fire a bullet! */
 		  
 		  add_bullet(x >> 4, y >> 4, angle, xm, ym);
 		}
-	      else if (event.jbutton.button == JOY_A)
+	      else if (player_alive && event.jbutton.button == JOY_A)
 		{
 		  /* Thrust: */
 		  
 		  up_pressed = 1;
 		}
-	      else
+#ifdef PSP
+	      if (event.jbutton.button == JOY_LEFT)
+	        {
+		  left_pressed = 1;
+		  right_pressed = 0;
+		}
+	      else if (event.jbutton.button == JOY_RIGHT)
+	        {
+		  left_pressed = 0;
+		  right_pressed = 1;
+		}
+#endif
+	      else if (player_alive)
 		{
 		  shift_pressed = 1;
 		}
@@ -1187,6 +1218,16 @@ int game(void)
 		  
 		  up_pressed = 0;
 		}
+#ifdef PSP
+	      else if (event.jbutton.button == JOY_LEFT)
+	        {
+		  left_pressed = 0;
+		}
+	      else if (event.jbutton.button == JOY_RIGHT)
+	        {
+		  right_pressed = 0;
+		}
+#endif
 	      else if (event.jbutton.button != JOY_B)
 		{
 		  shift_pressed = 0;
@@ -1196,12 +1237,12 @@ int game(void)
 	    {
 	      if (event.jaxis.axis == JOY_X)
 		{
-		  if (event.jaxis.value < -256)
+		  if (event.jaxis.value < -JOY_DEADZONE)
 		    {
 		      left_pressed = 1;
 		      right_pressed = 0;
 		    }
-		  else if (event.jaxis.value > 256)
+		  else if (event.jaxis.value > JOY_DEADZONE)
 		    {
 		      left_pressed = 0;
 		      right_pressed = 1;
