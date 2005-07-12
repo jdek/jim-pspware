@@ -6,8 +6,7 @@ To install (assuming your psp is mounted to /psp):
 
    mkdir /psp/PSP/GAME/vectoroids
    cp EBOOT.PBP /psp/PSP/GAME/vectoroids
-   mkdir /psp/PSP/GAME/vectoroids/data
-   cp -R data /psp/PSP/GAME/vectoroids/data
+   cp -R data /psp/PSP/GAME/vectoroids
 
 Note: I'm a 1.0 user.  The target directory may differ if using kxploit.
 
