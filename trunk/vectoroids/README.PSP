@@ -11,5 +11,13 @@ To install (assuming your psp is mounted to /psp):
 
 Note: I'm a 1.0 user.  The target directory may differ if using kxploit.
 
+Controls:
+
+   START - Start game
+   X - Fire
+   O - Thrust
+   LEFT/RIGHT - Turn left / turn right
+   Analog Left/Right - Turn left / turn right
+
 --
 Marcus R. Brown <mrbrown@ocgnet.org>
