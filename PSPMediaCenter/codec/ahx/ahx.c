@@ -101,7 +101,7 @@ void AHXsetStubs(codecStubs * stubs)
     stubs->end = AHXPlayer_End;
     stubs->time = AHXPlayer_GetTimeString;
     stubs->tick = NULL;
-    memcpy(stubs->extension, "ahx\0", 4);
+    memcpy(stubs->extension, "ahx\0" "\0\0\0\0", 2*4);
 }
 
 void AHXPlayer_GetTimeString(char *dest)

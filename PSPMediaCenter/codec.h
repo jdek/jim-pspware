@@ -19,7 +19,7 @@ typedef struct {
     fd_endFunc end;
     fd_tickFunc tick;
     fd_timeFunc time;
-    char extension[4];
+    char extension[200]; // 4 byte entries. eg   mp3\0  or \0\0\0\0 to terminate list
 } codecStubs;
 
 #endif

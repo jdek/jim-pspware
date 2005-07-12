@@ -120,20 +120,20 @@ static void XMPlayCallback(short *_buf, unsigned long length)
     }
 }
 
-void XMsetStubs(codecStubs * stubs)
+void XMPLAYsetStubs(codecStubs * stubs)
 {
-    stubs->init = XM_Init;
-    stubs->load = XM_Load;
-    stubs->play = XM_Play;
-    stubs->pause = XM_Pause;
-    stubs->stop = XM_Stop;
-    stubs->end = XM_End;
-    stubs->time = XM_GetTimeString;
+    stubs->init = XMPLAY_Init;
+    stubs->load = XMPLAY_Load;
+    stubs->play = XMPLAY_Play;
+    stubs->pause = XMPLAY_Pause;
+    stubs->stop = XMPLAY_Stop;
+    stubs->end = XMPLAY_End;
+    stubs->time = XMPLAY_GetTimeString;
     stubs->tick = NULL;
-    memcpy(stubs->extension, ".xm\0", 4);
+    memcpy(stubs->extension, ".xm\0" "\0\0\0\0", 2*4);
 }
 
-void XM_Init(int channel)
+void XMPLAY_Init(int channel)
 {
     filedataptr = 0;
     myChannel = channel;
@@ -141,9 +141,9 @@ void XM_Init(int channel)
     pspAudioSetChannelCallback(myChannel, XMPlayCallback);
 }
 
-void XM_End()
+void XMPLAY_End()
 {
-    XM_Stop();
+    XMPLAY_Stop();
     pspAudioSetChannelCallback(myChannel, 0);
     if (filedataptr != 0) {
 	free(filedataptr);
@@ -151,14 +151,14 @@ void XM_End()
     }
 }
 
-void XM_GetTimeString(char *dest)
+void XMPLAY_GetTimeString(char *dest)
 {
     *dest = '\0';
     //HH:MM:SS
     sprintf(dest, "%02d:%02d:%02d", 0, 0, 0);
 }
 
-int XM_InitTune(unsigned char *ptr, long size)
+int XMPLAY_InitTune(unsigned char *ptr, long size)
 {
     mpl__xm_t xm;
     mpl__mp_t mp;
@@ -209,7 +209,7 @@ int XM_InitTune(unsigned char *ptr, long size)
 //
 //  It basically loads into an internal format, so once this function
 //  has returned the buffer at 'data' will not be needed again.
-int XM_Load(char *filename)
+int XMPLAY_Load(char *filename)
 {
     int fd;
     unsigned char *ptr;
@@ -230,7 +230,7 @@ int XM_Load(char *filename)
 	    memset(ptr, 0, size + 8);
 	    sceIoRead(fd, ptr, size);
 	    // ok, read the file in, now do our stuff
-	    return XM_InitTune(ptr, size);
+	    return XMPLAY_InitTune(ptr, size);
 	} else {
 	    printf("Error allocing\n");
 	    sceIoClose(fd);
@@ -244,7 +244,7 @@ int XM_Load(char *filename)
 }
 
 // This function initialises for playing, and starts
-int XM_Play()
+int XMPLAY_Play()
 {
     // See if I'm already playing
     if (m_bPlaying == 1)
@@ -254,7 +254,7 @@ int XM_Play()
     return TRUE;
 }
 
-void XM_Pause()
+void XMPLAY_Pause()
 {
     if (m_bPlaying == 1)
 	m_bPlaying = 0;
@@ -262,7 +262,7 @@ void XM_Pause()
 	m_bPlaying = 1;
 }
 
-int XM_Stop()
+int XMPLAY_Stop()
 {
     //stop playing
     m_bPlaying = 0;

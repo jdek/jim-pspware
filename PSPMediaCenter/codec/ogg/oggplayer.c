@@ -50,7 +50,7 @@ void OGGsetStubs(codecStubs * stubs)
     stubs->end = OGG_End;
     stubs->time = OGG_GetTimeString;
     stubs->tick = NULL;
-    memcpy(stubs->extension, "ogg\0", 4);
+    memcpy(stubs->extension, "ogg\0" "\0\0\0\0", 2*4);
 }
 
 

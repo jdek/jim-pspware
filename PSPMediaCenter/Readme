@@ -1,6 +1,11 @@
 PSPMediaCenter by John_K & adresd
 =================================
 
+v0.84 - July 12 2003
+-------------------------------------------------------------
+Reworked the extension handling, to allow more than one extension per codec.
+STSound and MikMod Library Support added.
+
 v0.83 - July 5 2003
 -------------------------------------------------------------
 Added timer display to decoders, and to debug gui lib.

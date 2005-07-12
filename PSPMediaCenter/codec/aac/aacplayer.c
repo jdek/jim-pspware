@@ -59,7 +59,7 @@ void AACsetStubs(codecStubs * stubs)
     stubs->end = AAC_End;
     stubs->time = NULL;
     stubs->tick = NULL;
-    memcpy(stubs->extension, "aac\0", 4);
+    memcpy(stubs->extension, "aac\0" "\0\0\0\0", 2*4);
 }
 
 
