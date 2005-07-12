@@ -13,16 +13,16 @@ extern "C" {
 #endif
 
 //  Function prototypes for public functions
-    void XMsetStubs(codecStubs * stubs);
+    void XMPLAYsetStubs(codecStubs * stubs);
 
 //private functions
-    void XM_Init(int channel);
-    int XM_Play();
-    void XM_Pause();
-    int XM_Stop();
-    void XM_End();
-    int XM_Load(char *filename);
-    void XM_GetTimeString(char *dest);
+    void XMPLAY_Init(int channel);
+    int XMPLAY_Play();
+    void XMPLAY_Pause();
+    int XMPLAY_Stop();
+    void XMPLAY_End();
+    int XMPLAY_Load(char *filename);
+    void XMPLAY_GetTimeString(char *dest);
 
 #ifdef __cplusplus
 }

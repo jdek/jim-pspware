@@ -29,7 +29,7 @@ PSP_MAIN_THREAD_ATTR(0);
 
 codecStubs stubs[100];
 codecStubs *decoder;
-unsigned char banner[] = "PSP Media Center v0.83 by John_K & adresd\0";
+unsigned char banner[] = "PSP Media Center v0.84 by John_K & adresd\0";
 int errno, __errno;
 int codecnum = 0;
 
@@ -74,6 +74,7 @@ void MyExceptionHandler(PspDebugRegBlock * regs)
     pspDebugScreenPrintf("Exception Details:\n");
     pspDebugDumpException(regs);
     pspDebugScreenPrintf("\nBlame the 3rd party software, it cannot possibly be our fault!\n");
+    pspDebugScreenSetBackColor(0x00000000);
 }
 
 /* main routine */

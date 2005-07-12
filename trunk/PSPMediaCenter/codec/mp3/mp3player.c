@@ -80,7 +80,7 @@ void MP3setStubs(codecStubs * stubs)
     stubs->end = MP3_End;
     stubs->time = MP3_GetTimeString;
     stubs->tick = NULL;
-    memcpy(stubs->extension, "mp3\0", 4);
+    memcpy(stubs->extension, "mp3\0" "\0\0\0\0", 2*4);
 }
 
 static int PrintFrameInfo(struct mad_header *Header)
