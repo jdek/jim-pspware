@@ -110,6 +110,19 @@ void MIKMOD_End()
 int size;
 unsigned char *ptr;
 
+void MIKMOD_DisplayInfo(UNIMOD *ptr)
+{
+  printf("\n");
+  printf("Song Name   : %s\n",ptr->songname);
+  printf("Composer    : %s\n",ptr->composer);
+  printf("Comment     : %s\n",ptr->comment);
+  printf("Module Type : %s\n",ptr->modtype);
+  printf("Channels    : %d\n",ptr->numchn);
+  printf("Instruments : %d\n",ptr->numins);
+  printf("Samples     : %d\n",ptr->numsmp);
+  printf("Patterns    : %d\n",ptr->numpat);
+}
+
 int MIKMOD_Load(char *filename)
 {
   isPlaying = FALSE;
@@ -117,6 +130,7 @@ int MIKMOD_Load(char *filename)
   mf = MikMod_LoadSong(filename,maxchan);
   if (mf != 0) {
     Player_Start(mf);
+    MIKMOD_DisplayInfo(mf);
     return 1;
   }
   return 0;
@@ -150,5 +164,7 @@ int MIKMOD_Stop()
 
 void MIKMOD_GetTimeString(char *dest)
 {
-  sprintf(dest,"00:00:00");
+  sprintf(dest,"%02d:%02d:%02d",mf->sngpos,mf->patpos,mf->vbtick);
 }
+
+
