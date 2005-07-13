@@ -153,7 +153,6 @@ static char *mods_infoname[1000];
 static int mods_infonum;
 
 
-#if 1
 static void sortmedialist()
 {
   int found = 1;
@@ -173,33 +172,6 @@ static void sortmedialist()
     }
   }
 }
-#else
-static void sortmedialist()
-{
-  int found = 1;
-  int swap;
-  int count;
-  char *temp;
-  while (found == 1) {
-    found = 0;
-    for (count = 0; count < (mods_infonum - 1); count++) {
-      swap = 0;
-      if (mods_infoname[count][0] > mods_infoname[count + 1][0])
-        swap = 1;
-      else if ((mods_infoname[count][0] == mods_infoname[count + 1][0]) &&
-        (mods_infoname[count][1] > mods_infoname[count + 1][1]))
-        swap = 1;
-
-      if (swap == 1) {	// Swap entries
-        temp = mods_infoname[count];
-        mods_infoname[count] = mods_infoname[count + 1];
-        mods_infoname[count + 1] = temp;
-        found = 1;
-      }
-    }
-  }
-}
-#endif
 
 static void fillmedialist(char *path)
 {
