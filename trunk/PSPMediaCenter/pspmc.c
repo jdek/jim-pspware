@@ -29,7 +29,7 @@ PSP_MAIN_THREAD_ATTR(0);
 
 codecStubs stubs[100];
 codecStubs *decoder;
-unsigned char banner[] = "PSP Media Center v0.84 by John_K & adresd\0";
+unsigned char banner[] = "PSP Media Center v0.85 by John_K & adresd\0";
 int errno, __errno;
 int codecnum = 0;
 
@@ -90,7 +90,8 @@ int main(int argc, char *argv[])
 
     //get codecStubs
     stubnum = 0;
-    CODEC_INITSTUBS codecnum = stubnum;
+    CODEC_INITSTUBS 
+    codecnum = stubnum;
 
     pspAudioInit();
 
