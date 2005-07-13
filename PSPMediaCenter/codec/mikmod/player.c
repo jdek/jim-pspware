@@ -112,15 +112,28 @@ unsigned char *ptr;
 
 void MIKMOD_DisplayInfo(UNIMOD *ptr)
 {
+  int count;
+  int x, y;
   printf("\n");
   printf("Song Name   : %s\n",ptr->songname);
   printf("Composer    : %s\n",ptr->composer);
   printf("Comment     : %s\n",ptr->comment);
   printf("Module Type : %s\n",ptr->modtype);
   printf("Channels    : %d\n",ptr->numchn);
-  printf("Instruments : %d\n",ptr->numins);
-  printf("Samples     : %d\n",ptr->numsmp);
-  printf("Patterns    : %d\n",ptr->numpat);
+  //printf("Instruments : %d\n",ptr->numins);
+  //printf("Samples     : %d\n",ptr->numsmp);
+  //printf("Patterns    : %d\n",ptr->numpat);
+
+  x = pspDebugScreenGetX();
+  y = pspDebugScreenGetY();
+  for (count = 1; count < ptr->numsmp; count++) {
+  	if (count == ((ptr->numsmp+1) / 2)) {
+	    x += 30;
+	    y -= (count-1);
+	  }
+	  pspDebugScreenSetXY(x, y + count);
+	  printf("  %02d - %s", count, mf->samples[count].samplename);
+  }
 }
 
 int MIKMOD_Load(char *filename)
