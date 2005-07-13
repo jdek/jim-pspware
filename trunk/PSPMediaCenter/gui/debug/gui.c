@@ -66,7 +66,7 @@ static void playmedia(char *rootpath, char *modname)
 
   //determine codec of the file
   for (codec = 0; codec <= codecnum; codec++) {
-    unsigned char *ptr = stubs[codec].extension;
+    char *ptr = &(stubs[codec].extension[0]);
     while (*ptr != 0) {
       if (strncasecmp(&modname[strlen(modname) - 3], ptr, 3) == 0) {
         decoder = &stubs[codec];
@@ -81,7 +81,7 @@ static void playmedia(char *rootpath, char *modname)
     decoder->play();
 
     pspDebugScreenSetXY(0, 32);
-    printf("X = Play.  O = Stop.  START = Tune Select.  SELECT = Exit.\n");
+    printf("X = Pause/Resume.  START = Tune Select.  SELECT = Exit.\n");
     pspDebugScreenSetXY(0, 26);
     printf("Playing\n\n");
 
@@ -136,7 +136,6 @@ static void playmedia(char *rootpath, char *modname)
         printf("%s", time);
         pspDebugScreenSetXY(0, 32);
       }
-
     }
     decoder->stop();
     decoder->end();
@@ -147,11 +146,15 @@ static void playmedia(char *rootpath, char *modname)
   }
 }
 
-static SceIoDirent dirent;
 
-static char *mods_infoname[1000];
-static int mods_infonum;
+typedef struct {
+  char *filename;
+  char *pathname;
+} files_infot_t;
 
+#define MAX_FILE_NUM  10000
+static files_infot_t files_info[MAX_FILE_NUM];
+static int files_infonum;
 
 static void sortmedialist()
 {
@@ -161,58 +164,79 @@ static void sortmedialist()
   char *temp;
   while (found == 1) {
     found = 0;
-    for (count = 0; count < (mods_infonum - 1); count++) {
+    for (count = 0; count < (files_infonum - 1); count++) {
       swap = 0;
-      if (strcmp(mods_infoname[count],mods_infoname[count+1]) > 0) {
-        temp = mods_infoname[count];
-        mods_infoname[count] = mods_infoname[count + 1];
-        mods_infoname[count + 1] = temp;
+      if (strcmp(files_info[count].filename,files_info[count+1].filename) > 0) {
+        temp = files_info[count].filename;
+        files_info[count].filename = files_info[count + 1].filename;
+        files_info[count + 1].filename = temp;
+        temp = files_info[count].pathname;
+        files_info[count].pathname = files_info[count + 1].pathname;
+        files_info[count + 1].pathname = temp;
         found = 1;
       }
     }
   }
 }
 
-static void fillmedialist(char *path)
+static SceIoDirent direnta;
+static void addmedialistpath(char *path)
 {
   int dirid;
   int retval;
-  char temp[4];
-  int count = 0;
   int x;
   int found;
+  SceIoDirent *direntt;
   if ((dirid = sceIoDopen(path)) > 0) {	//  Opened ok
     retval = 1;
-    while ((retval > 0) && (count < 999)) {
-      retval = sceIoDread(dirid, (SceIoDirent *) & dirent);
+    //direntt = (SceIoDirent *)malloc(sizeof(SceIoDirent));
+    direntt = (SceIoDirent *)&direnta;
+    while ((retval > 0) && (files_infonum < MAX_FILE_NUM)) {
+      retval = sceIoDread(dirid, direntt);
       if (retval > 0) {
-        if (dirent.d_name[0] != 0) {
+        sceKernelDcacheWritebackAll();
+        if ((direntt->d_stat.st_attr & 0x10) == 0x10) { // directory
+          if (direntt->d_name[0] != '.') {
+            char *pathname = (char *)malloc(200);
+            sprintf(pathname,"%s%s/",path,direntt->d_name);
+            addmedialistpath(pathname);
+            //free(pathname); // dont free, as used in files
+          }
+        }
+//        else if (((direntt->d_stat.st_attr & 0x20) == 0x20) && (direntt->d_name[0] != 0)) { // File
+        else if  (direntt->d_name[0] != 0) { // File
           // Only add files of types known to codecs loaded
           // Now check against the codecs known to us
           found = 0;
           for (x = 0; x < codecnum; x++) {
-            unsigned char *ptr = stubs[x].extension;
+            char *ptr = stubs[x].extension;
             while (*ptr != 0) {
-              if (strncasecmp(&dirent.d_name[strlen(dirent.d_name) - 3], ptr, 3) == 0)
+              if (strncasecmp(&direntt->d_name[strlen(direntt->d_name) - 3], ptr, 3) == 0)
                 found = 1;
               ptr+=4;
             }
           }
           if (found == 1) {
-            mods_infoname[count] = (char *) malloc(200);
-            memcpy(mods_infoname[count], dirent.d_name, 200);
-            count++;
-          }
-        }
-      }
-    }
+            files_info[files_infonum].filename = (char *) malloc(200);
+            memcpy(files_info[files_infonum].filename, direntt->d_name, 200);
+            files_info[files_infonum].pathname = path;
+            files_infonum++;
+          } // if found
+        } // if d_name
+      } // if retval
+      //free(direntt);
+    } // while
     sceIoDclose(dirid);
-  }
-  mods_infonum = count;
+  } // if
+}
+static void fillmedialist(char *path)
+{
+  files_infonum = 0;
+  addmedialistpath(path);
   sortmedialist();
 }
 
-static char *selectmedia()
+static int selectmedia()
 {
   SceCtrlData pad;
   static int highlight = 0;
@@ -228,11 +252,11 @@ static char *selectmedia()
       if (highlight != 0)
         highlight--;
     } else if (forceskip == 2) {	// next tune
-      if (highlight != mods_infonum)
+      if (highlight != files_infonum)
         highlight++;
     }
     forceskip = 0;
-    return mods_infoname[highlight];
+    return files_info[highlight].filename;
   }
 
   printf("Select media to play:\n\n");
@@ -257,13 +281,13 @@ static char *selectmedia()
         basepos = highlight - 11;
       pspDebugScreenSetXY(x, y);
       for (count = basepos; count < basepos + 22; count++) {
-        if (count >= mods_infonum)
+        if (count >= files_infonum)
           printf("\n");
         else {
           if (highlight == count)
-            printf("-> %02d - %-50s \n", count, mods_infoname[count]);
+            printf("-> %02d - %-50s \n", count, files_info[count].filename);
           else
-            printf("   %02d - %-50s \n", count, mods_infoname[count]);
+            printf("   %02d - %-50s \n", count, files_info[count].filename);
         }
       }
     }
@@ -273,10 +297,10 @@ static char *selectmedia()
 
     if (buttonsold != pad.Buttons) {
       if (pad.Buttons & PSP_CTRL_RIGHT)
-        if (highlight < (mods_infonum - 11))
+        if (highlight < (files_infonum - 11))
           highlight += 10;
         else
-          highlight = mods_infonum - 1;
+          highlight = files_infonum - 1;
       if (pad.Buttons & PSP_CTRL_LEFT)
         if (highlight >= 10)
           highlight -= 10;
@@ -286,12 +310,12 @@ static char *selectmedia()
         if (highlight >= 1)
           highlight--;
       if (pad.Buttons & PSP_CTRL_DOWN)
-        if (highlight < (mods_infonum - 1))
+        if (highlight < (files_infonum - 1))
           highlight++;
       if (pad.Buttons & PSP_CTRL_CROSS)
-        return mods_infoname[highlight];
+        return highlight;
       if (pad.Buttons & PSP_CTRL_SELECT)
-        return 0;
+        return -1;
     }
     buttonsold = pad.Buttons;
   }
@@ -316,7 +340,7 @@ static void getproperpath(char *dest, char *src)
 int gui_main(void)
 {
   char rootpath[200];
-  char *modfile;
+  int filenum;
   int stubnum;
 
   pspDebugScreenInit();
@@ -326,9 +350,9 @@ int gui_main(void)
   fillmedialist(rootpath);
 
   //  Loop around, offering a mod, till they cancel
-  modfile = 1;
+  filenum = 1;
   forceskip = 0;
-  while (modfile != 0) {
+  while (filenum >= 0) {
     // Setup screen  so it doesnt get messy
     pspDebugScreenClear();
     printf("%s\n\n", banner);
@@ -349,9 +373,9 @@ int gui_main(void)
     // Filetype list
     printf("Media Path: %s\n\n", rootpath);
 
-    modfile = selectmedia();
-    if (modfile != 0) {
-      playmedia(rootpath, modfile);
+    filenum = selectmedia();
+    if (filenum >= 0) {
+      playmedia(files_info[filenum].pathname,files_info[filenum].filename);
     }
   }
   return 0;

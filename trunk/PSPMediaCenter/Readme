@@ -1,9 +1,12 @@
 PSPMediaCenter by John_K & adresd
 =================================
 
-v0.85 - July 13 2003
+v0.86 - July 13 2003
 -------------------------------------------------------------
 Sorted out mikmod display functions and timer.
+Added subdirectory support to filescanning in the debug gui, now everything below
+ms0:/PSP/MUSIC/ will be scanned.
+Fixed some minor problems with AHX playback
 
 v0.84 - July 12 2003
 -------------------------------------------------------------
