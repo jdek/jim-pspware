@@ -105,6 +105,7 @@ extern "C" {
 
     void AHXPlayer_Init(int channel);
     void AHXPlayer_End();
+    void AHXPlayer_Pause();
     int AHXPlayer_Play();
     int AHXPlayer_Stop();
     int AHXPlayer_Load(char *filename);
