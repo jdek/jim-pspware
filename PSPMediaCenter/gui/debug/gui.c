@@ -272,7 +272,7 @@ static int selectmedia()
       if (highlight != 0)
         highlight--;
     } else if (forceskip == 2) {	// next tune
-      if (highlight != files_infonum)
+      if (highlight < (files_infonum-1))
         highlight++;
       else 
         highlight = 0; // move back to top of list
