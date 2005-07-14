@@ -90,6 +90,7 @@ static int Boost = 0;
 #define BlockLen 3840
 #define BlockLen2 (MixLen*(Frequency/Hz))
 
+static int eos;
 
 void AHXsetStubs(codecStubs * stubs)
 {
@@ -101,6 +102,7 @@ void AHXsetStubs(codecStubs * stubs)
   stubs->end = AHXPlayer_End;
   stubs->time = AHXPlayer_GetTimeString;
   stubs->tick = NULL;
+  stubs->eos  = AHXXPlayer_EndOfStream;
   memcpy(stubs->extension, "ahx\0" "\0\0\0\0", 2*4);
 }
 
@@ -114,6 +116,7 @@ int AHXPlayer_Load(char *filename)
   int fd;
   unsigned char *data;
   long size;
+  eos = 0;
   if ((fd = sceIoOpen(filename, PSP_O_RDONLY, 0777)) > 0) {
     //  opened file, so get size now
     size = sceIoLseek(fd, 0, PSP_SEEK_END);
@@ -1182,6 +1185,7 @@ void AHXPlayer_PlayIRQ()
       PosJump = 0;
       if (PosNr == Song.PositionNr) {
         SongEndReached = 1;
+        eos = 1;
         PosNr = Song.Restart;
       }
       GetNewPosition = 1;
@@ -1340,4 +1344,10 @@ int AHXPlayer_Stop()
 {
   m_bPlaying = 0;
   return 1;
+}
+
+int AHXXPlayer_EndOfStream()
+{
+  if (eos == 1) return 1;
+  return 0;
 }

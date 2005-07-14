@@ -35,6 +35,8 @@ static int isPlaying;		// Set to true when a mod is being played
 static int myChannel;
 int fd = 0;
 
+static int eos;
+
 /*
 #define PREBUFFER	2097152
 static short outputBuffer[PREBUFFER];
@@ -50,6 +52,7 @@ void OGGsetStubs(codecStubs * stubs)
     stubs->end = OGG_End;
     stubs->time = OGG_GetTimeString;
     stubs->tick = NULL;
+    stubs->eos = OGG_EndOfStream;
     memcpy(stubs->extension, "ogg\0" "\0\0\0\0", 2*4);
 }
 
@@ -64,6 +67,7 @@ static void OGGCallback(short *_buf, unsigned long numSamples)
 	    unsigned long bytesRequired = (numSamples - tempmixleft) * 4;	// 2channels, 16bit = 4 bytes per sample
 	    unsigned long ret = ov_read(&vf, (char *) &tempmixbuf[tempmixleft * 2], bytesRequired, &current_section);
 	    if (ret == 0) {	//EOF
+        eos = 1;
 		if (ov_pcm_seek_page(&vf, 0) != 0) {
 		    printf("Could not seek to start of file\n");
 		    OGG_End();
@@ -124,6 +128,7 @@ int ogg_callback_close(void *datasource)
 int OGG_Load(char *filename)
 {
     int size = 0;
+    eos = 0;
     isPlaying = 0;
     ov_callbacks ogg_callbacks;
 
@@ -219,4 +224,11 @@ void OGG_GetTimeString(char *dest)
     time /= M_MULT;
     timeH = time;
     sprintf(dest, "%02d:%02d:%02d", timeH, timeM, timeS);
+}
+
+int OGG_EndOfStream()
+{
+  if (eos == 1)
+    return 1;
+  return 0;
 }

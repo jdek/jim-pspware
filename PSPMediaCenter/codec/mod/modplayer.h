@@ -24,6 +24,7 @@ extern "C" {
     int Mod_Load(char *filename);
     void Mod_Tick();
     void Mod_Close();
+    int Mod_EndOfStream();
 
     void Mod_GetTimeString(char *);
 

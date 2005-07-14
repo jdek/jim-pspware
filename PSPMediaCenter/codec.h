@@ -9,6 +9,7 @@ typedef int (*fd_stopFunc) (void);
 typedef void (*fd_endFunc) (void);
 typedef void (*fd_tickFunc) (void);
 typedef void (*fd_timeFunc) (char *);
+typedef int (*fd_EOSFunc) (void);
 
 typedef struct {
     fd_initFunc init;
@@ -19,6 +20,7 @@ typedef struct {
     fd_endFunc end;
     fd_tickFunc tick;
     fd_timeFunc time;
+    fd_EOSFunc  eos;  // have we reached end of playback.. ie for non-loop mode
     char extension[200]; // 4 byte entries. eg   mp3\0  or \0\0\0\0 to terminate list
 } codecStubs;
 

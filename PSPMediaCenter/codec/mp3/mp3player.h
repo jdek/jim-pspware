@@ -23,8 +23,8 @@ extern "C" {
     int MP3_Stop();
     void MP3_End();
     int MP3_Load(char *filename);
-
     void MP3_GetTimeString(char *dest);
+    int MP3_EndOfStream();
 
 #ifdef __cplusplus
 }

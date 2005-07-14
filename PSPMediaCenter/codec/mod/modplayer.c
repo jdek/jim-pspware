@@ -117,7 +117,13 @@ void MODsetStubs(codecStubs * stubs)
     stubs->end = Mod_End;
     stubs->time = Mod_GetTimeString;
     stubs->tick = NULL;
+    stubs->eos = Mod_EndOfStream;
     memcpy(stubs->extension, "mod\0" "\0\0\0\0", 2*4);
+}
+
+int Mod_EndOfStream()
+{
+  return 0;
 }
 
 void Mod_GetTimeString(char *dest)

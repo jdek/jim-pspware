@@ -130,6 +130,7 @@ void XMPLAYsetStubs(codecStubs * stubs)
     stubs->end = XMPLAY_End;
     stubs->time = XMPLAY_GetTimeString;
     stubs->tick = NULL;
+    stubs->eos = XMPLAY_EndOfStream;
     memcpy(stubs->extension, ".xm\0" "\0\0\0\0", 2*4);
 }
 
@@ -269,3 +270,9 @@ int XMPLAY_Stop()
 
     return TRUE;
 }
+
+int XMPLAY_EndOfStream()
+{
+  return 0;
+}
+

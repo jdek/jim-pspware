@@ -31,6 +31,7 @@ extern int errno, __errno;
 extern int codecnum;
 
 static codecStubs *decoder;
+static int loopmode;
 
 static void strcat2(char *dest, char *src)
 {
@@ -97,6 +98,15 @@ static void playmedia(char *rootpath, char *modname)
       sceCtrlReadBufferPositive(&pad, 1);
       sceHprmPeekCurrentKey(&remoteButtons);
 
+      // Check if we have hit the end of tune
+      if (loopmode != 0) {
+        if (decoder->eos != 0) {
+          if (decoder->eos() == 1) { // End of file, advance in playlist
+            pad.Buttons = PSP_CTRL_RTRIGGER;
+          }
+        }
+      }
+
       if (pad.Buttons != buttonsold) {
         if (pad.Buttons & PSP_CTRL_LTRIGGER) {	// Previous tune
           forceskip = 1;
@@ -106,6 +116,8 @@ static void playmedia(char *rootpath, char *modname)
           forceskip = 2;
           finished = 1;
         }
+        if (pad.Buttons & PSP_CTRL_TRIANGLE)
+          loopmode = !loopmode;
         if (pad.Buttons & PSP_CTRL_CIRCLE)
           decoder->stop();
         if (pad.Buttons & PSP_CTRL_CROSS)
@@ -129,6 +141,14 @@ static void playmedia(char *rootpath, char *modname)
         }
         remoteButtonsOld = remoteButtons;
       }
+      //  Show loop status
+      pspDebugScreenSetXY(58, 1);
+      if (loopmode == 0) {
+        printf(" LOOP  ");
+      } else {
+        printf("ADVANCE");
+      }
+      //  Show the time
       if (decoder->time != NULL) {
         char time[200];
         decoder->time(time);
@@ -254,9 +274,11 @@ static int selectmedia()
     } else if (forceskip == 2) {	// next tune
       if (highlight != files_infonum)
         highlight++;
+      else 
+        highlight = 0; // move back to top of list
     }
     forceskip = 0;
-    return files_info[highlight].filename;
+    return highlight;
   }
 
   printf("Select media to play:\n\n");
@@ -273,12 +295,20 @@ static int selectmedia()
   highlightold = -1;
   while (finished == 0) {	// Draw the menu firstly
     sceDisplayWaitVblankStart();
+    //  Show loop status
+    pspDebugScreenSetXY(58, 1);
+    if (loopmode == 0) {
+      printf(" LOOP  ");
+    } else {
+      printf("ADVANCE");
+    }
     if (highlightold != highlight) {
       // Calc position in the list, given number of files and highlight position
       if (highlight < 11)
         basepos = 0;
       else		//  we must scroll
         basepos = highlight - 11;
+
       pspDebugScreenSetXY(x, y);
       for (count = basepos; count < basepos + 22; count++) {
         if (count >= files_infonum)
@@ -312,6 +342,8 @@ static int selectmedia()
       if (pad.Buttons & PSP_CTRL_DOWN)
         if (highlight < (files_infonum - 1))
           highlight++;
+      if (pad.Buttons & PSP_CTRL_TRIANGLE)
+        loopmode = !loopmode;
       if (pad.Buttons & PSP_CTRL_CROSS)
         return highlight;
       if (pad.Buttons & PSP_CTRL_SELECT)
@@ -349,6 +381,7 @@ int gui_main(void)
 
   fillmedialist(rootpath);
 
+  loopmode = !0;
   //  Loop around, offering a mod, till they cancel
   filenum = 1;
   forceskip = 0;

@@ -59,6 +59,7 @@ void AACsetStubs(codecStubs * stubs)
     stubs->end = AAC_End;
     stubs->time = NULL;
     stubs->tick = NULL;
+    stubs->eos = AAC_EndOfStream;
     memcpy(stubs->extension, "aac\0" "\0\0\0\0", 2*4);
 }
 
@@ -214,4 +215,9 @@ int AAC_Stop()
     OutputPtr = (unsigned char *) OutputBuffer;
 
     return TRUE;
+}
+
+int AAC_EndOfStream()
+{
+  return 0;
 }

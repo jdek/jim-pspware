@@ -66,6 +66,7 @@ static int isPlaying;		// Set to true when a mod is being played
 // These are the public functions
 //////////////////////////////////////////////////////////////////////
 static int myChannel;
+static int eos;
 
 /* Define printf, just to make typing easier */
 #define printf	pspDebugScreenPrintf
@@ -80,6 +81,7 @@ void MP3setStubs(codecStubs * stubs)
     stubs->end = MP3_End;
     stubs->time = MP3_GetTimeString;
     stubs->tick = NULL;
+    stubs->eos =  MP3_EndOfStream;
     memcpy(stubs->extension, "mp3\0" "\0\0\0\0", 2*4);
 }
 
@@ -365,9 +367,10 @@ static void MP3Callback(short *_buf, unsigned long numSamples)
 			sceDisplayWaitVblankStart();
 		    }
 		    return;	//continue;
-		} else if (Stream.error == MAD_ERROR_BUFLEN)
+    } else if (Stream.error == MAD_ERROR_BUFLEN) {
+      eos = 1;
 		    return;	//continue;
-		else {
+    } else {
 		    printf("unrecoverable frame level error (%s).\n", MadErrorString(&Stream));
 		    sceDisplayWaitVblankStart();
 		    Status = 1;
@@ -557,6 +560,7 @@ void MP3_End()
 int MP3_Load(char *filename)
 {
     int fd;
+    eos = 0;
     //psp_stats pstat;
     //sceIoGetstat(filename, &pstat);
     if ((fd = sceIoOpen(filename, PSP_O_RDONLY, 0777)) > 0) {
@@ -617,4 +621,11 @@ int MP3_Stop()
 void MP3_GetTimeString(char *dest)
 {
     mad_timer_string(Timer, dest, "%02lu:%02u:%02u", MAD_UNITS_HOURS, MAD_UNITS_MILLISECONDS, 0);
+}
+
+int MP3_EndOfStream()
+{
+  if (eos == 1)
+    return 1;
+  return 0;
 }
