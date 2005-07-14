@@ -23,7 +23,7 @@ extern "C" {
     int AAC_Stop();
     void AAC_End();
     int AAC_Load(char *filename);
-
+    int AAC_EndOfStream();
 
 #ifdef __cplusplus
 }

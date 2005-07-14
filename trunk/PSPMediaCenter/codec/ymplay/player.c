@@ -26,7 +26,7 @@
 
 // The following variables are maintained and updated by the tracker during playback
 static int isPlaying;		// Set to true when a mod is being played
-
+static int eos;
 //////////////////////////////////////////////////////////////////////
 // These are the public functions
 //////////////////////////////////////////////////////////////////////
@@ -50,6 +50,7 @@ void YMPLAYsetStubs(codecStubs * stubs)
     stubs->end = YMPLAY_End;
     stubs->time = YMPLAY_GetTimeString;
     stubs->tick = NULL;
+    stubs->eos  = YMPLAY_EndOfStream;
     memcpy(stubs->extension, ".ym\0" "\0\0\0\0", 2*4);
 }
 
@@ -63,7 +64,8 @@ static void YMPLAYCallback(short *_buf, unsigned long numSamples)
    		short *s = (short *)_buf;
   		short *d = (short *)_buf;
 
-	  	ymMusicCompute((void *)pMusic, (ymsample *)_buf, numSamples);
+	  	if (!ymMusicCompute((void *)pMusic, (ymsample *)_buf, numSamples))
+        eos = 1;
 
   		s += numSamples-1;
 		  d += numSamples*2-1;
@@ -112,11 +114,12 @@ unsigned char *ptr;
 
 int YMPLAY_Load(char *filename)
 {
+  eos = 0;
   pMusic = ymMusicCreate();
   mf = ymMusicLoad(pMusic,filename);
   if (mf) {
     ymMusicGetInfo(pMusic,&info);
-    ymMusicSetLoopMode(pMusic,YMTRUE);
+    ymMusicSetLoopMode(pMusic,YMFALSE);
     ymMusicPlay(pMusic);
 
     printf("\n\n");
@@ -151,11 +154,17 @@ int YMPLAY_Stop()
     //stop playing
     isPlaying = FALSE;
 
-
     return TRUE;
 }
 
 void YMPLAY_GetTimeString(char *dest)
 {
-  sprintf(dest,"00:00:00");
+  unsigned long time = ymMusicGetPos(pMusic) / 1000;
+  sprintf(dest,"%d:%02d", (int)(time/60),(int)(time%60));
+}
+
+int YMPLAY_EndOfStream()
+{
+  if (eos) return 1;
+  return 0;
 }

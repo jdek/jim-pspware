@@ -23,8 +23,8 @@ extern "C" {
     int MIKMOD_Stop();
     void MIKMOD_End();
     int MIKMOD_Load(char *filename);
-
     void MIKMOD_GetTimeString(char *dest);
+    int MIKMOD_EndOfStream();
 
 #ifdef __cplusplus
 }

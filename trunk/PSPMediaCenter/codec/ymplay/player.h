@@ -23,8 +23,8 @@ extern "C" {
     int YMPLAY_Stop();
     void YMPLAY_End();
     int YMPLAY_Load(char *filename);
-
     void YMPLAY_GetTimeString(char *dest);
+    int YMPLAY_EndOfStream();
 
 #ifdef __cplusplus
 }

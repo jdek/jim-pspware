@@ -29,7 +29,7 @@ PSP_MAIN_THREAD_ATTR(0);
 
 codecStubs stubs[100];
 codecStubs *decoder;
-unsigned char banner[] = "PSP Media Center v0.86 by John_K & adresd\0";
+unsigned char banner[] = "PSP Media Center v0.87 by John_K & adresd\0";
 int errno, __errno;
 int codecnum = 0;
 
@@ -62,18 +62,17 @@ int SetupCallbacks(void)
 void MyExceptionHandler(PspDebugRegBlock * regs)
 {
     /* Do normal initial dump, setup screen etc */
-    pspDebugScreenInit();
+    //pspDebugScreenInit();
 
     /* I always felt BSODs were more interesting that white on black */
     pspDebugScreenSetBackColor(0x00FF0000);
     pspDebugScreenSetTextColor(0xFFFFFFFF);
-    pspDebugScreenClear();
+    //pspDebugScreenClear();
 
-    pspDebugScreenPrintf("I regret to inform you your psp has just crashed\n");
-    pspDebugScreenPrintf("Please contact Sony technical support for further information\n\n");
+    pspDebugScreenSetXY(0,17);
+    pspDebugScreenPrintf("\nI regret to inform you your psp has just crashed\n");
     pspDebugScreenPrintf("Exception Details:\n");
     pspDebugDumpException(regs);
-    pspDebugScreenPrintf("\nBlame the 3rd party software, it cannot possibly be our fault!\n");
     pspDebugScreenSetBackColor(0x00000000);
 }
 

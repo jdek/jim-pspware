@@ -1,6 +1,13 @@
 PSPMediaCenter by John_K & adresd
 =================================
 
+v0.87 - July 14 2003
+-------------------------------------------------------------
+Fixed a bug with skip tune, introduced with last version.
+Added a Loop/Advance mode to playing, so can either loop a song, or advance down playlist.
+This is on the triangle button, shows LOOP or ADVANCE in top right corner of screen.
+Minor other bugfixes.
+
 v0.86 - July 13 2003
 -------------------------------------------------------------
 Sorted out mikmod display functions and timer.

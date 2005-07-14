@@ -58,6 +58,7 @@ void MIKMODsetStubs(codecStubs * stubs)
     stubs->end = MIKMOD_End;
     stubs->time = MIKMOD_GetTimeString;
     stubs->tick = NULL;
+    stubs->eos = MIKMOD_EndOfStream;
     memcpy(stubs->extension, "mod\0"
                              ".xm\0"
                              ".it\0"
@@ -180,4 +181,11 @@ void MIKMOD_GetTimeString(char *dest)
   sprintf(dest,"%02d:%02d:%02d",mf->sngpos,mf->patpos,mf->vbtick);
 }
 
+//extern BOOL MikMod_Playing(void);
+extern BOOL Player_Active(void);
+int MIKMOD_EndOfStream()
+{
+  if (!Player_Active()) return 1;
+  return 0;
+}
 

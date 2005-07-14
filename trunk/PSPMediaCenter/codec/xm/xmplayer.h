@@ -23,6 +23,7 @@ extern "C" {
     void XMPLAY_End();
     int XMPLAY_Load(char *filename);
     void XMPLAY_GetTimeString(char *dest);
+    int XMPLAY_EndOfStream();
 
 #ifdef __cplusplus
 }
