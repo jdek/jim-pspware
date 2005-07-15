@@ -171,10 +171,8 @@ int getFilePath(char *out)
 	
 	getDir(path);
 
-	if (PSP_Settings.bUseGUBlit) readpad ();
-	
 	for(;;){
-		if (! PSP_Settings.bUseGUBlit) readpad ();
+		readpad ();
 
 		if(new_pad)
 			bMsg=0;
@@ -316,11 +314,7 @@ int getFilePath(char *out)
 			y+=10;
 		}
 		
-		if (! PSP_Settings.bUseGUBlit) {
-			pgScreenFlipV ();
-		} else {
-			do readpad (); while (! new_pad);
-		}
+		pgScreenFlipV ();
 	}
 }
 
@@ -343,8 +337,7 @@ void draw_load_rom_progress(unsigned long ulExtractSize, unsigned long ulCurrent
 	pgPrint(28,16,0xffff,szPer);
 	// pgScreenFlipV()を使うとpgWaitVが呼ばれてしまうのでこちらで。
 	// プログレスだからちらついても良いよね～
-	if (! PSP_Settings.bUseGUBlit)
-		pgScreenFlip();
+	pgScreenFlip ();
 }
 
 // Unzip コールバック
