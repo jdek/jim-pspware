@@ -459,7 +459,7 @@ verify: snes9x
 	./snes9x --selftest
 
 #FIXME: Make a auto-self-reference.
-depend:
+dependencies:
 	@echo "Calculating dependencies..."
 	@$(CCC) $(CXXFLAGS) -MM -MG \
 	  `find . '(' -name '*.c' -o -name '*.cpp' -o -name '*.S' ')' -print -o -name msdos -prune` \
