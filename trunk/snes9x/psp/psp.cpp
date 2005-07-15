@@ -138,7 +138,6 @@ bool8 bGUIMode = FALSE;
 static struct timeval	s_tvStart;
 static int				s_iFrame;
 static int				s_iFramebufferState = 0; // 0 = clean, 1 = front/back buffer dirty, 2 = front & back dirty
-// static int				s_iFlip = 0;
 // add by y
 char					PBPPath[_MAX_PATH];
 char					RomPath[_MAX_PATH];
@@ -157,6 +156,7 @@ void S9xMarkScreenDirty   (void);
 void S9xMarkScreenDirtyEx (void);
 
 extern "C" void init_blit_backend (void);
+extern "C" void init_pg (void);
 
 extern "C" void draw_menu (void);
 
@@ -918,7 +918,7 @@ void display_config_disp (int cur_pos)
 	                                (PSP_Settings.bShowDebugInfo))
 
 	AddBooleanConfigOption (BLIT_BACKEND,     "Bit Blit Backend ",
-	                            "sceGu (experimental)","pg (default)",
+	                            "sceGu (advanced)","pg (original)",
 	                                (PSP_Settings.bUseGUBlit))
 
 	if (PSP_Settings.bUseGUBlit) {
@@ -935,10 +935,9 @@ void display_config_disp (int cur_pos)
 	                                (PSP_Settings.bBilinearFilter))
 	}
 
+	// Add a blank line below the last option...
+	AddConfigValue ("");
 
-	AddConfigValue ("\n"
-	                "NOTE: The sceGu blit backend is experimental, it may \n"
-	                "      cause some games to become unplayable...\n")
 
 	message_dialog( 34, 50, " 　【　　Display Config　　】　 \0", dialog_text_all );
 }
@@ -2053,6 +2052,10 @@ enum {
 };
 
 static char FPSbuf[6];
+
+extern int S9xDisplayGetMaxCharsX (void);
+extern void S9xDisplayStringEx (const char *string, int x, int y);
+
 #ifdef OPTI
 bool8 S9xDeinitUpdate (int Width, int Height)
 #else
@@ -2063,7 +2066,24 @@ bool8 S9xDeinitUpdate (int Width, int Height, bool8 sixteen_bit)
 // mod by y
 
 	if (PSP_Settings.bUseGUBlit) {
+		// Dirty framebuffer clear for sceGu blit
+		if (s_iFramebufferState > 0) {
+			s_iFramebufferState = 0;
+			clear_framebuffer ();
+		}
+
+		// Special consideration for fullscreen modes and FPS drawing
+		if (PSP_Settings.bShowFPS && PSP_Settings.iScreenSize >= SCR_SIZE_FULL) {
+			Settings.DisplayColor = RGB (255, 255, 255);
+			int max_chars = S9xDisplayGetMaxCharsX ();
+			S9xDisplayStringEx (FPSbuf, max_chars - 5, 0);
+		}
+
 		const int tex_res = (PSP_Settings.bSupportHiRes ? 512 : 256);
+
+		// If you don't call this, Gu will run into cache problems with
+		// reading pixel data...
+		sceKernelDcacheWritebackAll ();
 		
 		switch(PSP_Settings.iScreenSize) {
 			case SCR_FIT:
@@ -2087,7 +2107,6 @@ bool8 S9xDeinitUpdate (int Width, int Height, bool8 sixteen_bit)
 				break;
 		}
 	} else {
-
 		BEGIN_RELEASE_CODE
 	
 		switch(PSP_Settings.iScreenSize) {
@@ -2111,35 +2130,43 @@ bool8 S9xDeinitUpdate (int Width, int Height, bool8 sixteen_bit)
 	if (PSP_Settings.bShowFPS) {
 		struct timeval	now;
 		unsigned int	diff;
-//		char buf[128];
 	
 		s_iFrame++;
-		gettimeofday( &now, 0 );
+		gettimeofday (&now, 0);
 	
 		diff  = (now.tv_sec - s_tvStart.tv_sec) * 1000000 + now.tv_usec - s_tvStart.tv_usec;
 		diff /= 1000000;
 	
 		if ( diff ){
-			FPSbuf[0] = ((s_iFrame / diff) / 10) + '0';
-			FPSbuf[1] = ((s_iFrame / diff) % 10) + '0';
-			FPSbuf[2] = 'F';
-			FPSbuf[3] = 'P';
-			FPSbuf[4] = 'S';
-			FPSbuf[5] = '\0';
-	
+			FPSbuf [0] = ((s_iFrame / diff) / 10) + '0';
+			FPSbuf [1] = ((s_iFrame / diff) % 10) + '0';
+			FPSbuf [2] = 'F';
+			FPSbuf [3] = 'P';
+			FPSbuf [4] = 'S';
+			FPSbuf [5] = '\0';
+	 
 			s_tvStart = now;
 			s_iFrame  = 0;
 		}
-		pgPrintBG( CMAX_X - 6, 0, 0xffff, FPSbuf );
+
+		// Don't use this method of drawing the FPS if the screen mode
+		// is FULL and sceGu blitting is enabled...
+		if ((! PSP_Settings.bUseGUBlit) || PSP_Settings.iScreenSize < SCR_SIZE_FULL)
+			pgPrintBG (CMAX_X - 6, 0, 0xffff, FPSbuf);
 	}
 
 	if (PSP_Settings.bVSync) {
-		pgScreenFlipV ();
+		if (PSP_Settings.bUseGUBlit) {
+			pgWaitV      ();
+			pgScreenSync ();
+		} else {		
+			pgScreenFlipV ();
+		}
 	} else {
 		if (PSP_Settings.bUseGUBlit)
-			pgScreenSync ();
+		  ; // pgScreenSync ();
 		else
-			pgScreenFlip ();
+			pgScreenFlip();
 	}
 
 	if (! PSP_Settings.bUseGUBlit) {
@@ -2156,20 +2183,16 @@ bool8 S9xDeinitUpdate (int Width, int Height, bool8 sixteen_bit)
 
 		END_DEBUG_CODE
 		}
-	/*
-		s_iFlip = (s_iFlip + 1) & 1;
-		if ( s_iFlip ){
-			GFX.Screen += FRAMESIZE;
-		}
-		sceDisplaySetFrameBuf( pg_vramtop + (s_iFlip ? 0 : FRAMESIZE ), LINESIZE, PIXELSIZE, 0 );
-	*/
-
+		
 // FPS move --> before Flip
 // analog_menu move --> S9xProcessEvents() by y
 
-	if (s_iFramebufferState > 0) {
-		s_iFramebufferState--;
-		clear_framebuffer ();
+	// Dirty framebuffer clear for pg
+	if (! PSP_Settings.bUseGUBlit) {
+		if (s_iFramebufferState > 0) {
+			s_iFramebufferState--;
+			clear_framebuffer ();
+		}
 	}
 
 	return TRUE;
@@ -2340,15 +2363,15 @@ void load_config(void)
 		PSP_Settings.bSwapAnalog = false;
 		PSP_Settings.bSaveThumb = true;
 		PSP_Settings.iPSP_ClockUp = 2;
-		PSP_Settings.iScreenSize = 0;
+		PSP_Settings.iScreenSize = 1;
 		PSP_Settings.bAutoSkip = false;
 		PSP_Settings.iBackgroundColor = 0;
 		PSP_Settings.iCompression = 0;
 		PSP_Settings.iSoundSync = 0;
 		PSP_Settings.bShowDebugInfo = false;
-		PSP_Settings.bUseGUBlit = false;
+		PSP_Settings.bUseGUBlit = true;
 		PSP_Settings.bSupportHiRes = false;
-		PSP_Settings.bBilinearFilter = false;
+		PSP_Settings.bBilinearFilter = true;
 		PSP_Settings.iAltSampleDecode = 0;
 	}
 
@@ -2396,97 +2419,6 @@ void load_config(void)
 
 	init_blit_backend ();
 }
-
-// add by J
-// もうバカとしか言いようが無いな自分
-// longを文字列に変換
-int longToChar( long value, char *text )
-{
-	long m_value = value;
-	int flg=0;
-	strcpy( text,"\0" );
-	if ( m_value < 0 ) {
-		flg = 1;
-		m_value *= -1;
-	}
-	if ( m_value < 10 ) {
-		strcpy( text,"+0\0" );
-		text[ 1 ] = m_value + '0';
-	}else 
-	if ( m_value < 100 ) {
-		strcpy( text,"+00\0" );
-		text[ 1 ] = m_value / 10 + '0';m_value -= ( m_value / 10 ) * 10;
-		text[ 2 ] = m_value      + '0';
-	}else 
-	if ( m_value < 1000 ) {
-		strcpy( text,"+000\0" );
-		text[ 1 ] = m_value / 100 + '0';m_value -= ( m_value / 100 ) * 100;
-		text[ 2 ] = m_value / 10  + '0';m_value -= ( m_value / 10 ) * 10;
-		text[ 3 ] = m_value       + '0';
-	}else 
-	if ( m_value < 10000 ) {
-		strcpy( text,"+0000\0" );
-		text[ 1 ] = m_value / 1000 + '0';m_value -= ( m_value / 1000 ) * 1000;
-		text[ 2 ] = m_value / 100  + '0';m_value -= ( m_value / 100 ) * 100;
-		text[ 3 ] = m_value / 10   + '0';m_value -= ( m_value / 10 ) * 10;
-		text[ 4 ] = m_value        + '0';
-	}else
-	if ( m_value < 100000 ) {
-		strcpy( text,"+00000\0" );
-		text[ 1 ] = m_value / 10000  + '0';m_value -= ( m_value / 10000 ) * 10000;
-		text[ 2 ] = m_value / 1000   + '0';m_value -= ( m_value / 1000 ) * 1000;
-		text[ 3 ] = m_value / 100    + '0';m_value -= ( m_value / 100 ) * 100;
-		text[ 4 ] = m_value / 10     + '0';m_value -= ( m_value / 10 ) * 10;
-		text[ 5 ] = m_value          + '0';
-	}else 
-	if ( m_value < 1000000 ) {
-		strcpy( text,"+000000\0" );
-		text[ 1 ] = m_value / 100000  + '0';m_value -= ( m_value / 100000 ) * 100000;
-		text[ 2 ] = m_value / 10000   + '0';m_value -= ( m_value / 10000 ) * 10000;
-		text[ 3 ] = m_value / 1000    + '0';m_value -= ( m_value / 1000 ) * 1000;
-		text[ 4 ] = m_value / 100     + '0';m_value -= ( m_value / 100 ) * 100;
-		text[ 5 ] = m_value / 10      + '0';m_value -= ( m_value / 10 ) * 10;
-		text[ 6 ] = m_value           + '0';
-	}else 
-	if ( m_value < 10000000 ) {
-		strcpy( text,"+0000000\0" );
-		text[ 1 ] = m_value / 1000000 + '0';m_value -= ( m_value / 1000000 ) * 1000000;
-		text[ 2 ] = m_value / 100000  + '0';m_value -= ( m_value / 100000 ) * 100000;
-		text[ 3 ] = m_value / 10000   + '0';m_value -= ( m_value / 10000 ) * 10000;
-		text[ 4 ] = m_value / 1000    + '0';m_value -= ( m_value / 1000 ) * 1000;
-		text[ 5 ] = m_value / 100     + '0';m_value -= ( m_value / 100 ) * 100;
-		text[ 6 ] = m_value / 10      + '0';m_value -= ( m_value / 10 ) * 10;
-		text[ 7 ] = m_value           + '0';
-	}else 
-	if ( m_value < 100000000 ) {
-		strcpy( text,"+00000000\0" );
-		text[ 1 ] = m_value / 10000000  + '0';m_value -= ( m_value / 10000000 ) * 10000000;
-		text[ 2 ] = m_value / 1000000  + '0';m_value -= ( m_value / 1000000 ) * 1000000;
-		text[ 3 ] = m_value / 100000  + '0';m_value -= ( m_value / 100000 ) * 100000;
-		text[ 4 ] = m_value / 10000   + '0';m_value -= ( m_value / 10000 ) * 10000;
-		text[ 5 ] = m_value / 1000    + '0';m_value -= ( m_value / 1000 ) * 1000;
-		text[ 6 ] = m_value / 100     + '0';m_value -= ( m_value / 100 ) * 100;
-		text[ 7 ] = m_value / 10      + '0';m_value -= ( m_value / 10 ) * 10;
-		text[ 8 ] = m_value           + '0';
-	}else 
-	if ( m_value < 1000000000 ) {
-		strcpy( text,"+000000000\0" );
-		text[ 1 ] = m_value / 100000000  + '0';m_value -= ( m_value / 100000000 ) * 100000000;
-		text[ 2 ] = m_value / 10000000  + '0';m_value -= ( m_value / 10000000 ) * 10000000;
-		text[ 3 ] = m_value / 1000000  + '0';m_value -= ( m_value / 1000000 ) * 1000000;
-		text[ 4 ] = m_value / 100000  + '0';m_value -= ( m_value / 100000 ) * 100000;
-		text[ 5 ] = m_value / 10000   + '0';m_value -= ( m_value / 10000 ) * 10000;
-		text[ 6 ] = m_value / 1000    + '0';m_value -= ( m_value / 1000 ) * 1000;
-		text[ 7 ] = m_value / 100     + '0';m_value -= ( m_value / 100 ) * 100;
-		text[ 8 ] = m_value / 10      + '0';m_value -= ( m_value / 10 ) * 10;
-		text[ 9 ] = m_value           + '0';
-	}
-	if ( flg == 1 ) {
-		text[ 0 ] = '-';
-	}
-	return 0;
-}
-
 
 void ustoa(unsigned short val, char *s);
 // RINのソースから頂きました。
@@ -2964,21 +2896,22 @@ void close_menu (void)
 
 	// Restore GU blitting, if used
 	bGUIMode = FALSE;
-	init_blit_backend ();
+	init_pg ();
 }
 
 void open_menu (void)
 {
+	// Do this before screwing with the blit backend...
+	get_screenshot((unsigned char *)GFX.Screen);
+
 	// While the menu is open, temporarily disable GU blitting...
 	bGUIMode = TRUE;
-	init_blit_backend ();
+	init_pg ();
 
 	char* msg = g_szMainMenuMsg;
 	int&  sel = g_iMainMenuSel;
 	
-	get_screenshot((unsigned char *)GFX.Screen);
-	scePowerSetClockFrequency(222,222,111);
-
+	scePowerSetClockFrequency (222, 222, 111);
 	
 	// mod by a - Only do this when a new state is written or a manual refresh is performed
 	//            Doing this here would make opening the menu take longer...
@@ -3015,6 +2948,9 @@ void open_menu (void)
 			} else if (sel == STATE_SAVE){
 				// mod by J
 				if ( state_save_check() == true ) {
+					// Speed the clock up to save time saving states
+					scePowerSetClockFrequency (333, 333, 166);
+
 					pgFillBox( 129, 104, 351, 168, 0 );
 					mh_print(195, 132, (unsigned char*)"Now State Saving...", RGB(255,205,0));
 					pgScreenFlipV();
@@ -3036,10 +2972,14 @@ void open_menu (void)
 					refresh_state_list ();
 					
 					S9xSetSoundMute( TRUE );
+
+					scePowerSetClockFrequency (222, 222, 111);
 				}else {
 					strcpy(msg, "State Save Cancel.");
 				}
 			} else if (sel == STATE_LOAD){
+				scePowerSetClockFrequency (333, 333, 166);
+
 				if ( S9xUnfreezeGame_PSP ( S9xGetFilename("sv0") ) ) {
 					Memory.LoadSRAM( S9xGetFilename("srm") );
 					S9xSetInfoString( "State Loaded." );
@@ -3060,6 +3000,8 @@ void open_menu (void)
 
 				refresh_state_list ();
 			} else if (sel == STATE_COMPRESS) {
+				scePowerSetClockFrequency (333, 333, 166);
+
 				bool success     = false;
 				int  compression = save_slots [PSP_Settings.iSaveSlot].compression;
 
@@ -3135,6 +3077,7 @@ void open_menu (void)
 				}
 
 				refresh_state_list ();
+				scePowerSetClockFrequency (222, 222, 111);
 			} else if (sel == STATE_REFRESH) {
 				refresh_state_list ();
 			} else if (sel == STATE_CONFIG) {
@@ -3169,6 +3112,9 @@ void open_menu (void)
 					PSP_Settings.iPSP_ClockUp = 0;
 				}
 			} else if (sel == LOAD_ROM){
+				// Speed the clock up to save time loading ROMs (especially compressed ones)
+				scePowerSetClockFrequency (333, 333, 166);
+
 				msg[0]=0;
 				FilerMsg[0]=0;
 				if (getFilePath(RomPath)){
@@ -3395,6 +3341,14 @@ void S9xProcessEvents( bool8 block )
 	s_iAnalog = ANALOG_NONE;
 }
 
+void init_pg (void)
+{
+	pgMain ();
+	pgInit ();
+	
+	pgScreenFrame (2, 0);
+}
+
 void init_blit_backend (void)
 {
 	if (PSP_Settings.bUseGUBlit) {
@@ -3403,10 +3357,7 @@ void init_blit_backend (void)
 		S9xSetRenderPixelFormat (BGR555);
 	}
 
-	pgMain ();
-	pgInit ();
-	
-	pgScreenFrame (2, 0);
+	init_pg ();
 
 	S9xInitDisplay (0, 0);
 
@@ -3420,7 +3371,8 @@ int main(int argc, char **argv)
 {
 //	debug_log( argv );
 
-	pspDebugInstallErrorHandler(NULL);
+	pspDebugInstallErrorHandler (NULL);
+	pspDebugScreenInit          ();
 
 	PSP_Settings.bUseGUBlit = FALSE; // Disable this by default
 
@@ -3544,6 +3496,9 @@ Settings.PSP_APUTimerCycle = SNES_APUTIMER2_CYCLEx10000;
 
 // add by J
 	key_config_init ();
+
+	// Speed the clock up to save time loading ROMs (especially compressed ones)
+	scePowerSetClockFrequency (333, 333, 166);
 
 // mod by y
 	strcpy(LastPath,PBPPath);
@@ -3966,6 +3921,60 @@ void clear_execute_bit (const char* filename)
 
 	sceIoChstat (filename, &filestat, 0xffffffff);
 }
+
+#include "font.h"
+
+extern void DisplayChar (uint8 *Screen, uint8 c);
+
+int S9xDisplayGetMaxCharsX (void)
+{
+	return IPPU.RenderedScreenWidth / (font_width - 1);
+}
+
+void S9xDisplayStringEx (const char *string, int x, int y)
+{
+    uint8 *Screen = GFX.Screen +
+		    (font_height * y) * GFX.Pitch2 + 
+#ifdef OPTI
+		    (((font_width - 1) * sizeof (uint16)) * x);
+#else
+		    ((Settings.SixteenBit ? (font_width - 1) * sizeof (uint16) : 
+		  (font_width - 1) * x);
+#endif
+
+    int len = strlen (string);
+    int max_chars = IPPU.RenderedScreenWidth / (font_width - 1);
+    int char_count = 0;
+    int i;
+
+    for (i = 0; i < len; i++, char_count++)
+    {
+	if (char_count >= max_chars || string [i] < 32)
+	{
+#ifdef OPTI
+	    Screen -= (font_width - 1) * sizeof (uint16) * max_chars;
+#else
+	    Screen -= Settings.SixteenBit ? 
+			(font_width - 1) * sizeof (uint16) * max_chars :
+			(font_width - 1) * max_chars;
+#endif // OPTI
+	    Screen += font_height * GFX.Pitch;
+	    if (Screen >= GFX.Screen + GFX.Pitch * IPPU.RenderedScreenHeight)
+		break;
+	    char_count -= max_chars;
+	}
+	if (string [i] < 32)
+	    continue;
+	DisplayChar (Screen, string [i]);
+#ifdef OPTI
+	Screen += (font_width - 1) * sizeof (uint16);
+#else
+	Screen += Settings.SixteenBit ? (font_width - 1) * sizeof (uint16) : 
+		  (font_width - 1);
+#endif // OPTI
+    }
+}
+
 /*
 WIP
 ・ちょっぴり速くなった

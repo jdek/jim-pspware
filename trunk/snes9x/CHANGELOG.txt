@@ -2,9 +2,31 @@ Andon (15/Jul/05)
 -----------------
  CHANGES
 ---------
- + pgGetVramAddr will now ignore the state
-   of pg_drawframe when GU blitting is sel-
-   ected.
+ + sceGu is now the default blit backend.
+ + Bilinear filtering is now enabled by def-
+   ault.
+ + The default screen mode is now 4:3 / Fit.
+ + The sceGu blit code now calls
+   sceKernelDcacheWritebackAll (...) before
+   writing to a texture.
+  >> This makes sure that there are no cache
+     issues when blitting.
+ + The CPU clock is temporarily rev'd up to
+   333 MHz when loading ROMs and state saves.
+  >> Previously, they'd typically run at 222
+     MHz.
+ + The dirty framebuffer clear code now diff-
+   erentiates between sceGu and pg blitting.
+
+
+
+Andon (15/Jul/05)
+-----------------
+ CHANGES
+---------
+ + pgGetVramAddr (...) will now ignore the
+   state of pg_drawframe when GU blitting is
+   selected.
  + The menu is always drawn using pg blitting
    now.
  + The main menu is redrawn even while a child
