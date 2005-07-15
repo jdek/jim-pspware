@@ -3,21 +3,27 @@
 #include "filer.h"
 #include "psp/zlibInterface.h"
 
+#include "port.h"
+
+#include <stdlib.h>
+#include <stdio.h>
+
 #define true 1
 #define false 0
 
 extern u32 new_pad;
 
-struct dirent files[MAX_ENTRY];
+struct SceIoDirent files[MAX_ENTRY];
 int nfiles;
 
-void menu_frame(const char *msg0, const char *msg1)
+void menu_frame(const unsigned char *msg0, const unsigned char *msg1)
 {
 //	if(bBitmap)
 //		pgBitBlt(0,0,480,272,1,bgBitmap);
 //	else
 		pgFillvram(0x9063);
-	mh_print(286, 0, " ■ uo_Snes9x for PSP Ver0.02y11 ■", RGB(85,85,95));
+	mh_print(286, 0, (unsigned char *)" ■ uo_Snes9x for PSP Ver0.02pd1 ■", RGB(85,85,95));
+
 	// メッセージなど
 	if(msg0!=0) mh_print(17, 14, msg0, RGB(105,105,115));
 	pgDrawFrame(17,25,463,248,RGB(85,85,95));
@@ -26,17 +32,17 @@ void menu_frame(const char *msg0, const char *msg1)
 	if(msg1!=0) mh_print(17, 252, msg1, RGB(105,105,115));
 }
 
-void SJISCopy(struct dirent *a, unsigned char *file)
+void SJISCopy(struct SceIoDirent *a, unsigned char *file)
 {
 	unsigned char ca;
 	int i;
 
-	for(i=0;i<=strlen(a->name);i++){
-		ca = a->name[i];
+	for(i=0;i<=strlen(a->d_name);i++){
+		ca = a->d_name[i];
 		if (((0x81 <= ca)&&(ca <= 0x9f))
 		|| ((0xe0 <= ca)&&(ca <= 0xef))){
 			file[i++] = ca;
-			file[i] = a->name[i];
+			file[i] = a->d_name[i];
 		}
 		else{
 			if(ca>='a' && ca<='z') ca-=0x20;
@@ -45,16 +51,16 @@ void SJISCopy(struct dirent *a, unsigned char *file)
 	}
 
 }
-int cmpFile(struct dirent *a, struct dirent *b)
+int cmpFile(struct SceIoDirent *a, struct SceIoDirent *b)
 {
-    unsigned char file1[0x108];
-    unsigned char file2[0x108];
+    char file1[0x108];
+    char file2[0x108];
 	unsigned char ca, cb;
 	int i, n, ret;
 
-	if(a->type==b->type){
-		SJISCopy(a, file1);
-		SJISCopy(b, file2);
+	if(a->d_stat.st_mode==b->d_stat.st_mode){
+		SJISCopy(a, (unsigned char *)file1);
+		SJISCopy(b, (unsigned char *)file2);
 		n=strlen(file1);
 		for(i=0; i<=n; i++){
 			ca=file1[i]; cb=file2[i];
@@ -64,12 +70,12 @@ int cmpFile(struct dirent *a, struct dirent *b)
 		return 0;
 	}
 	
-	if(a->type & TYPE_DIR)	return -1;
+	if(a->d_stat.st_mode & FIO_SO_IFDIR)	return -1;
 	else					return 1;
 }
 
-void sort(struct dirent *a, int left, int right) {
-	struct dirent tmp, pivot;
+void sort(struct SceIoDirent *a, int left, int right) {
+	struct SceIoDirent tmp, pivot;
 	int i, p;
 	
 	if (left < right) {
@@ -93,12 +99,12 @@ void sort(struct dirent *a, int left, int right) {
 // 拡張子管理用
 const struct {
 	char *szExt;
-	int nExtId;
-} stExtentions[] = {
- "sfc",EXT_SFC,
- "smc",EXT_SMC,
- "zip",EXT_ZIP,
- 0, EXT_UNKNOWN
+	int   nExtId;
+} stExtentions [] = {
+	{ "sfc", EXT_SFC     },
+	{ "smc", EXT_SMC     },
+	{ "zip", EXT_ZIP     },
+	{   0,   EXT_UNKNOWN }
 };
 
 int getExtId(const char *szFilePath) {
@@ -117,14 +123,13 @@ int getExtId(const char *szFilePath) {
 
 void getDir(const char *path) {
 	int fd, b=0;
-	char *p;
 	
 	nfiles = 0;
 	memset (files, 0, sizeof(files));
 	
 	if(strcmp(path,"ms0:/")){
-		strcpy(files[nfiles].name,"..");
-		files[nfiles].type = TYPE_DIR;
+		strcpy(files[nfiles].d_name,"..");
+		files[nfiles].d_stat.st_mode = FIO_SO_IFDIR;
 		nfiles++;
 		b=1;
 	}
@@ -132,13 +137,13 @@ void getDir(const char *path) {
 	fd = sceIoDopen(path);
 	while(nfiles<MAX_ENTRY){
 		if(sceIoDread(fd, &files[nfiles])<=0) break;
-		if(files[nfiles].name[0] == '.') continue;
-		if(files[nfiles].type == TYPE_DIR){
-			strcat(files[nfiles].name, "/");
+		if(files[nfiles].d_name[0] == '.') continue;
+		if(files[nfiles].d_stat.st_mode == FIO_SO_IFDIR){
+			strcat(files[nfiles].d_name, "/");
 			nfiles++;
 			continue;
 		}
-		if(getExtId(files[nfiles].name) != EXT_UNKNOWN) nfiles++;
+		if(getExtId(files[nfiles].d_name) != EXT_UNKNOWN) nfiles++;
 	}
 	sceIoDclose(fd);
 	if(b)
@@ -153,8 +158,10 @@ int getFilePath(char *out)
 {
 	unsigned long color;
 	static int sel=0;
-	int top, rows=21, x, y, h, i, len, bMsg=0, up=0;
+	int top, rows=21, x, y, h, i, bMsg=0, up=0;
 	char path[_MAX_PATH], oldDir[_MAX_PATH], *p;
+// add by J
+	int  dialog_y = 0;
 	
 	top = sel-3;
 	
@@ -163,22 +170,26 @@ int getFilePath(char *out)
 		bMsg=1;
 	
 	getDir(path);
-	readpad();
+
+	if (PSP_Settings.bUseGUBlit) readpad ();
+	
 	for(;;){
+		if (! PSP_Settings.bUseGUBlit) readpad ();
+
 		if(new_pad)
 			bMsg=0;
 		if(new_pad & PSP_CTRL_CIRCLE){
-			if(files[sel].type == TYPE_DIR){
-				if(!strcmp(files[sel].name,"..")){
+			if(files[sel].d_stat.st_mode == FIO_SO_IFDIR){
+				if(!strcmp(files[sel].d_name,"..")){
 					up=1;
 				}else{
-					strcat(path,files[sel].name);
+					strcat(path,files[sel].d_name);
 					getDir(path);
 					sel=0;
 				}
 			}else{
 				strcpy(out, path);
-				strcat(out, files[sel].name);
+				strcat(out, files[sel].d_name);
 				strcpy(LastPath,path);
 				return 1;
 			}
@@ -194,6 +205,57 @@ int getFilePath(char *out)
 			sel-=10;
 		}else if(new_pad & PSP_CTRL_RIGHT){
 			sel+=10;
+// add by a
+		}else if(new_pad & PSP_CTRL_LTRIGGER){
+			sel-=20;
+ 		}else if(new_pad & PSP_CTRL_RTRIGGER){
+			sel+=20;
+// add by J
+		// ROM削除(ロボタンでROM削除)
+		}else if( new_pad & PSP_CTRL_SQUARE ) {
+			if( files[sel].d_stat.st_mode != FIO_SO_IFDIR) {
+				if( strcmp( files[sel].d_name , ".." ) ) {
+					//   ループカウント
+					int  loop_cnt;
+					//   ROM削除用パス
+					char delete_path[ _MAX_PATH ];
+					//   タイトル文字列
+					char title_string[ D_text_MAX ];
+					//   ダイアログテキストの保存用変数
+					char dialog_text_all[ D_text_all_MAX ];
+					// ダイアログタイトル文字列作成
+					strcpy( title_string,    " 　【　　ROM Delete　　】　 \0" );
+					// メッセージ作成
+					strcpy( dialog_text_all, files[sel].d_name                );
+					strcat( dialog_text_all, "\n\n\0"                         ); // 改行x2
+					strcat( dialog_text_all, "     ROMを削除します。\n\0"     );
+					strcat( dialog_text_all, "     よろしいですか？\n\0"      );
+					strcat( dialog_text_all, "\n\0"                           ); // 改行
+					strcat( dialog_text_all, "   はい ○ ／ いいえ ×\n\0"    );
+					strcat( dialog_text_all, "\n\0"                           ); // 改行
+					// ダイアログ表示
+					dialog_y += 12;
+					// 表示位置が下すぎたら上に表示
+					if ( dialog_y > 185 ) dialog_y -= 100;
+					message_dialog( 30, dialog_y, title_string, dialog_text_all );
+					// 無限ループ気持ち悪い
+					while( 1 ){
+						readpad();
+						// ×ボタン押した
+						if ( new_pad & PSP_CTRL_CROSS ) {
+							break;
+						// ○ボタン押す(ROM削除)
+						} else if ( new_pad & PSP_CTRL_CIRCLE ){
+							strcpy( delete_path, path);
+							strcat( delete_path, files[ sel ].d_name );
+							sceIoRemove( delete_path );
+							getDir(path);
+							break;
+						}
+					}
+				}
+			}
+
 		}
 		
 		if(up){
@@ -208,7 +270,7 @@ int getFilePath(char *out)
 				getDir(path);
 				sel=0;
 				for(i=0; i<nfiles; i++) {
-					if(!strcmp(oldDir, files[i].name)) {
+					if(!strcmp(oldDir, files[i].d_name)) {
 						sel=i;
 						top=sel-3;
 						break;
@@ -226,9 +288,9 @@ int getFilePath(char *out)
 		if(sel < top)			top=sel;
 		
 		if(bMsg)
-			menu_frame(FilerMsg,"○：OK　×：CANCEL　△：UP");
+			menu_frame((unsigned char *)FilerMsg,(unsigned char *)"○：OK　×：CANCEL　△：UP　□：DELETE");
 		else
-			menu_frame(path,"○：OK　×：CANCEL　△：UP");
+			menu_frame((unsigned char *)path,(unsigned char *)"○：OK　×：CANCEL　△：UP　□：DELETE");
 		
 		// スクロールバー
 		if(nfiles > rows){
@@ -241,12 +303,24 @@ int getFilePath(char *out)
 		x=28; y=32;
 		for(i=0; i<rows; i++){
 			if(top+i >= nfiles) break;
-			if(top+i == sel) color = RGB(105,105,115);
-			else			 color = 0xffff;
-			mh_print(x, y, files[top+i].name, color);
+// mod by J
+// 赤に変えました
+//			if(top+i == sel) color = RGB(105,105,115);
+			if(top+i == sel) {
+				color = RGB( 255,  0,   0 );
+				dialog_y = y;
+			}else {
+				color = 0xffff;
+			}
+			mh_print(x, y, (unsigned char *)files[top+i].d_name, color);
 			y+=10;
 		}
-		do readpad(); while(!new_pad);
+		
+		if (! PSP_Settings.bUseGUBlit) {
+			pgScreenFlipV ();
+		} else {
+			do readpad (); while (! new_pad);
+		}
 	}
 }
 
@@ -255,22 +329,22 @@ void draw_load_rom_progress(unsigned long ulExtractSize, unsigned long ulCurrent
 {
 	int nPer = 100 * ulExtractSize / ulCurrentPosition;
 	static int nOldPer = 0;
-	if (nOldPer == nPer & 0xFFFFFFFE) {
+	if (nOldPer == (nPer & 0xFFFFFFFE)) {
 		return ;
 	}
 	nOldPer = nPer;
 	pgFillvram(0x9063);
 	// プログレス
-	pgDrawFrame(89,121,391,141,RGB(85,85,95));
-	pgFillBox(90,123, 90+nPer*3, 139,RGB(85,85,95));
+	pgDrawFrame(88,121,392,141,RGB(85,85,95));
+	pgFillBox(90,123, 90+nPer*3, 139,RGB(85,85,195));
 	// ％
 	char szPer[16];
-	itoa(nPer, szPer);
-	strcat(szPer, "%");
+	sprintf (szPer, "%i%%", nPer);
 	pgPrint(28,16,0xffff,szPer);
 	// pgScreenFlipV()を使うとpgWaitVが呼ばれてしまうのでこちらで。
 	// プログレスだからちらついても良いよね～
-	pgScreenFlip();
+	if (! PSP_Settings.bUseGUBlit)
+		pgScreenFlip();
 }
 
 // Unzip コールバック
@@ -309,8 +383,12 @@ int funcUnzipCallback(int nCallbackId, unsigned long ulExtractSize, unsigned lon
     return UZCBR_PASS;
 }
 
-unsigned char slotflag[SAVE_SLOT_MAX+1];
-char slotdate[SAVE_SLOT_MAX+1][32];
+extern void ustoa(unsigned short val, char *s);
+extern bool8 S9xIsFreezeGameRLE (void* data);
+
+SAVE_SLOT_INFO   _save_slots [SAVE_SLOT_MAX + 1];
+LPSAVE_SLOT_INFO  save_slots = _save_slots;
+
 void get_slotdate( const char *path )
 {
 	char name[_MAX_PATH + 1], tmp[8],*p;
@@ -331,45 +409,72 @@ void get_slotdate( const char *path )
 	sceIoDclose(fd);
 	
 	for(i=0; i<=SAVE_SLOT_MAX; i++){
-		strcpy(slotdate[i],".sv0 - ");
-		slotdate[i][3] = name[strlen(name)-1] = i + '0';
+		char* slotdate = save_slots [i].date;
+		
+		strcpy(slotdate,".sv0 - ");
+		slotdate[3] = name[strlen(name)-1] = i + '0';
 		for(j=0; j<nfiles; j++){
-			if(!stricmp(name,files[j].name)){
-				ustoa(files[j].mtime.year,tmp);
-				strcat(slotdate[i],tmp);
-				strcat(slotdate[i],"/");
+			if(!strcasecmp(name,files[j].d_name)){
+				save_slots [i].size = files [j].d_stat.st_size;
+
+				ustoa(files[j].d_stat.st_mtime.year,tmp);
+				strcat(slotdate,tmp);
+				strcat(slotdate,"/");
 				
-				if(files[j].mtime.mon < 10) strcat(slotdate[i],"0");
-				ustoa(files[j].mtime.mon,tmp);
-				strcat(slotdate[i],tmp);
-				strcat(slotdate[i],"/");
+				if(files[j].d_stat.st_mtime.month < 10) strcat(slotdate,"0");
+				ustoa(files[j].d_stat.st_mtime.month,tmp);
+				strcat(slotdate,tmp);
+				strcat(slotdate,"/");
 				
-				if(files[j].mtime.mday < 10) strcat(slotdate[i],"0");
-				ustoa(files[j].mtime.mday,tmp);
-				strcat(slotdate[i],tmp);
-				strcat(slotdate[i]," ");
+				if(files[j].d_stat.st_mtime.day < 10) strcat(slotdate,"0");
+				ustoa(files[j].d_stat.st_mtime.day,tmp);
+				strcat(slotdate,tmp);
+				strcat(slotdate," ");
 				
-				if(files[j].mtime.hour < 10) strcat(slotdate[i],"0");
-				ustoa(files[j].mtime.hour,tmp);
-				strcat(slotdate[i],tmp);
-				strcat(slotdate[i],":");
+				if(files[j].d_stat.st_mtime.hour < 10) strcat(slotdate,"0");
+				ustoa(files[j].d_stat.st_mtime.hour,tmp);
+				strcat(slotdate,tmp);
+				strcat(slotdate,":");
 				
-				if(files[j].mtime.min < 10) strcat(slotdate[i],"0");
-				ustoa(files[j].mtime.min,tmp);
-				strcat(slotdate[i],tmp);
-				strcat(slotdate[i],":");
+				if(files[j].d_stat.st_mtime.minute < 10) strcat(slotdate,"0");
+				ustoa(files[j].d_stat.st_mtime.minute,tmp);
+				strcat(slotdate,tmp);
+				strcat(slotdate,":");
 				
-				if(files[j].mtime.sec < 10) strcat(slotdate[i],"0");
-				ustoa(files[j].mtime.sec,tmp);
-				strcat(slotdate[i],tmp);
+				if(files[j].d_stat.st_mtime.second < 10) strcat(slotdate,"0");
+				ustoa(files[j].d_stat.st_mtime.second,tmp);
+				strcat(slotdate,tmp);
 				
-				slotflag[i] = true;
+				save_slots[i].flag = true;
+
+				save_slots [i].compression = 0;
+				
+				// Determine if the freeze file is compressed...
+				if (save_slots [i].size > 5) {
+					char filename [_MAX_PATH + 1];
+
+					strcpy (filename, path);
+					strcat (filename, name);
+
+					FILE* freeze = fopen (filename, "r");
+
+					if (freeze) {
+						char header [5];
+						fread  (header, 5, 1, freeze);
+						fclose (freeze);
+
+						if (S9xIsFreezeGameRLE ((void *)header))
+							save_slots [i].compression = 1;
+					}
+				}
 				break;
 			}
 		}
 		if(j>=nfiles){
-			strcat(slotdate[i],"not exist");
-			slotflag[i] = false;
+			strcat(save_slots[i].date,"not exist");
+			save_slots[i].flag        = false;
+			save_slots[i].compression = 0;
+			save_slots[i].size        = 0;
 		}
 	}
 }
@@ -382,9 +487,11 @@ void get_screenshot(unsigned char *buf)
 	unsigned short rgb, rgb2;
 	int x,y,i;
 	i = 0;
+
+	const int y_incr = (PSP_Settings.bUseGUBlit ? (PSP_Settings.bSupportHiRes ? 2 : 1) : 2);
 	
 	vptr0=buf;
-	for (y=0; y<224; y+=2) {
+	for (y=0; y<224; y += y_incr) {
 		rgbptr=(unsigned short *)vptr0;
 		for (x=0; x<256; x+=2) {
 			rgb = (*rgbptr & *(rgbptr+1)) + (((*rgbptr ^ *(rgbptr+1)) & 0x7bde) >> 1);
@@ -392,12 +499,10 @@ void get_screenshot(unsigned char *buf)
 			now_thumb[i++] = (rgb & rgb2) + (((rgb ^ rgb2) & 0x7bde) >> 1);
 			rgbptr+=2;
 		}
-		vptr0+=LINESIZE*4;
+		vptr0+=LINESIZE*y_incr*2;
 	}
 }
 
-unsigned char thumbflag[SAVE_SLOT_MAX+1];
-unsigned short slot_thumb[SAVE_SLOT_MAX+1][128 * 112];
 void get_thumbs(const char *path)
 {
 	char name[_MAX_PATH + 1], filepath[_MAX_PATH + 1], tmp[8],*p;
@@ -419,28 +524,28 @@ void get_thumbs(const char *path)
 	for(i=0; i<=SAVE_SLOT_MAX; i++){
 		name[strlen(name)-1] = i + '0';
 		for(j=0; j<nfiles; j++){
-			if(!stricmp(name,files[j].name)){
+			if(!stricmp(name,files[j].d_name)){
 				strcpy(filepath, path);
 				strcat(filepath, name);
 				fd = sceIoOpen( filepath, PSP_O_RDONLY, 0777 );
 				if (fd>=0) {
-					sceIoRead(fd, &slot_thumb[i], sizeof(slot_thumb[0]));
+					sceIoRead(fd, &save_slots[i].thumbnail, sizeof(save_slots[i].thumbnail));
 					sceIoClose(fd);
 				}
-				thumbflag[i] = true;
+				save_slots[i].thumbflag = true;
 				break;
 			}
 		}
 		if(j>=nfiles){
-			memset (slot_thumb[i], 0, sizeof(slot_thumb[0]));
-			thumbflag[i] = false;
+			memset (save_slots[i].thumbnail, 0, sizeof(save_slots[i].thumbnail));
+			save_slots[i].thumbflag = false;
 		}
 	}
 }
 
 void save_thumb(const char *path)
 {
-	int fd, size;
+	int fd, size = 0;
 	fd = sceIoOpen( path, PSP_O_WRONLY | PSP_O_CREAT | PSP_O_TRUNC, 0777 );
 	if (fd>=0) {
 		size = sceIoWrite(fd, &now_thumb, sizeof(now_thumb));

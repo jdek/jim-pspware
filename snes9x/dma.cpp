@@ -290,7 +290,6 @@ void S9xDoDMA (uint8 Channel)
 
 		Memory.FillRAM [0x4801] = 0;
     }
-#ifndef PSP
 	if(Settings.SPC7110&&(d->AAddress==0x4800||d->ABank==0x50))
 	{
 		uint32 i,j;
@@ -308,7 +307,13 @@ void S9xDoDMA (uint8 Channel)
 		}
 		else
 		{
+#ifdef PSP
+#if 0
+			spc7110_dma=(uint8 *) malloc (sizeof (uint8) * d->TransferBytes);
+#endif
+#else
 			spc7110_dma=new uint8[d->TransferBytes];
+#endif
 			j=DECOMP_BUFFER_SIZE-i;
 			memcpy(spc7110_dma, &s7r.bank50[i], j);
 			memcpy(&spc7110_dma[j],s7r.bank50,d->TransferBytes-j);
@@ -324,7 +329,6 @@ void S9xDoDMA (uint8 Channel)
 		inc=1;
 		d->AAddress-=count;
 	}
-#endif // PSP
     if (d->BAddress == 0x18 && SA1.in_char_dma && (d->ABank & 0xf0) == 0x40)
     {
 		// Perform packed bitmap to PPU character format conversion on the
@@ -863,13 +867,16 @@ void S9xDoDMA (uint8 Channel)
 		S9xDoHBlankProcessing ();
 	S9xUpdateAPUTimer();
 
-#ifndef PSP
 	if(Settings.SPC7110&&spc7110_dma)
 	{
-		if(spc7110_dma&&s7_wrap)
+		if(spc7110_dma&&s7_wrap) {
+#ifdef PSP
+		        free (spc7110_dma);
+#else			
 			delete [] spc7110_dma;
+#endif
+		}
 	}
-#endif // PSP
 
 update_address:
     // Super Punch-Out requires that the A-BUS address be updated after the

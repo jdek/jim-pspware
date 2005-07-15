@@ -92,9 +92,7 @@
 void S9xSetSDD1MemoryMap (uint32 bank, uint32 value);
 void S9xResetSDD1 ();
 void S9xSDD1PostLoadState ();
-#ifndef PSP
 void S9xSDD1SaveLoggedData ();
 void S9xSDD1LoadLoggedData ();
-#endif // PSP
 #endif
 

@@ -2011,25 +2011,20 @@ void S9xSetCPU (uint8 byte, uint16 Address)
 		  case 0x4801:
 		  case 0x4802:
 		  case 0x4803:
-#ifndef PSP
 			if(Settings.SPC7110)
 				S9xSetSPC7110(byte, Address);
 			//printf ("%02x->%04x\n", byte, Address);
-#endif // PSP
 			break;
 
 		  case 0x4804:
 		  case 0x4805:
 		  case 0x4806:
 		  case 0x4807:
-#ifndef PSP
 			//printf ("%02x->%04x\n", byte, Address);
 			if(Settings.SPC7110)
 				S9xSetSPC7110(byte, Address);
-			else S9xSetSDD1MemoryMap (Address - 0x4804, byte & 7);
-#else
-			S9xSetSDD1MemoryMap (Address - 0x4804, byte & 7);
-#endif // PSP
+			else
+				S9xSetSDD1MemoryMap (Address - 0x4804, byte & 7);
 			break;
 
 			//these are used by the SPC7110
@@ -2074,9 +2069,7 @@ void S9xSetCPU (uint8 byte, uint16 Address)
 		  case 0x4842:
 			if(Settings.SPC7110)
 			{
-#ifndef PSP
 				S9xSetSPC7110(byte, Address);
-#endif // PSP
 				break;
 			}
 
@@ -2427,10 +2420,8 @@ uint8 S9xGetCPU (uint16 Address)
 	    
 #endif
 
-#ifndef PSP
 		if(Address>= 0x4800&&Settings.SPC7110)
 			return S9xGetSPC7110(Address);
-#endif // PSP
 
 		if(Address>=0x4800&&Address<=0x4807&&Settings.SDD1)
 		{

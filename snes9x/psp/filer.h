@@ -6,13 +6,21 @@ extern "C" {
 #include <psptypes.h>
 
 // max 9
-#define SAVE_SLOT_MAX		4
+#define SAVE_SLOT_MAX		7
 
 extern char LastPath[], FilerMsg[];
-extern unsigned char slotflag[];
-extern char slotdate[SAVE_SLOT_MAX+1][32];
-extern unsigned char thumbflag[SAVE_SLOT_MAX+1];
-extern unsigned short slot_thumb[SAVE_SLOT_MAX+1][128 * 112];
+
+typedef struct {
+	unsigned char  flag;
+	char           date [32];
+	int            size;
+	unsigned char  compression; // 0 = None, 1 = RLE, 2+ = Reserved
+	
+	unsigned char  thumbflag;
+	unsigned short thumbnail [128 * 112];
+} SAVE_SLOT_INFO, *LPSAVE_SLOT_INFO;
+
+extern LPSAVE_SLOT_INFO save_slots; //SAVE_SLOT_MAX + 1
 
 int getExtId(const char *szFilePath);
 
@@ -28,7 +36,7 @@ typedef struct {
 int funcUnzipCallback(int nCallbackId, unsigned long ulExtractSize, unsigned long ulCurrentPosition,
                       const void *pData, unsigned long ulDataSize, unsigned long ulUserData);
 
-void menu_frame(const char *msg0, const char *msg1);
+void menu_frame(const unsigned char *msg0, const unsigned char *msg1);
 void get_slotdate(const char *path);
 void get_screenshot(unsigned char *buf);
 void get_thumbs(const char *path);

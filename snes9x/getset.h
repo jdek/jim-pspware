@@ -148,21 +148,12 @@ static uint8 (*GetByte[])(uint32 Address) = {
 	_GetNONE,									// MAP_BWRAM_BITMAP
 	_GetNONE,									// MAP_BWRAM_BITMAP2
 	_GetLOROM_SRAM,								// MAP_SA1RAM
-#ifdef PSP
-	_GetNONE,									// MAP_SPC7110_ROM
-	_GetNONE,									// MAP_SPC7110_DRAM
-	_GetHIROM_SRAM,								// MAP_RONLY_SRAM
-	(uint8 (*)(unsigned int))GetOBC1,			// MAP_OBC_RAM
-	_GetNONE,									// MAP_SETA_DSP
-	_GetNONE,									// MAP_SETA_RISC
-#else
 	(uint8 (*)(unsigned int))S9xGetSPC7110Byte,	// MAP_SPC7110_ROM
 	(uint8 (*)(unsigned int))S9xGetSPC7110,		// MAP_SPC7110_DRAM
 	_GetHIROM_SRAM,								// MAP_RONLY_SRAM
 	(uint8 (*)(unsigned int))GetOBC1,			// MAP_OBC_RAM
 	(uint8 (*)(unsigned int))S9xGetSetaDSP,		// MAP_SETA_DSP
 	(uint8 (*)(unsigned int))S9xGetST018,		// MAP_SETA_RISC
-#endif // PSP
 };
 
 INLINE uint8 S9xGetByte (uint32 Address)
@@ -230,7 +221,6 @@ INLINE uint8 S9xGetByte (uint32 Address)
     case CMemory::MAP_C4:
 		return (S9xGetC4 (Address & 0xffff));
 		
-#ifndef PSP
 	case CMemory::MAP_SPC7110_ROM:
 #ifdef SPC7110_DEBUG
 		printf("reading spc7110 ROM (byte) at %06X\n", Address);
@@ -242,18 +232,15 @@ INLINE uint8 S9xGetByte (uint32 Address)
 		printf("reading Bank 50 (byte)\n");
 #endif
 		return S9xGetSPC7110(0x4800);
-#endif // PSP
 
 	case CMemory::MAP_OBC_RAM:
 		return GetOBC1(Address & 0xffff);
 
-#ifndef PSP
 	case CMemory::MAP_SETA_DSP:
 		return S9xGetSetaDSP(Address);
 	
 	case CMemory::MAP_SETA_RISC:
 		return S9xGetST018(Address);
-#endif // PSP
 
  
      case CMemory::MAP_DEBUG:
@@ -360,7 +347,6 @@ INLINE uint16 S9xGetWord (uint32 Address)
 		return (S9xGetC4 (Address & 0xffff) |
 			(S9xGetC4 ((Address + 1) & 0xffff) << 8));
 	
-#ifndef PSP
 	case CMemory::MAP_SPC7110_ROM:
 #ifdef SPC7110_DEBUG
 		printf("reading spc7110 ROM (word) at %06X\n", Address);
@@ -373,17 +359,14 @@ INLINE uint16 S9xGetWord (uint32 Address)
 #endif
 		return (S9xGetSPC7110(0x4800)|
 			(S9xGetSPC7110 (0x4800) << 8));
-#endif // PSP
 	case CMemory::MAP_OBC_RAM:
 		return GetOBC1(Address&0xFFFF)| (GetOBC1((Address+1)&0xFFFF)<<8);
 
-#ifndef PSP
 	case CMemory::MAP_SETA_DSP:
 		return S9xGetSetaDSP(Address)| (S9xGetSetaDSP((Address+1))<<8);
 	
 	case CMemory::MAP_SETA_RISC:
 		return S9xGetST018(Address)| (S9xGetST018((Address+1))<<8);
-#endif // PSP
 
      case CMemory::MAP_DEBUG:
  #ifdef DEBUGGER
@@ -490,20 +473,17 @@ INLINE void S9xSetByte (uint8 Byte, uint32 Address)
 		S9xSetC4 (Byte, Address & 0xffff);
 		return;
 	
-#ifndef PSP
 	case CMemory::MAP_SPC7110_DRAM:
 #ifdef SPC7110_DEBUG
 		printf("Writing Byte at %06X\n", Address);
 #endif
 		s7r.bank50[(Address & 0xffff)]= (uint8) Byte;
 		break;
-#endif // PSP
 	
 	case CMemory::MAP_OBC_RAM:
 		SetOBC1(Byte, Address &0xFFFF);
 		return;
 	
-#ifndef PSP
 	case CMemory::MAP_SETA_DSP:
 		S9xSetSetaDSP(Byte,Address);
 		return;
@@ -511,7 +491,6 @@ INLINE void S9xSetByte (uint8 Byte, uint32 Address)
 	case CMemory::MAP_SETA_RISC:
 		S9xSetST018(Byte,Address);
 		return;
-#endif // PSP
 
     default:
     case CMemory::MAP_NONE:
@@ -638,7 +617,6 @@ INLINE void S9xSetWord (uint16 Word, uint32 Address)
 		printf ("W(W) %06x\n", Address);
 #endif
 	
-#ifndef PSP
 	case CMemory::MAP_SPC7110_DRAM:
 #ifdef SPC7110_DEBUG
 		printf("Writing Word at %06X\n", Address);
@@ -646,7 +624,6 @@ INLINE void S9xSetWord (uint16 Word, uint32 Address)
 		s7r.bank50[(Address & 0xffff)]= (uint8) Word;
 		s7r.bank50[((Address + 1) & 0xffff)]= (uint8) Word;
 		break;
-#endif // PSP
     case CMemory::MAP_SA1RAM:
 		*(Memory.SRAM + (Address & 0xffff)) = (uint8) Word;
 		*(Memory.SRAM + ((Address + 1) & 0xffff)) = (uint8) (Word >> 8);
@@ -663,7 +640,6 @@ INLINE void S9xSetWord (uint16 Word, uint32 Address)
 		SetOBC1 ((uint8) (Word >> 8), (Address + 1) & 0xffff);
 		return;
 	
-#ifndef PSP
 	case CMemory::MAP_SETA_DSP:
 		S9xSetSetaDSP (Word & 0xff, Address);
 		S9xSetSetaDSP ((uint8) (Word >> 8),(Address + 1));
@@ -673,7 +649,6 @@ INLINE void S9xSetWord (uint16 Word, uint32 Address)
 		S9xSetST018 (Word & 0xff, Address);
 		S9xSetST018 ((uint8) (Word >> 8),(Address + 1));
 		return;
-#endif // PSP
 
     default:
     case CMemory::MAP_NONE:
@@ -695,15 +670,12 @@ INLINE uint8 *GetBasePointer (uint32 Address)
     uint8 *GetAddress = Memory.Map [(Address >> MEMMAP_SHIFT) & MEMMAP_MASK];
     if (GetAddress >= (uint8 *) CMemory::MAP_LAST)
 		return (GetAddress);
-#ifndef PSP
 	if(Settings.SPC7110&&((Address&0x7FFFFF)==0x4800))
 	{
 		return s7r.bank50;
 	}
-#endif // PSP
     switch ((int) GetAddress)
     {
-#ifndef PSP
 	case CMemory::MAP_SPC7110_DRAM:
 #ifdef SPC7110_DEBUG
 		printf("Getting Base pointer to DRAM\n");
@@ -716,7 +688,6 @@ INLINE uint8 *GetBasePointer (uint32 Address)
 		printf("Getting Base pointer to SPC7110ROM\n");
 #endif
 		return Get7110BasePtr(Address);
-#endif // PSP
     case CMemory::MAP_PPU:
 //just a guess, but it looks like this should match the CPU as a source.
 		return (Memory.FillRAM);
@@ -766,20 +737,16 @@ INLINE uint8 *S9xGetMemPointer (uint32 Address)
     if (GetAddress >= (uint8 *) CMemory::MAP_LAST)
 		return (GetAddress + (Address & 0xffff));
 	
-#ifndef PSP
 	if(Settings.SPC7110&&((Address&0x7FFFFF)==0x4800))
 		return s7r.bank50;
-#endif // PSP
 
     switch ((int) GetAddress)
     {
-#ifndef PSP
 	case CMemory::MAP_SPC7110_DRAM:
 #ifdef SPC7110_DEBUG
 		printf("Getting Base pointer to DRAM\n");
 #endif
 		return &s7r.bank50[Address&0x0000FFFF];
-#endif // PSP
     case CMemory::MAP_PPU:
 		return (Memory.FillRAM + (Address & 0xffff));
     case CMemory::MAP_CPU:

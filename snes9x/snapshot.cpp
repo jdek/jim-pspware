@@ -536,12 +536,76 @@ static FreezeData SnapS7RTC [] = {
 };
 #endif // PSP
 
-static char ROMFilename [_MAX_PATH];
+
+#ifdef PSP
+/* We don't allocate heap memory in the PSP port, we shouldn't try to
+   free it either... */
+#undef free
+#define free(x) ;
+#endif // PSP
+
+
+typedef struct {
+    void*  base;    // Buffer address
+    void*  current; // Cached seek address
+    void*  end;     // Cached end address
+    size_t size;    // Size of the buffer
+    long   offset;  // Current seek position
+} BUFFER;
+
+#define FIND_BUFFER(buf_) buf_.offset;
+
+#define SEEK_BUFFER(buf_,offset_) {             \
+  buf_.offset += offset_;                       \
+  buf_.current = (void *)((char *)buf_.base +   \
+                                  buf_.offset); \
+}
+
+#define REVERT_BUFFER(buf_,pos_) {              \
+  buf_.offset = pos_;                           \
+  SEEK_BUFFER (buf_, 0);                        \
+}
+
+#define INITIALIZE_BUFFER(buf_,base_,size_) {  \
+  buf_.base    = base_;                        \
+  buf_.size    = size_;                        \
+  buf_.offset  = 0;                            \
+  buf_.end     = (void *)((char *)buf_.base +  \
+                                  buf_.size);  \
+  SEEK_BUFFER (buf_, 0);                       \
+}
+
+int UnfreezeBlockFromBuffer  (BUFFER& buffer, char *name, uint8 *block, int size);
+int UnfreezeStructFromBuffer (BUFFER& buffer, char *name, void *base, FreezeData *fields, int num_fields);
+
+#define WRITE_BUFFER(buf_,data_,len_) {        \
+  /* Make sure len_ is only evaluated once */  \
+  const int len__ = len_;                      \
+                                               \
+  memcpy ((void *)buf_.current, data_, len__); \
+  SEEK_BUFFER (buf_, len__);                   \
+}
+
+#define READ_BUFFER(data_,len_,buf_) {         \
+  /* Make sure len_ is only evaluated once */  \
+  const int len__ = len_;                      \
+                                               \
+  memcpy ((void *)data_, buf_.current, len__); \
+  SEEK_BUFFER (buf_, len__);                   \
+}
+
+//static char ROMFilename [_MAX_PATH];
 //static char SnapshotFilename [_MAX_PATH];
 
 void FreezeStruct (STREAM stream, char *name, void *base, FreezeData *fields, int num_fields);
 
+int FreezeStructToBuffer (BUFFER& buffer, char *name, void *base, FreezeData *fields, int num_fields);
+
+
 void FreezeBlock (STREAM stream, char *name, uint8 *block, int size);
+
+int FreezeBlockToBuffer (BUFFER& buffer, char *name, uint8 *block, int size);
+
 
 int UnfreezeStruct (STREAM stream, char *name, void *base, FreezeData *fields, int num_fields);
 
@@ -557,6 +621,17 @@ int UnfreezeBlockCopy (STREAM stream, char *name, uint8** block, int size);
 bool8 Snapshot (const char *filename)
 {
     return (S9xFreezeGame (filename));
+}
+
+int S9xFreezeGameToBuffer (void *buffer)
+{
+    BUFFER buf;
+
+    INITIALIZE_BUFFER (buf, buffer, 524288);
+
+    int S9xFreezeToBuffer (BUFFER& buffer);
+
+    return S9xFreezeToBuffer (buf);
 }
 
 bool8 S9xFreezeGame (const char *filename)
@@ -589,6 +664,55 @@ bool8 S9xLoadSnapshot (const char *filename)
     return (S9xUnfreezeGame (filename));
 }
 
+void S9xUnfreezeFailure (int result)
+{
+	switch (result)
+	{
+	case WRONG_FORMAT:
+		S9xMessage (S9X_ERROR, S9X_WRONG_FORMAT, 
+			"File not in Snes9x freeze format");
+		break;
+	case WRONG_VERSION:
+		S9xMessage (S9X_ERROR, S9X_WRONG_VERSION,
+			"Incompatable Snes9x freeze file format version");
+		break;
+#ifndef PSP
+	case WRONG_MOVIE_SNAPSHOT:
+		S9xMessage (S9X_ERROR, S9X_WRONG_MOVIE_SNAPSHOT, MOVIE_ERR_SNAPSHOT_WRONG_MOVIE);
+		break;
+	case NOT_A_MOVIE_SNAPSHOT:
+		S9xMessage (S9X_ERROR, S9X_NOT_A_MOVIE_SNAPSHOT, MOVIE_ERR_SNAPSHOT_NOT_MOVIE);
+		break;
+#endif
+	default:
+	case FILE_NOT_FOUND:
+		sprintf (String, "ROM image for freeze file not found");
+		S9xMessage (S9X_ERROR, S9X_ROM_NOT_FOUND, String);
+		break;
+	}
+}
+
+bool8 S9xUnfreezeGameFromBuffer (const void* buffer, unsigned int buffer_size)
+{
+	int S9xUnfreezeFromBuffer (BUFFER& buffer);
+
+	int result;
+
+	BUFFER buf;
+	
+	INITIALIZE_BUFFER (buf, (void *)buffer, buffer_size);
+	
+	if ((result = S9xUnfreezeFromBuffer (buf)) != SUCCESS)
+	{
+		S9xUnfreezeFailure (result);
+		return (FALSE);
+	} else {
+		return (TRUE);
+	}
+
+	return (FALSE);
+}
+
 bool8 S9xUnfreezeGame (const char *filename)
 {
 #ifndef PSP
@@ -604,30 +728,7 @@ bool8 S9xUnfreezeGame (const char *filename)
 		int result;
 		if ((result = S9xUnfreezeFromStream (snapshot)) != SUCCESS)
 		{
-			switch (result)
-			{
-			case WRONG_FORMAT:
-				S9xMessage (S9X_ERROR, S9X_WRONG_FORMAT, 
-					"File not in Snes9x freeze format");
-				break;
-			case WRONG_VERSION:
-				S9xMessage (S9X_ERROR, S9X_WRONG_VERSION,
-					"Incompatable Snes9x freeze file format version");
-				break;
-#ifndef PSP
-			case WRONG_MOVIE_SNAPSHOT:
-				S9xMessage (S9X_ERROR, S9X_WRONG_MOVIE_SNAPSHOT, MOVIE_ERR_SNAPSHOT_WRONG_MOVIE);
-				break;
-			case NOT_A_MOVIE_SNAPSHOT:
-				S9xMessage (S9X_ERROR, S9X_NOT_A_MOVIE_SNAPSHOT, MOVIE_ERR_SNAPSHOT_NOT_MOVIE);
-				break;
-#endif // PSP
-			default:
-			case FILE_NOT_FOUND:
-				sprintf (String, "ROM image for freeze file not found");
-				S9xMessage (S9X_ERROR, S9X_ROM_NOT_FOUND, String);
-				break;
-			}
+			S9xUnfreezeFailure   (result);
 			S9xCloseSnapshotFile (snapshot);
 			return (FALSE);
 		}
@@ -642,6 +743,107 @@ bool8 S9xUnfreezeGame (const char *filename)
 		return (TRUE);
     }
     return (FALSE);
+}
+
+int S9xFreezeToBuffer (BUFFER& buffer)
+{
+    char string_buffer [1024];
+    int  i;
+    int  start_pos = FIND_BUFFER (buffer);
+
+    S9xSetSoundMute (TRUE);
+#ifdef ZSNES_FX
+    if (Settings.SuperFX)
+		S9xSuperFXPreSaveState ();
+#endif
+	
+#ifndef PSP
+	S9xUpdateRTC();
+    S9xSRTCPreSaveState ();
+#endif // PSP
+	
+    for (i = 0; i < 8; i++)
+    {
+		SoundData.channels [i].previous16 [0] = (int16) SoundData.channels [i].previous [0];
+		SoundData.channels [i].previous16 [1] = (int16) SoundData.channels [i].previous [1];
+    }
+
+    sprintf (string_buffer, "%s:%04d\n", SNAPSHOT_MAGIC , SNAPSHOT_VERSION);
+    WRITE_BUFFER (buffer, string_buffer, strlen (string_buffer));
+
+    sprintf (string_buffer, "NAM:%06d:%s%c", strlen (Memory.ROMFilename) + 1, Memory.ROMFilename, 0);
+    WRITE_BUFFER (buffer, string_buffer, strlen (string_buffer) + 1);
+
+    FreezeStructToBuffer (buffer, "CPU", &CPU,       SnapCPU,       COUNT (SnapCPU));
+    FreezeStructToBuffer (buffer, "REG", &Registers, SnapRegisters, COUNT (SnapRegisters));
+    FreezeStructToBuffer (buffer, "PPU", &PPU,       SnapPPU,       COUNT (SnapPPU));
+    FreezeStructToBuffer (buffer, "DMA", DMA,        SnapDMA,       COUNT (SnapDMA));
+
+    // RAM and VRAM
+    FreezeBlockToBuffer (buffer, "VRA", Memory.VRAM,    0x10000);
+    FreezeBlockToBuffer (buffer, "RAM", Memory.RAM,     0x20000);
+#ifndef PSP
+    FreezeBlockToBuffer (buffer, "SRA", ::SRAM,         0x20000);
+#endif
+    FreezeBlockToBuffer (buffer, "FIL", Memory.FillRAM, 0x8000);
+
+	if (Settings.APUEnabled)
+	{
+		// APU
+		FreezeStructToBuffer (buffer, "APU", &APU,          SnapAPU,
+			COUNT (SnapAPU));
+		FreezeStructToBuffer (buffer, "ARE", &APURegisters, SnapAPURegisters,
+			COUNT (SnapAPURegisters));
+		FreezeBlockToBuffer  (buffer, "ARA", IAPU.RAM,      0x10000);
+		FreezeStructToBuffer (buffer, "SOU", &SoundData,    SnapSoundData,
+			COUNT (SnapSoundData));
+	}
+	if (Settings.SA1)
+	{
+		SA1Registers.PC = SA1.PC - SA1.PCBase;
+		S9xSA1PackStatus ();
+		FreezeStructToBuffer (buffer, "SA1", &SA1,          SnapSA1,
+			COUNT (SnapSA1));
+		FreezeStructToBuffer (buffer, "SAR", &SA1Registers, SnapSA1Registers, 
+			COUNT (SnapSA1Registers));
+	}
+	
+#ifndef PSP
+	if (Settings.SPC7110)
+	{
+		FreezeStructToBuffer (buffer, "SP7", &s7r, SnapSPC7110, COUNT (SnapSPC7110));
+	}
+	if(Settings.SPC7110RTC)
+	{
+		FreezeStructToBuffer (buffer, "RTC", &rtc_f9, SnapS7RTC, COUNT (SnapS7RTC));
+	}
+
+	if (S9xMovieActive ())
+	{
+		uint8* movie_freeze_buf;
+		uint32 movie_freeze_size;
+
+		S9xMovieFreeze (&movie_freeze_buf, &movie_freeze_size);
+		if (movie_freeze_buf)
+		{
+			struct SnapshotMovieInfo mi;
+			mi.MovieInputDataSize = movie_freeze_size;
+			FreezeStructToBuffer (buffer, "MOV", &mi, SnapMovie, COUNT (SnapMovie));
+			FreezeBlockToBuffer  (buffer, "MID", movie_freeze_buf, movie_freeze_size);
+			delete [] movie_freeze_buf;
+		}
+	}
+
+	S9xSetSoundMute (FALSE);
+#endif // PSP
+
+#ifdef ZSNES_FX
+	if (Settings.SuperFX)
+		S9xSuperFXPostSaveState ();
+#endif
+
+    int size = (buffer.offset - start_pos);
+    return size;
 }
 
 void S9xFreezeToStream (STREAM stream)
@@ -665,57 +867,26 @@ void S9xFreezeToStream (STREAM stream)
 		SoundData.channels [i].previous16 [0] = (int16) SoundData.channels [i].previous [0];
 		SoundData.channels [i].previous16 [1] = (int16) SoundData.channels [i].previous [1];
     }
-#ifdef PSP
-	int val,mod;
-	char string[6];
-
-	memset(buffer, 0, sizeof(buffer));
-    strcat (buffer, SNAPSHOT_MAGIC);
-    strcat (buffer, ":");
-	val = SNAPSHOT_VERSION;
-    for (i = 0; i < 4; i++)
-    {
-		mod = val % 10;
-		val /= 10;
-		string[3-i] = (char)mod + '0';
-	}
-	string[4] = 0;
-	strcat (buffer, string);
-	strcat (buffer, "\n");
-#else
+    
     sprintf (buffer, "%s:%04d\n", SNAPSHOT_MAGIC , SNAPSHOT_VERSION);
-#endif // PSP
     WRITE_STREAM (buffer, strlen (buffer), stream);
-#ifdef PSP
-	memset(buffer, 0, sizeof(buffer));
-    strcat (buffer, "NAM:");
-	val = strlen (Memory.ROMFilename) + 1;
-    for (i = 0; i < 6; i++)
-    {
-		mod = val % 10;
-		val /= 10;
-		string[5-i] = (char)mod + '0';
-	}
-	string[6] = 0;
-	strcat (buffer, string);
-	strcat (buffer, ":");
-	strcat (buffer, Memory.ROMFilename);
-#else
+
     sprintf (buffer, "NAM:%06d:%s%c", strlen (Memory.ROMFilename) + 1, Memory.ROMFilename, 0);
-#endif // PSP
     WRITE_STREAM (buffer, strlen (buffer) + 1, stream);
+
     FreezeStruct (stream, "CPU", &CPU, SnapCPU, COUNT (SnapCPU));
     FreezeStruct (stream, "REG", &Registers, SnapRegisters, COUNT (SnapRegisters));
     FreezeStruct (stream, "PPU", &PPU, SnapPPU, COUNT (SnapPPU));
     FreezeStruct (stream, "DMA", DMA, SnapDMA, COUNT (SnapDMA));
 
-	// RAM and VRAM
+    // RAM and VRAM
     FreezeBlock (stream, "VRA", Memory.VRAM, 0x10000);
     FreezeBlock (stream, "RAM", Memory.RAM, 0x20000);
 #ifndef PSP
     FreezeBlock (stream, "SRA", ::SRAM, 0x20000);
-#endif // PSP
+#endif
     FreezeBlock (stream, "FIL", Memory.FillRAM, 0x8000);
+    
     if (Settings.APUEnabled)
     {
 		// APU
@@ -770,18 +941,141 @@ void S9xFreezeToStream (STREAM stream)
 #endif
 }
 
+int S9xUnfreezeFromBuffer (BUFFER& buffer)
+{
+    char header       [_MAX_PATH + 1];
+    char rom_filename [_MAX_PATH + 1];
+    
+    int  result;
+    int  version;
+    
+    size_t len = strlen (SNAPSHOT_MAGIC) + 1 + 4 + 1;
+
+    if (buffer.size < len)
+        return (WRONG_FORMAT);
+
+    READ_BUFFER (header, len, buffer);
+
+    if (strncmp (header, SNAPSHOT_MAGIC, strlen (SNAPSHOT_MAGIC)) != 0)
+        return (WRONG_FORMAT);
+
+    if ((version = atoi (&header [strlen (SNAPSHOT_MAGIC) + 1])) > SNAPSHOT_VERSION)
+        return (WRONG_VERSION);
+
+    if ((result = UnfreezeBlockFromBuffer (buffer, "NAM", (uint8 *) rom_filename, _MAX_PATH)) != SUCCESS)
+        return (result);
+
+#ifdef PSP
+
+	uint32 old_flags = CPU.Flags;
+	uint32 sa1_old_flags = SA1.Flags;
+	S9xReset ();
+	S9xSetSoundMute (TRUE);
+
+	if ((result = UnfreezeStructFromBuffer (buffer, "CPU", &CPU, SnapCPU, COUNT (SnapCPU))) != SUCCESS)
+	return (result);
+	Memory.FixROMSpeed ();
+	CPU.Flags |= old_flags & (DEBUG_MODE_FLAG | TRACE_FLAG |
+		SINGLE_STEP_FLAG | FRAME_ADVANCE_FLAG);
+	if ((result = UnfreezeStructFromBuffer (buffer, "REG", &Registers, SnapRegisters, COUNT (SnapRegisters))) != SUCCESS)
+	return (result);
+	if ((result = UnfreezeStructFromBuffer (buffer, "PPU", &PPU, SnapPPU, COUNT (SnapPPU))) != SUCCESS)
+	return (result);
+	IPPU.ColorsChanged = TRUE;
+	IPPU.OBJChanged = TRUE;
+	CPU.InDMA = FALSE;
+	S9xFixColourBrightness ();
+	IPPU.RenderThisFrame = FALSE;
+
+	if ((result = UnfreezeStructFromBuffer (buffer, "DMA", DMA, SnapDMA, COUNT (SnapDMA))) != SUCCESS)
+	return (result);
+	if ((result = UnfreezeBlockFromBuffer (buffer, "VRA", Memory.VRAM, 0x10000)) != SUCCESS)
+	return (result);
+	if ((result = UnfreezeBlockFromBuffer (buffer, "RAM", Memory.RAM, 0x20000)) != SUCCESS)
+	return (result);
+	
+#ifndef PSP
+	if ((result = UnfreezeBlockFromBuffer (buffer, "SRA", ::SRAM, 0x20000)) != SUCCESS)
+	return (result);
+#endif
+	if ((result = UnfreezeBlockFromBuffer (buffer, "FIL", Memory.FillRAM, 0x8000)) != SUCCESS)
+	return (result);
+#if 1
+	if (UnfreezeStructFromBuffer (buffer, "APU", &APU, SnapAPU, COUNT (SnapAPU)) == SUCCESS)
+	{
+		if ((result = UnfreezeStructFromBuffer (buffer, "ARE", &APURegisters, SnapAPURegisters, COUNT (SnapAPURegisters))) != SUCCESS)
+		return (result);
+		if ((result = UnfreezeBlockFromBuffer (buffer, "ARA", IAPU.RAM, 0x10000)) != SUCCESS)
+		return (result);
+		if ((result = UnfreezeStructFromBuffer (buffer, "SOU", &SoundData, SnapSoundData, COUNT (SnapSoundData))) != SUCCESS)
+		return (result);
+
+		S9xSetSoundMute (FALSE);
+		IAPU.PC = IAPU.RAM + APURegisters.PC;
+		S9xAPUUnpackStatus ();
+		if (APUCheckDirectPage ())
+			IAPU.DirectPage = IAPU.RAM + 0x100;
+		else
+			IAPU.DirectPage = IAPU.RAM;
+		Settings.APUEnabled = TRUE;
+		IAPU.APUExecuting = TRUE;
+	}
+	else
+#endif
+	{
+		Settings.APUEnabled = FALSE;
+		IAPU.APUExecuting = FALSE;
+		S9xSetSoundMute (TRUE);
+	}
+
+	if ((result = UnfreezeStructFromBuffer (buffer, "SA1", &SA1, SnapSA1, COUNT(SnapSA1))) == SUCCESS)
+	{
+		if ((result = UnfreezeStructFromBuffer (buffer, "SAR", &SA1Registers, SnapSA1Registers, COUNT (SnapSA1Registers))) != SUCCESS)
+		return (result);
+		S9xFixSA1AfterSnapshotLoad ();
+		SA1.Flags |= sa1_old_flags & (TRACE_FLAG);
+	}
+
+	S9xFixSoundAfterSnapshotLoad ();
+	ICPU.ShiftedPB = Registers.PB << 16;
+	ICPU.ShiftedDB = Registers.DB << 16;
+	S9xSetPCBase (ICPU.ShiftedPB + Registers.PC);
+	S9xUnpackStatus ();
+	S9xFixCycles ();
+//	S9xReschedule ();				// <-- this causes desync when recording or playing movies
+
+	S9xSRTCPostLoadState ();
+	if (Settings.SDD1) S9xSDD1PostLoadState ();
+
+	IAPU.NextAPUTimerPos = CPU.Cycles * 10000L;
+	IAPU.APUTimerCounter = 0; 
+	return (SUCCESS);
+#if 0
+#endif
+
+#endif
+
+    return result;
+}
+
 int S9xUnfreezeFromStream (STREAM stream)
 {
-    char buffer [_MAX_PATH + 1];
+    char buffer       [_MAX_PATH + 1];
     char rom_filename [_MAX_PATH + 1];
-    int result;
+    
+    int  result;
+    int  version;
 
-    int version;
-    int len = strlen (SNAPSHOT_MAGIC) + 1 + 4 + 1;
-    if (READ_STREAM (buffer, len, stream) != len)
+    size_t len = strlen (SNAPSHOT_MAGIC) + 1 + 4 + 1;
+
+    if (READ_STREAM (buffer, len, stream) != len) {
 	return (WRONG_FORMAT);
-    if (strncmp (buffer, SNAPSHOT_MAGIC, strlen (SNAPSHOT_MAGIC)) != 0)
+    }
+
+    if (strncmp (buffer, SNAPSHOT_MAGIC, strlen (SNAPSHOT_MAGIC)) != 0) {
 	return (WRONG_FORMAT);
+    }
+
     if ((version = atoi (&buffer [strlen (SNAPSHOT_MAGIC) + 1])) > SNAPSHOT_VERSION)
 	return (WRONG_VERSION);
 
@@ -816,10 +1110,11 @@ int S9xUnfreezeFromStream (STREAM stream)
 	return (result);
 	if ((result = UnfreezeBlock (stream, "RAM", Memory.RAM, 0x20000)) != SUCCESS)
 	return (result);
-// #ifdef PSP
-//	if ((result = UnfreezeBlock (stream, "SRA", ::SRAM, 0x20000)) != SUCCESS)
-//	return (result);
-// #endif //  PSP
+	
+#ifndef PSP
+	if ((result = UnfreezeBlock (stream, "SRA", ::SRAM, 0x20000)) != SUCCESS)
+	return (result);
+#endif
 	if ((result = UnfreezeBlock (stream, "FIL", Memory.FillRAM, 0x8000)) != SUCCESS)
 	return (result);
 	if (UnfreezeStruct (stream, "APU", &APU, SnapAPU, COUNT (SnapAPU)) == SUCCESS)
@@ -1114,6 +1409,109 @@ int FreezeSize (int size, int type)
     }
 }
 
+int FreezeStructToBuffer (BUFFER& buffer, char *name, void *base, FreezeData *fields,
+					 int num_fields)
+{
+    // Work out the size of the required block
+    int len = 0;
+    int i;
+    int j;
+	
+    for (i = 0; i < num_fields; i++)
+    {
+		if (fields [i].offset + FreezeSize (fields [i].size, 
+			fields [i].type) > len)
+			len = fields [i].offset + FreezeSize (fields [i].size, 
+			fields [i].type);
+    }
+	
+#ifdef PSP
+/*
+    uint8 *block = (uint8 *) malloc (sizeof (uint8) * len);
+    memset (block, 0, sizeof (uint) * len);
+*/
+    memset(malloc_block, 0, sizeof(malloc_block));
+    uint8 *block = (uint8 *) malloc_block;
+#else
+    uint8 *block = new uint8 [len];
+#endif // PSP
+    uint8 *ptr = block;
+    uint16 word;
+    uint32 dword;
+    int64  qword;
+	
+    // Build the block ready to be streamed out
+    for (i = 0; i < num_fields; i++)
+    {
+		switch (fields [i].type)
+		{
+		case INT_V:
+			switch (fields [i].size)
+			{
+			case 1:
+				*ptr++ = *((uint8 *) base + fields [i].offset);
+				break;
+			case 2:
+				word = *((uint16 *) ((uint8 *) base + fields [i].offset));
+				*ptr++ = (uint8) (word >> 8);
+				*ptr++ = (uint8) word;
+				break;
+			case 4:
+				dword = *((uint32 *) ((uint8 *) base + fields [i].offset));
+				*ptr++ = (uint8) (dword >> 24);
+				*ptr++ = (uint8) (dword >> 16);
+				*ptr++ = (uint8) (dword >> 8);
+				*ptr++ = (uint8) dword;
+				break;
+			case 8:
+				qword = *((int64 *) ((uint8 *) base + fields [i].offset));
+				*ptr++ = (uint8) (qword >> 56);
+				*ptr++ = (uint8) (qword >> 48);
+				*ptr++ = (uint8) (qword >> 40);
+				*ptr++ = (uint8) (qword >> 32);
+				*ptr++ = (uint8) (qword >> 24);
+				*ptr++ = (uint8) (qword >> 16);
+				*ptr++ = (uint8) (qword >> 8);
+				*ptr++ = (uint8) qword;
+				break;
+			}
+			break;
+			case uint8_ARRAY_V:
+				memmove (ptr, (uint8 *) base + fields [i].offset, fields [i].size);
+				ptr += fields [i].size;
+				break;
+			case uint16_ARRAY_V:
+				for (j = 0; j < fields [i].size; j++)
+				{
+					word = *((uint16 *) ((uint8 *) base + fields [i].offset + j * 2));
+					*ptr++ = (uint8) (word >> 8);
+					*ptr++ = (uint8) word;
+				}
+				break;
+			case uint32_ARRAY_V:
+				for (j = 0; j < fields [i].size; j++)
+				{
+					dword = *((uint32 *) ((uint8 *) base + fields [i].offset + j * 4));
+					*ptr++ = (uint8) (dword >> 24);
+					*ptr++ = (uint8) (dword >> 16);
+					*ptr++ = (uint8) (dword >> 8);
+					*ptr++ = (uint8) dword;
+				}
+				break;
+		}
+    }
+	
+    len = FreezeBlockToBuffer (buffer, name, block, len);
+#ifdef PSP
+	free ((char *) block);
+	block=NULL;
+#else
+    delete[] block;
+#endif // PSP
+
+    return len;
+}
+
 void FreezeStruct (STREAM stream, char *name, void *base, FreezeData *fields,
 				   int num_fields)
 {
@@ -1131,6 +1529,10 @@ void FreezeStruct (STREAM stream, char *name, void *base, FreezeData *fields,
     }
 	
 #ifdef PSP
+/*
+    uint8 *block = (uint8 *) malloc (sizeof (uint8) * len);
+    memset (block, 0, sizeof (uint) * len);
+*/
     memset(malloc_block, 0, sizeof(malloc_block));
     uint8 *block = (uint8 *) malloc_block;
 #else
@@ -1211,31 +1613,140 @@ void FreezeStruct (STREAM stream, char *name, void *base, FreezeData *fields,
 #endif // PSP
 }
 
+int FreezeBlockToBuffer (BUFFER& buffer, char *name, uint8 *block, int size)
+{
+    int   header_len;
+    char  header [512];
+
+    sprintf (header, "%s:%06d:", name, size);
+    header_len = strlen (header);
+
+    WRITE_BUFFER (buffer, header, header_len);
+    WRITE_BUFFER (buffer, block,  size);
+
+    return (header_len + size);
+}
+
 void FreezeBlock (STREAM stream, char *name, uint8 *block, int size)
 {
     char buffer [512];
-#ifdef PSP
-	int i,val,mod;
-	char string[6];
-	memset(buffer, 0, sizeof(buffer));
-    strcat (buffer, name);
-	strcat (buffer, ":");
-	val = size;
-    for (i = 0; i < 6; i++)
-    {
-		mod = val % 10;
-		val /= 10;
-		string[5-i] = (char)mod + '0';
-	}
-	string[6] = 0;
-	strcat (buffer, string);
-	strcat (buffer, ":");
-#else
     sprintf (buffer, "%s:%06d:", name, size);
-#endif // PSP
+
     WRITE_STREAM (buffer, strlen (buffer), stream);
-    WRITE_STREAM (block, size, stream);
+    WRITE_STREAM (block,  size,            stream);
+}
+
+int UnfreezeStructFromBuffer (BUFFER& buffer, char *name, void *base,
+					FreezeData *fields, int num_fields)
+{
+    // Work out the size of the required block
+    int len = 0;
+    int i;
+    int j;
+
+    for (i = 0; i < num_fields; i++)
+    {
+		if (fields [i].offset + FreezeSize (fields [i].size, 
+			fields [i].type) > len)
+			len = fields [i].offset + FreezeSize (fields [i].size, 
+			fields [i].type);
+    }
 	
+#ifdef PSP
+/*
+    uint8 *block = (uint8 *) malloc (sizeof (uint8) * len);
+    memset (block, 0, sizeof (uint) * len);
+*/
+    memset(malloc_block, 0, sizeof(malloc_block));
+    uint8 *block = (uint8 *) malloc_block;
+#else
+    uint8 *block = new uint8 [len];
+#endif // PSP
+    uint8 *ptr = block;
+    uint16 word;
+    uint32 dword;
+    int64  qword;
+    int result;
+	
+    if ((result = UnfreezeBlockFromBuffer (buffer, name, block, len)) != SUCCESS)
+    {
+#ifdef PSP
+		free ((char *) block);
+		block=NULL;
+#else
+		delete block;
+#endif // PSP
+		return (result);
+    }
+	
+    // Unpack the block of data into a C structure
+    for (i = 0; i < num_fields; i++)
+    {
+		switch (fields [i].type)
+		{
+		case INT_V:
+			switch (fields [i].size)
+			{
+			case 1:
+				*((uint8 *) base + fields [i].offset) = *ptr++;
+				break;
+			case 2:
+				word  = *ptr++ << 8;
+				word |= *ptr++;
+				*((uint16 *) ((uint8 *) base + fields [i].offset)) = word;
+				break;
+			case 4:
+				dword  = *ptr++ << 24;
+				dword |= *ptr++ << 16;
+				dword |= *ptr++ << 8;
+				dword |= *ptr++;
+				*((uint32 *) ((uint8 *) base + fields [i].offset)) = dword;
+				break;
+			case 8:
+				qword  = (int64) *ptr++ << 56;
+				qword |= (int64) *ptr++ << 48;
+				qword |= (int64) *ptr++ << 40;
+				qword |= (int64) *ptr++ << 32;
+				qword |= (int64) *ptr++ << 24;
+				qword |= (int64) *ptr++ << 16;
+				qword |= (int64) *ptr++ << 8;
+				qword |= (int64) *ptr++;
+				*((int64 *) ((uint8 *) base + fields [i].offset)) = qword;
+				break;
+			}
+			break;
+			case uint8_ARRAY_V:
+				memmove ((uint8 *) base + fields [i].offset, ptr, fields [i].size);
+				ptr += fields [i].size;
+				break;
+			case uint16_ARRAY_V:
+				for (j = 0; j < fields [i].size; j++)
+				{
+					word  = *ptr++ << 8;
+					word |= *ptr++;
+					*((uint16 *) ((uint8 *) base + fields [i].offset + j * 2)) = word;
+				}
+				break;
+			case uint32_ARRAY_V:
+				for (j = 0; j < fields [i].size; j++)
+				{
+					dword  = *ptr++ << 24;
+					dword |= *ptr++ << 16;
+					dword |= *ptr++ << 8;
+					dword |= *ptr++;
+					*((uint32 *) ((uint8 *) base + fields [i].offset + j * 4)) = dword;
+				}
+				break;
+		}
+    }
+	
+#ifdef PSP
+	free ((char *) block);
+	block=NULL;
+#else
+	delete block;
+#endif // PSP
+    return (result);
 }
 
 int UnfreezeStruct (STREAM stream, char *name, void *base, FreezeData *fields,
@@ -1255,6 +1766,10 @@ int UnfreezeStruct (STREAM stream, char *name, void *base, FreezeData *fields,
     }
 	
 #ifdef PSP
+/*
+    uint8 *block = (uint8 *) malloc (sizeof (uint8) * len);
+    memset (block, 0, sizeof (uint) * len);
+*/
     memset(malloc_block, 0, sizeof(malloc_block));
     uint8 *block = (uint8 *) malloc_block;
 #else
@@ -1347,60 +1862,93 @@ int UnfreezeStruct (STREAM stream, char *name, void *base, FreezeData *fields,
     return (result);
 }
 
+int UnfreezeBlockFromBuffer (BUFFER& buffer, char *name, uint8 *block, int size)
+{
+    char header [20];
+    int  len = 0;
+    int  rem = 0;
+
+//    if (size < 11)
+//        return (WRONG_FORMAT);
+
+    READ_BUFFER (header, 11, buffer);
+
+    if (strncmp (header, name, 3) != 0)
+        return (WRONG_FORMAT);
+
+    if (header [3] != ':' || (len = atoi(&header [4])) == 0)
+        return (WRONG_FORMAT);
+
+    if (len > size)
+    {
+        rem = len - size;
+        len = size;
+    }
+
+    READ_BUFFER (block, len, buffer);
+
+    if (rem)
+    {
+#ifdef PSP
+        static char junk [0x21000];
+#else
+        char *junk = new char [rem];
+#endif
+        READ_BUFFER (junk, rem, buffer);
+#ifdef PSP
+        free ((void *)junk);
+#else
+        delete [] junk;
+#endif
+    }
+
+    return (SUCCESS);
+}
+
+#ifdef PSP
+#undef  REVERT_STREAM
+#define REVERT_STREAM(x,y,z) 0;
+#endif
+
 int UnfreezeBlock (STREAM stream, char *name, uint8 *block, int size)
 {
     char buffer [20];
     int len = 0;
     int rem = 0;
-#ifdef PSP
-    if (READ_STREAM (buffer, 11, stream) != 11 )              return (WRONG_FORMAT);
-	if (strncmp (buffer, name, 3) != 0 )                      return (WRONG_FORMAT);
-    if ( buffer [3] != ':' || (len = atoi(&buffer [4])) == 0) return (WRONG_FORMAT);
-
-    if (len > size)
-    {
-	rem = len - size;
-	len = size;
-    }
-    if (READ_STREAM (block, len, stream) != len)
-	return (WRONG_FORMAT);
-
-	if (rem)
-    {
-		char junk [0x21000];
-	    memset(junk, 0, sizeof(junk));
-		READ_STREAM (junk, rem, stream);
-		free ((char *) junk);
-    }
-
-#else
-
     int rew_len;
     if (READ_STREAM (buffer, 11, stream) != 11 ||
-		strncmp (buffer, name, 3) != 0 || buffer [3] != ':' ||
-		(len = atoi (&buffer [4])) == 0)
+        strncmp (buffer, name, 3) != 0 || buffer [3] != ':' ||
+        (len = atoi (&buffer [4])) == 0)
     {
-		REVERT_STREAM(stream, FIND_STREAM(stream)-11, 0);
-		return (WRONG_FORMAT);
+        REVERT_STREAM(stream, FIND_STREAM(stream)-11, 0);
+        return (WRONG_FORMAT);
     }
 
     if (len > size)
     {
-		rem = len - size;
-		len = size;
+        rem = len - size;
+        len = size;
     }
     if ((rew_len=READ_STREAM (block, len, stream)) != len)
-	{
-		REVERT_STREAM(stream, FIND_STREAM(stream)-11-rew_len, 0);
-		return (WRONG_FORMAT);
-	}
+    {
+        REVERT_STREAM(stream, FIND_STREAM(stream)-11-rew_len, 0);
+        return (WRONG_FORMAT);
+    }
     if (rem)
     {
-		char *junk = new char [rem];
-		READ_STREAM (junk, rem, stream);
-		delete [] junk;
+#ifdef PSP
+        static char junk [0x21000];
+        memset(junk, 0, sizeof(junk));
+#else
+        char *junk = new char [rem];
+#endif
+        READ_STREAM (junk, rem, stream);
+#ifdef PSP
+        free ((void *)junk);
+#else
+        delete [] junk;
+#endif
     }
-#endif // PSP
 
     return (SUCCESS);
 }

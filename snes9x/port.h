@@ -110,12 +110,8 @@
 
 #include <sys/types.h>
 
-#ifdef PSP
-#define PIXEL_FORMAT BGR565
-#else
 /* #define PIXEL_FORMAT RGB565 */
 #define GFX_MULTI_FORMAT
-#endif // PSP
 
 #if defined(TARGET_OS_MAC) && TARGET_OS_MAC
 

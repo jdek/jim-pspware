@@ -187,10 +187,8 @@ void S9xReset (void)
     memset (Memory.VRAM, 0x00, 0x10000);
     memset (Memory.RAM, 0x55, 0x20000);
 
-#ifndef PSP
 	if(Settings.SPC7110)
 		S9xSpc7110Reset();
-#endif // PSP
     S9xResetCPU ();
     S9xResetPPU ();
     S9xResetSRTC ();
@@ -223,10 +221,8 @@ void S9xSoftReset (void)
     memset (Memory.VRAM, 0x00, 0x10000);
  //   memset (Memory.RAM, 0x55, 0x20000);
 
-#ifndef PSP
 	if(Settings.SPC7110)
 		S9xSpc7110Reset();
-#endif // PSP
     S9xResetCPU ();
     S9xSoftResetPPU ();
     S9xResetSRTC ();

@@ -1,8 +1,11 @@
-// primitive graphics for Hello World sce
-// gu blit code from blit.c by chp from ps2dev.org 
+// primitive graphics
+// gu blit code from blit.c by chp from ps2dev.org
 
 #include <pspkernel.h>
 #include <pspgu.h>
+#include <pspctrl.h>
+#include <pspdisplay.h>
+#include <pspge.h>
 
 #include "pg.h"
 
@@ -16,7 +19,8 @@ extern "C" {
 #endif /* __cplusplus */
 
 //variables
-char *pg_vramtop;
+char *pg_vramtop = NULL;// = (char *)0x4000000;
+
 long pg_screenmode;
 long pg_showframe;
 long pg_drawframe;
@@ -25,6 +29,7 @@ unsigned long pgc_fgcolor[2], pgc_bgcolor[2];
 char pgc_fgdraw[2], pgc_bgdraw[2];
 char pgc_mag[2];
 
+static unsigned short framebuf[262144] __attribute__((aligned(16)));
 static unsigned int list[262144] __attribute__((aligned(16)));
 
 void pgWaitVn(unsigned long count)
@@ -35,15 +40,58 @@ void pgWaitVn(unsigned long count)
 }
 
 
-void pgWaitV()
+void pgWaitV(void)
 {
 	sceDisplayWaitVblankStart();
 }
 
 
-char *pgGetVramAddr(unsigned long x,unsigned long y)
+unsigned char *pgGetVramAddr(unsigned long x,unsigned long y)
 {
-	return pg_vramtop+(x*PIXELSIZE*2)+(y*LINESIZE*2);
+	return (unsigned char *)pg_vramtop+(pg_drawframe?FRAMESIZE:0)+x*PIXELSIZE*2+y*LINESIZE*2+0x40000000;
+//	return pg_vramtop+(pg_drawframe?FRAMESIZE:0)+x*PIXELSIZE*2+y*LINESIZE*2;//+0x40000000;	//変わらないらしい
+}
+
+
+void pgInit(void)
+{
+	if (PSP_Settings.bUseGUBlit) {
+		sceGuInit();
+
+		// setup
+		sceGuStart(0,list);
+		sceGuDrawBuffer(GE_PSM_5551,(void*)0,512);
+		sceGuDispBuffer(480,272,(void*)0x88000,512);
+		sceGuDepthBuffer((void*)0x110000,512);
+		sceGuOffset(0,0);
+		sceGuViewport(480/2,272/2,480,272);
+		sceGuDepthRange(0xc350,0x2710);
+		sceGuScissor(0,0,480,272);
+		sceGuEnable(GU_STATE_SCISSOR);
+		sceGuDisable(GU_STATE_ATE);
+		sceGuDisable(GU_STATE_ZTE);
+		sceGuEnable(GU_STATE_CULL);
+		sceGuDisable(GU_STATE_ALPHA);
+		sceGuDisable(GU_STATE_LIGHTING);
+		sceGuFrontFace(GE_FACE_CW);
+		sceGuEnable(GU_STATE_TEXTURE);
+		sceGuClear(GE_CLEAR_COLOR|GE_CLEAR_DEPTH);
+		sceGuFinish();
+		sceGuSync(0,0);
+
+//		pg_vramtop = framebuf;
+		pg_vramtop = (char *) (sceGeEdramGetAddr() | 0x04000000);
+		sceDisplaySetFrameBuf(pg_vramtop,LINESIZE,1,1);
+	} else {
+		sceGuTerm ();
+	}
+	
+	sceDisplaySetMode(0,SCREEN_WIDTH,SCREEN_HEIGHT);
+	pgScreenFrame(0,0);
+
+	if (! PSP_Settings.bUseGUBlit)
+		pg_vramtop = (char *)0x04000000;
+
 }
 
 
@@ -345,7 +393,6 @@ void pgPutChar(unsigned long x,unsigned long y,unsigned long color,unsigned long
 	unsigned long b;
 	char mx,my;
 
-	if (ch>255) return;
 	cfont=font+ch*8;
 	vptr0=(unsigned char*)pgGetVramAddr(x,y);
 	for (cy=0; cy<8; cy++) {
@@ -378,7 +425,6 @@ void pgPutCharWF(unsigned long x,unsigned long y,unsigned long color,unsigned lo
 	unsigned long b;
 	char mx,my;
 
-	if (ch>255) return;
 	cfont=font+ch*8;
 	vptr0=(unsigned char*)pgGetVramAddr(x,y);
 	for (cy=0; cy<8; cy++) {
@@ -432,7 +478,9 @@ void pgPrintWF(unsigned long x,unsigned long y,unsigned long color,const char *s
 
 void pgScreenFrame(long mode,long frame)
 {
-/*
+	if (PSP_Settings.bUseGUBlit)
+		return;
+
 	pg_screenmode=mode;
 	frame=(frame?1:0);
 	pg_showframe=frame;
@@ -443,13 +491,12 @@ void pgScreenFrame(long mode,long frame)
 	} else if (mode==1) {
 		//show/draw same
 		pg_drawframe=frame;
-		sceDisplaySetFrameBuf(pg_vramtop+(pg_showframe?FRAMESIZE:0),LINESIZE,PIXELSIZE,1);
+		sceDisplaySetFrameBuf((char *)pg_vramtop+(pg_showframe?FRAMESIZE:0),LINESIZE,PIXELSIZE,1);
 	} else if (mode==2) {
 		//show/draw different
 		pg_drawframe=(frame?0:1);
-		sceDisplaySetFrameBuf(pg_vramtop+(pg_showframe?FRAMESIZE:0),LINESIZE,PIXELSIZE,1);
+		sceDisplaySetFrameBuf((char *)pg_vramtop+(pg_showframe?FRAMESIZE:0),LINESIZE,PIXELSIZE,1);
 	}
-*/
 }
 
 struct Vertex
@@ -464,15 +511,19 @@ struct Vertex
 void pgRenderTex(char *tex, int width, int height, int x, int y, int xscale, int yscale)
 {
 	unsigned int j;
-	int slice_scale = ((float)xscale/(float)width)*(float)SLICE_SIZE;
+	
+	const int slice_scale = ((float)xscale/(float)width)*(float)SLICE_SIZE;
+	const int tex_filter  = (PSP_Settings.bBilinearFilter ? GE_FILTER_LINEAR :
+	                                                        GE_FILTER_POINT);
+	
 	struct Vertex* vertices;
 
 	sceGuStart(0,list);
 
-	sceGuTexMode(GE_TPSM_5650,0,0,0);
+	sceGuTexMode(GE_TPSM_5551,0,0,0);
 	sceGuTexImage(0,width,height,width,tex);
 	sceGuTexFunc(GE_TFX_REPLACE,0);
-	sceGuTexFilter(GE_FILTER_LINEAR,GE_FILTER_LINEAR);
+	sceGuTexFilter(tex_filter,tex_filter);
 	sceGuTexScale(1,1);
 	sceGuTexOffset(0,0);
 	sceGuTexSync();
@@ -491,23 +542,54 @@ void pgRenderTex(char *tex, int width, int height, int x, int y, int xscale, int
 		vertices[1].color = 0;
 		vertices[1].x = x+slice_scale; vertices[1].y = y+yscale; vertices[1].z = 0;
 
-		sceGuDrawArray(GU_PRIM_SPRITES,GE_SETREG_VTYPE(GE_TT_16BIT,GE_CT_5650,0,GE_MT_16BIT,0,0,0,0,GE_BM_2D),2,0,vertices);
+		sceGuDrawArray(GU_PRIM_SPRITES,GE_SETREG_VTYPE(GE_TT_16BIT,GE_CT_5551,0,GE_MT_16BIT,0,0,0,0,GE_BM_2D),2,0,vertices);
 	}
 
+	/*
+	vertices = (struct Vertex*)sceGuGetMemory(4 * sizeof(struct Vertex));
+	
+	vertices [0].u = 0; vertices [0].v = 0;
+	vertices [0].color = 0;
+	vertices [0].x = 0; vertices [0].y = 0; vertices [0].z = 0;
+
+	vertices [1].u = 1; vertices [1].v = 0;
+	vertices [1].color = 0;
+	vertices [1].x = 480; vertices [1].y = 0; vertices [1].z = 0;
+
+	vertices [2].u = 1; vertices [2].v = 1;
+	vertices [2].color = 0;
+	vertices [2].x = 480; vertices [2].y = 272; vertices [2].z = 0;
+
+	vertices [3].u = 0; vertices [3].v = 1;
+	vertices [3].color = 0;
+	vertices [3].x = 0; vertices [3].y = 272; vertices [3].z = 0;
+
+	sceGuDrawArray(GU_PRIM_TRIFANS,GE_SETREG_VTYPE(GE_TT_16BIT,GE_CT_5551,0,GE_MT_16BIT,0,0,0,0,GE_BM_2D),4,0,vertices);
+	*/
+
 	sceGuFinish();
+	sceGuSync(0,0);
 }
 
 void pgScreenFlip()
 {
-	sceGuSync(0,0);
-	sceGuSwapBuffers();
+	if (! PSP_Settings.bUseGUBlit) {
+		pg_showframe=(pg_showframe?0:1);
+		pg_drawframe=(pg_drawframe?0:1);
+		sceDisplaySetFrameBuf((char *)pg_vramtop+(pg_showframe?FRAMESIZE:0),LINESIZE,PIXELSIZE,0);
+	} else {
+//		sceDisplaySetFrameBuf(pg_vramtop,LINESIZE,1,1);
+//		pgRenderTex(framebuf,512,512,0,0,512,512);
+		sceGuSync(0,0);
+		sceGuSwapBuffers();
+	}
 }
 
-void pgScreenFlipV()
+
+void pgScreenFlipV(void)
 {
 	pgWaitV();
-	sceGuSync(0,0);
-	sceGuSwapBuffers();
+	pgScreenFlip();
 }
 
 // by kwn
@@ -648,7 +730,7 @@ u32 old_pad;
 u32 now_pad;
 SceCtrlData paddata;
 
-void readpad()
+void readpad(void)
 {
 	static int n=0;
 	SceCtrlData paddata;
@@ -770,30 +852,9 @@ void pgiInit()
 
 /******************************************************************************/
 
-void pgMain()
+void pgMain(void)
 {
 	sceDisplaySetMode(0,SCREEN_WIDTH,SCREEN_HEIGHT);
-
-	sceGuInit();
-
-	// setup
-	sceGuStart(0,list);
-	sceGuDrawBuffer(GE_PSM_5650,(void*)0,512);
-	sceGuDispBuffer(480,272,(void*)0x88000,512);
-	sceGuDepthBuffer((void*)0x110000,512);
-	sceGuOffset(0,0);
-	sceGuViewport(480/2,272/2,480,272);
-	sceGuDepthRange(0xc350,0x2710);
-	sceGuScissor(0,0,480,272);
-	sceGuEnable(GU_STATE_SCISSOR);
-	sceGuFrontFace(GE_FACE_CW);
-	sceGuEnable(GU_STATE_TEXTURE);
-	sceGuClear(GE_CLEAR_COLOR|GE_CLEAR_DEPTH);
-	sceGuFinish();
-	sceGuSync(0,0);
-
-	pg_vramtop = (void *) (sceGeEdramGetAddr() | 0x40000000);
-	sceDisplaySetFrameBuf(pg_vramtop,LINESIZE,0,1);
 
 	pgScreenFrame(0,1);
 	pgcLocate(0,0);
@@ -809,6 +870,130 @@ void pgMain()
 	pgiInit();
 
 }
+
+// add by J
+// stringからの1行取り出し
+// char       *line_string            : search_char以降のテキスト
+// const char *string                 : テキスト全部
+// int        *search_cnt             : 読出し位置 -> 次の読出し位置を代入しますのでint型の変数を指定して下さい。(数字直接指定はだめです。)
+// int         line_string_max_length : line_string のサイズ
+// int         ret_char_cnt           : 1行分のテキスト文字数
+// How can I live without you by pという名様
+// こんなアルゴリズムでいいのでしょうか。教えてエロいひと
+int getStringLine( char *line_string, const char *string, int *search_cnt, int line_string_max_length )
+{
+	int loop_cnt;
+	int ret_char_cnt = 0;
+	for ( loop_cnt = *search_cnt; loop_cnt < strlen( string ) ; loop_cnt++ ) {
+		if ( string[loop_cnt] != '\n' ) {
+			if ( ret_char_cnt < line_string_max_length -1 ) {
+				line_string[ ret_char_cnt ] = string[ loop_cnt ];
+				ret_char_cnt++;
+			}
+		}else {
+			line_string[ ret_char_cnt ] = '\0';
+			break;
+		}
+	}
+	*search_cnt = loop_cnt+1;
+	return ret_char_cnt;
+}
+
+// const char *string  : テキスト全部
+// int         ret_int : 改行の数
+int getStringLineCount( const char *string )
+{
+	int ret_int = 0;
+	int loop_cnt;
+	for ( loop_cnt = 0; loop_cnt < strlen( string ) ; loop_cnt++ ) {
+		if ( string[loop_cnt] == '\n' ) ret_int++;
+	}
+	return ret_int;
+}
+
+// ダイアログ作成/表示ルーチン
+// キー判定はこのルーチンを呼んだ後に自前で行なって下さい。
+// int         dialog_pos_x : ダイアログ表示位置x座標
+// int         dialog_pos_y : ダイアログ表示位置y座標
+// const char *title        : ダイアログのタイトル 
+// const char *message      : ダイアログに表示するメッセージ(最後に改行コードを一つ追加してね)
+
+void message_dialog( int dialog_pos_x, int dialog_pos_y, const char *title, const char *message )
+{
+	int loop_cnt;
+	//  ダイアログ横幅
+	int dialog_whidth = strlen( title ) *5 +20;
+	//  ダイアログ縦幅
+	int dialog_height = getStringLineCount( message ) *10 +15;
+	//  message_text_allの読込みカウンタ
+	int message_text_read_cnt =  0;
+	// メッセージテキストx・y座標
+	int message_text_pos_x    = 10;
+	int message_text_pos_y    =  1;
+	// タイトル用文字列
+	char title_string[ D_text_MAX ];
+	int  titel_string_cnt = 0;
+
+	// ダイアログ横幅判定(メッセージ内の文字数によってダイアログの横幅を変えます。)
+	while( message_text_read_cnt < strlen( message ) ) {
+		int   read_message_text_cnt = 0;
+		char  read_message_text[ D_text_MAX ];
+		read_message_text_cnt = getStringLine( read_message_text, message, &message_text_read_cnt, D_text_MAX );
+		if ( titel_string_cnt < read_message_text_cnt ) titel_string_cnt = read_message_text_cnt;
+	}
+	// ダイアログタイトル文字列作成(メッセージ内の1行最大文字数より小さかったら' 'を文字数分追加)
+	strcpy( title_string, title );
+	for ( loop_cnt = strlen( title ); loop_cnt < titel_string_cnt; loop_cnt++ ) {
+		if ( strlen( title_string ) < D_text_MAX-1 ) {
+			strcat( title_string, " \0" );
+		}else {
+			strcat( title_string, "\0" );
+			break;
+		}
+	}
+	// title_stringの文字数でダイアログの横幅を決定
+	dialog_whidth = strlen( title_string ) *5 +20;
+
+	// 影？描画
+	pgFillBox( dialog_pos_x +2, dialog_pos_y  +7, dialog_pos_x + dialog_whidth  +2, dialog_pos_y + dialog_height +2, D_dialog_string_shadow );
+
+	// 外枠描画
+	pgFillBox( dialog_pos_x    , dialog_pos_y +5, dialog_pos_x + dialog_whidth    , dialog_pos_y + dialog_height   , D_dialog_out_color     );
+
+	// 内側描画
+	pgFillBox( dialog_pos_x  +2, dialog_pos_y +7, dialog_pos_x + dialog_whidth  -2, dialog_pos_y + dialog_height -2, D_dialog_in_color      );
+
+	// タイトル枠描画
+	pgFillBox( dialog_pos_x +11, dialog_pos_y +1, dialog_pos_x + dialog_whidth  -9, dialog_pos_y +14               , D_dialog_string_shadow );
+	pgFillBox( dialog_pos_x +10, dialog_pos_y   , dialog_pos_x + dialog_whidth -10, dialog_pos_y +13               , D_dialog_out_color     );
+	pgFillBox( dialog_pos_x +11, dialog_pos_y +1, dialog_pos_x + dialog_whidth -11, dialog_pos_y +12               , D_dialog_in_color1     );
+	// タイトル描画
+	mh_print ( dialog_pos_x + message_text_pos_x +1, dialog_pos_y + message_text_pos_y +2, (unsigned char*)title_string, D_dialog_string_shadow );
+	mh_print ( dialog_pos_x + message_text_pos_x   , dialog_pos_y + message_text_pos_y +1, (unsigned char*)title_string, D_dialog_title_color   );
+
+	// メッセージ
+	message_text_pos_y += 18;
+	message_text_read_cnt =  0;
+	while( message_text_read_cnt < strlen( message ) ) {
+		char  read_message_text[ D_text_MAX ];
+		int   read_message_text_cnt = 0;
+		// 行読込み
+		read_message_text_cnt = getStringLine( read_message_text, message, &message_text_read_cnt, D_text_MAX );
+		if ( read_message_text_cnt > 0 ) {
+			// メッセージ描画
+			mh_print ( dialog_pos_x + message_text_pos_x +1, dialog_pos_y + message_text_pos_y +1, (unsigned char*)read_message_text, D_dialog_string_shadow );
+			mh_print ( dialog_pos_x + message_text_pos_x   , dialog_pos_y + message_text_pos_y   , (unsigned char*)read_message_text, D_dialog_message_color );
+		}
+		message_text_pos_y += 10;
+	}
+
+	// ダイアログ表示
+	if (! PSP_Settings.bUseGUBlit)
+		pgScreenFlipV();
+
+	return; // voidだからいらないんだけどね
+}
+
 
 #ifdef __cplusplus
 }
