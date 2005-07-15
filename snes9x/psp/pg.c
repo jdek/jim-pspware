@@ -67,7 +67,7 @@ void pgInit(void)
 
 		// setup
 		sceGuStart(0,list);
-		sceGuDrawBuffer(GE_PSM_5551,(void*)0,512);
+		sceGuDrawBufferList(GE_PSM_5551,(void*)0,512);
 		sceGuDispBuffer(480,272,(void*)0x88000,512);
 		sceGuDepthBuffer((void*)0x110000,512);
 		sceGuOffset(0,0);
@@ -86,9 +86,13 @@ void pgInit(void)
 		sceGuFinish();
 		sceGuSync(0,0);
 
+//		sceDisplayWaitVblankStart();
+//		sceGuDisplay(1);
+
 		pg_vramtop = (char *) (sceGeEdramGetAddr() | 0x04000000);
 		sceDisplaySetFrameBuf(pg_vramtop,LINESIZE,1,1);
 	} else {
+//		sceGuDisplay(0);
 		sceGuTerm ();
 	}
 	
@@ -551,6 +555,7 @@ void pgRenderTex(char *tex, int width, int height, int x, int y, int xscale, int
 	}
 
 	sceGuFinish();
+//	sceGuSync(0,0);
 }
 
 void pgScreenSync(void)

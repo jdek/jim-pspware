@@ -920,9 +920,9 @@ void S9xEndScreenRefresh ()
 #ifndef PSP
         if(Settings.TakeScreenshot)
             S9xDoScreenshot(IPPU.RenderedScreenWidth, IPPU.RenderedScreenHeight);
-		if (Settings.DisplayFrameRate)
+#endif
+	if (Settings.DisplayFrameRate)
 	    S9xDisplayFrameRate ();
-#endif // PSP
 	if (GFX.InfoString)
 	    S9xDisplayString (GFX.InfoString);
 
@@ -4273,17 +4273,8 @@ static void S9xDisplayFrameRate ()
     char string [10];
     int len = 5;
 
-#ifdef PSP
-	string[0] = IPPU.DisplayedRenderedFrameCount / 10 + '0';
-	string[1] = IPPU.DisplayedRenderedFrameCount % 10 + '0';
-	string[2] = '/';
-	string[3] = (int) Memory.ROMFramesPerSecond / 10 + '0';
-	string[4] = (int) Memory.ROMFramesPerSecond % 10 + '0';
-	string[5] = 0;
-#else
     sprintf (string, "%02d/%02d", IPPU.DisplayedRenderedFrameCount,
 	     (int) Memory.ROMFramesPerSecond);
-#endif // PSP
 
     int i;
     for (i = 0; i < len; i++)
