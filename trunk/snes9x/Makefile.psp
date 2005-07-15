@@ -331,7 +331,7 @@ EBOOT.PBP: $(SNES9XBIN) PARAM.SFO
 	-rm -f $(SNES9XBIN)_stripped
 
 PARAM.SFO:
-	mksfo "uo_Snes9x 0.02pd1" $@
+	mksfo "uo_Snes9x 0.02pd2" $@
 
 #snes9x: $(OBJECTS) unix/x11.o $(AIDOOBJS)
 #	$(CCC) $(INCLUDES) -o $@ $(OBJECTS) $(AIDOOBJS) $(GLIDEOBJS) $(OPENGLOBJS) unix/x11.o $(LDLIBS) $(GLIDELIBS) $(OPENGLLIBS)   -lXext -lX11 $(EXTRALIBS) -lm
