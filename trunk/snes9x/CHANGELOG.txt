@@ -13,6 +13,8 @@ Andon (15/Jul/05)
  + The Makefile will use dependencies again.
   >> If you get an error about missing the
      "dependencies" file, then `make depend`.
+ + The Makefile will automatically build the
+   dependencies if not present.
  + Links against psplibc instead of libc now.
   >> newlib's libc has VERY slow file I/O.
  + Reverted back to unziplib, because it has
