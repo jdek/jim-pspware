@@ -117,8 +117,8 @@
 
 // add by y
 #include "psp/filer.h"
-//#include "psp/zlibInterface.h"
-#include "unzip/unzip.h"
+#include "psp/zlibInterface.h"
+//#include "unzip.h"
 
 #ifdef __W32_HEAP
 #include <malloc.h>
@@ -134,7 +134,8 @@ END_EXTERN_C
 #endif
 
 #ifndef SET_UI_COLOR
-#define SET_UI_COLOR(r,g,b) ;
+//#define SET_UI_COLOR(r,g,b) ;
+#define SET_UI_COLOR(r,g,b) BUILD_PIXEL(r,g,b); // Mod by a
 #endif
 
 //you would think everyone would have these
@@ -224,6 +225,11 @@ static uint8	IPPU_TileCache_TILE_8BIT[MAX_8BIT_TILES * 128];
 static uint8	IPPU_TileCached_TILE_2BIT[MAX_2BIT_TILES];
 static uint8	IPPU_TileCached_TILE_4BIT[MAX_4BIT_TILES];
 static uint8	IPPU_TileCached_TILE_8BIT[MAX_8BIT_TILES];
+
+/* We don't allocate heap memory in the PSP port, we shouldn't try to
+   free it either... */
+#undef free
+#define free(x) ;
 #endif // PSP
 
 
@@ -400,7 +406,8 @@ int CMemory::ScoreLoROM (bool8 skip_header, int32 romoff)
 char *CMemory::Safe (const char *s)
 {
 #ifdef PSP
-	return 0;
+//	return 0;
+	return (char *)s;
 #else
     static char *safe;
     static int safe_len = 0;
@@ -464,7 +471,7 @@ bool8 CMemory::Init ()
 	memset (BSRAM, 0, 0x80000);
 
 	FillRAM = NULL;
-	
+
 #ifdef PSP
     IPPU.TileCache [TILE_2BIT] = (uint8 *) IPPU_TileCache_TILE_2BIT;
     IPPU.TileCache [TILE_4BIT] = (uint8 *) IPPU_TileCache_TILE_4BIT;
@@ -630,10 +637,8 @@ bool8 CMemory::LoadROM (const char *filename)
 	ExtendedFormat=NOPE;
 
 
-#ifndef PSP
  	if(CleanUp7110!=NULL)
 		(*CleanUp7110)();
-#endif // PSP
 	
     memset (&SNESGameFixes, 0, sizeof(SNESGameFixes));
     SNESGameFixes.SRAMInitialValue = 0x60;
@@ -652,10 +657,8 @@ again:
 
 	if (!TotalFileSize)
 		return FALSE;		// it ends here
-#ifndef PSP
 	else if(!Settings.NoPatch)
 		CheckForIPSPatch (filename, HeaderCount != 0, TotalFileSize);
-#endif // PSP
 
 	//fix hacked games here.
 	if((strncmp("HONKAKUHA IGO GOSEI", (char*)&ROM[0x7FC0],19)==0)&&(ROM[0x7FD5]!=0x31))
@@ -950,9 +953,14 @@ uint32 CMemory::FileLoader (uint8* buffer, const char* filename, int32 maxsize)
 
 	switch( nFormat )
 	{
-	case FILE_ZIP:	// mod by y
+	case FILE_ZIP:
 		{
-/*		ROM_INFO stRomInfo;
+#ifdef PSP
+		// Use unziplib, because it has a progress callback
+		//
+		//  In the future, we ought to change the Snes9x unzip code to
+		//  support a callback and ditch the PSP unziplib.
+		ROM_INFO stRomInfo;
 		int nRet;
 
 		stRomInfo.p_rom_image = buffer;
@@ -987,7 +995,7 @@ uint32 CMemory::FileLoader (uint8* buffer, const char* filename, int32 maxsize)
 				FileSize -= 512;
 			}
 		TotalFileSize = FileSize;
-*/
+#else
 #ifdef UNZIP_SUPPORT
 
 		file = unzOpen(fname);
@@ -1016,7 +1024,7 @@ uint32 CMemory::FileLoader (uint8* buffer, const char* filename, int32 maxsize)
 		S9xMessage (S9X_ERROR, S9X_ROM_INFO, "This binary was not created with Zip support.");
 		return (0);
 #endif
-
+#endif // PSP
 		break;
 	}
 	case FILE_JMA:
@@ -1064,7 +1072,7 @@ uint32 CMemory::FileLoader (uint8* buffer, const char* filename, int32 maxsize)
 
 		if ((ROMFile = OPEN_STREAM (fname, "rb")) == NULL)
 			return (0);
-		
+			
 		strcpy (ROMFilename, fname);
 		
 		HeaderCount = 0;
@@ -1125,7 +1133,6 @@ uint32 CMemory::FileLoader (uint8* buffer, const char* filename, int32 maxsize)
 	}
 
 
-#ifndef PSP
     if (HeaderCount == 0)
 		S9xMessage (S9X_INFO, S9X_HEADERS_INFO, "No ROM file header found.");
     else
@@ -1137,7 +1144,6 @@ uint32 CMemory::FileLoader (uint8* buffer, const char* filename, int32 maxsize)
 			S9xMessage (S9X_INFO, S9X_HEADERS_INFO,
 			"Found multiple ROM file headers (and ignored them).");
     }
-#endif // PSP
 	
 	return TotalFileSize;
 
@@ -1366,6 +1372,7 @@ inline uint32 caCRC32(uint8 *array, uint32 size, register uint32 crc32)
   return ~crc32;
 }
 
+extern "C" {
 void CMemory::InitROM (bool8 Interleaved)
 {
 #ifndef ZSNES_FX
@@ -1387,9 +1394,7 @@ void CMemory::InitROM (bool8 Interleaved)
 	Settings.BS=FALSE;
 	Settings.OBC1=FALSE;
 	Settings.SETA=FALSE;
-#ifndef PSP
 	s7r.DataRomSize = 0;
-#endif // PSP
 	CalculatedChecksum=0;
 	uint8* RomHeader;
 
@@ -1485,7 +1490,6 @@ void CMemory::InitROM (bool8 Interleaved)
 		if (Settings.SDD1)
 			S9xLoadSDD1Data ();
 		
-#ifndef PSP
 		if(((ROMType &0xF0) == 0xF0)&((ROMSpeed&0x0F)!=5))
 		{
 			SRAMSize=2;
@@ -1511,7 +1515,6 @@ void CMemory::InitROM (bool8 Interleaved)
 				SRAMSize=2;
 			}
 		}
-#endif // PSP
 		
 		Settings.C4 = Settings.ForceC4;
 		if ((ROMType & 0xf0) == 0xf0 &&
@@ -1706,43 +1709,17 @@ void CMemory::InitROM (bool8 Interleaved)
 
 	ResetSpeedMap();
 	ApplyROMFixes ();
+
 #ifdef PSP
-	{
-		int		i;
+	debug_log( ROMName );
+	debug_log( (ROMChecksum + ROMComplementChecksum != 0xffff || ROMChecksum != CalculatedChecksum) ? "bad checksum" : "checksum ok" );
+#endif // PSP
 
-	    for ( i = 0; i < ROMName[i]; i++ ){
-			if ( ROMName[i] >= 32 && ROMName[i] < 127 ){
-				ROMName[i] = ROMName[i];
-			} else {
-				ROMName[i] = '?';
-			}
-	    }
-
-	    for ( i = 0; i < ROMId[i]; i++ ){
-			if ( ROMId[i] >= 32 && ROMId[i] < 127 ){
-				ROMId[i] = ROMId[i];
-			} else {
-				ROMId[i] = '?';
-			}
-	    }
-
-	    for ( i = 0; i < CompanyId[i]; i++ ){
-			if ( CompanyId[i] >= 32 && CompanyId[i] < 127 ){
-				CompanyId[i] = CompanyId[i];
-			} else {
-				CompanyId[i] = '?';
-			}
-	    }
-
-		debug_log( ROMName );
-		debug_log( (ROMChecksum + ROMComplementChecksum != 0xffff || ROMChecksum != CalculatedChecksum) ? "bad checksum" : "checksum ok" );
-	}
-#else
-	sprintf (ROMName, "%s", Safe (ROMName));
-	sprintf (ROMId, "%s", Safe (ROMId));
+	sprintf (ROMName,   "%s", Safe (ROMName));
+	sprintf (ROMId,     "%s", Safe (ROMId));
 	sprintf (CompanyId, "%s", Safe (CompanyId));
 	
-		sprintf (String, "\"%s\" [%s] %s, %s, Type: %s, Mode: %s, TV: %s, S-RAM: %s, ROMId: %s Company: %2.2s CRC32: %08X",
+	sprintf (String, "\"%s\" [%s] %s, %s, Type: %s, Mode: %s, TV: %s, S-RAM: %s, ROMId: %s Company: %2.2s CRC32: %08X",
 		ROMName,
 		(ROMChecksum + ROMComplementChecksum != 0xffff ||
 		ROMChecksum != CalculatedChecksum) ? "bad checksum" : "checksum ok",
@@ -1756,8 +1733,8 @@ void CMemory::InitROM (bool8 Interleaved)
 		CompanyId,
 		ROMCRC32);
 	
+	Settings.DisplayColor = BUILD_PIXEL (0, 255, 0);
 	S9xMessage (S9X_INFO, S9X_ROM_INFO, String);
-#endif // PSP
 #ifdef __WIN32__
 	#ifndef _XBOX
 		EnableMenuItem(GUI.hMenu, IDM_ROM_INFO, MF_ENABLED);
@@ -1805,24 +1782,21 @@ bool8 CMemory::LoadSRAM (const char *filename)
 			else
 				S9xHardResetSRTC ();
 			
-#ifndef PSP
 			if(Settings.SPC7110RTC)
 			{
 				S9xLoadSPC7110RTC (&rtc_f9);
 			}
-#endif // PSP
 			
 			return (TRUE);
 		}
 		S9xHardResetSRTC ();
 		return (FALSE);
     }
-#ifndef PSP
     if (Settings.SDD1)
 		S9xSDD1LoadLoggedData ();
-#endif // PSP
 	
     return (TRUE);
+}
 }
 
 bool8 CMemory::SaveSRAM (const char *filename)
@@ -1839,10 +1813,8 @@ bool8 CMemory::SaveSRAM (const char *filename)
 		size += SRTC_SRAM_PAD;
 		S9xSRTCPreSaveState ();
     }
-#ifndef PSP
     if (Settings.SDD1)
 		S9xSDD1SaveLoggedData ();
-#endif // PSP
 	
     if (size > 0x20000)
 		size = 0x20000;
@@ -1857,12 +1829,10 @@ bool8 CMemory::SaveSRAM (const char *filename)
 #if defined(__linux)
 			chown (filename, getuid (), getgid ());
 #endif
-#ifndef PSP
 			if(Settings.SPC7110RTC)
 			{
 				S9xSaveSPC7110RTC (&rtc_f9);
 			}
-#endif // PSP
 			return (TRUE);
 		}
     }
@@ -3658,9 +3628,7 @@ void CMemory::SPC7110HiROMMap ()
 		BlockIsROM [0xD00+c] = BlockIsROM [0xE00+c] = BlockIsROM [0xF00+c] = TRUE;
 		
 	}
-#ifndef PSP
 	S9xSpc7110Init();
-#endif // PSP
 
 int sum=0;
 for(i=0;i<(int)CalculatedSize; i++)
@@ -4438,7 +4406,6 @@ static long ReadInt (FILE *f, unsigned nbytes)
 void CMemory::CheckForIPSPatch (const char *rom_filename, bool8 header,
 								int32 &rom_size)
 {
-#ifndef PSP
     char  dir [_MAX_DIR + 1];
     char  drive [_MAX_DRIVE + 1];
     char  name [_MAX_FNAME + 1];
@@ -4534,7 +4501,6 @@ void CMemory::CheckForIPSPatch (const char *rom_filename, bool8 header,
 err_eof:
     if (patch_file) 
 		fclose (patch_file);
-#endif // PSP
 }
 
 int is_bsx(unsigned char *p)
@@ -4638,25 +4604,7 @@ void CMemory::ParseSNESHeader(uint8* RomHeader)
 		memmove (ROMId, &RomHeader [0x2], 4);
 		if(RomHeader[0x2A]==0x33)
 			memmove (CompanyId, &RomHeader [0], 2);
-#ifdef PSP
-		else {
-			int		val;
-			val = (RomHeader[0x2A] >> 4) & 0x0f;
-			if ( val < 10 ){
-				CompanyId[0] = val + '0';
-			} else {
-				CompanyId[0] = val - 10 + 'A';
-			}
-			val = RomHeader[0x2A] & 0x0f;
-			if ( val < 10 ){
-				CompanyId[1] = val + '0';
-			} else {
-				CompanyId[1] = val - 10 + 'A';
-			}
-		}
-#else
 		else sprintf(CompanyId, "%02X", RomHeader[0x2A]);
-#endif
 }
 
 #undef INLINE

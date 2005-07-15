@@ -130,8 +130,6 @@ void S9xSDD1PostLoadState ()
 	S9xSetSDD1MemoryMap (i, Memory.FillRAM [0x4804 + i]);
 }
 
-#ifndef PSP
-
 static int S9xCompareSDD1LoggedDataEntries (const void *p1, const void *p2)
 {
     uint8 *b1 = (uint8 *) p1;
@@ -180,5 +178,3 @@ void S9xSDD1LoadLoggedData ()
 	fclose (fs);
     }
 }
-#endif // PSP
-

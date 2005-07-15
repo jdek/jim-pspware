@@ -98,9 +98,12 @@
 #include "cheats.h"
 #include "screenshot.h"
 
-#ifdef OPTI
 extern "C" {
 void debug_log( const char* message );
+};
+
+#ifdef OPTI
+extern "C" {
 void StartAnalyze();
 void StopAnalyze();
 };
@@ -330,6 +333,11 @@ void DrawLargePixel16Sub1_2 (uint32 Tile, uint32 Offset,
 static uint16	GFX_X2[0x10000];
 static uint16	GFX_ZERO_OR_X2[0x10000];
 static uint16	GFX_ZERO[0x10000];
+
+/* We don't allocate heap memory in the PSP port, we shouldn't try to
+   free it either... */
+#undef free
+#define free(x) ;
 #endif // PSP
 
 bool8 S9xGraphicsInit ()
@@ -690,8 +698,15 @@ debug_log( "S9xBuildDirectColourMaps" );
 
 void S9xStartScreenRefresh ()
 {
-    if (GFX.InfoStringTimeout > 0 && --GFX.InfoStringTimeout == 0)
+    if (GFX.InfoStringTimeout > 0 && --GFX.InfoStringTimeout == 0) {
 	GFX.InfoString = NULL;
+
+#ifdef PSP
+        // Mark the screen dirty when an info string is timesout...
+        extern void S9xMarkScreenDirty (void);
+        S9xMarkScreenDirty ();
+#endif
+    }
 
     if (IPPU.RenderThisFrame)
     {
@@ -959,6 +974,12 @@ void S9xSetInfoString (const char *string)
 {
     GFX.InfoString = string;
     GFX.InfoStringTimeout = 120;
+
+#ifdef PSP
+    // Mark the screen when a new info string is set...
+    extern void S9xMarkScreenDirty (void);
+    S9xMarkScreenDirty ();
+#endif
 }
 
 inline void SelectTileRenderer (bool8 normal)

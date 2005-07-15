@@ -29,7 +29,7 @@ int ExitCallback()
 
 void PowerCallback(int unknown, int pwrflags)
 {
-	if(pwrflags & POWER_CB_POWER){
+	if(pwrflags & PSP_POWER_CB_POWER_SWITCH){
 // mod by y
 		if (g_bROMLoaded) {
 			g_bSleep = true;
@@ -47,7 +47,7 @@ void PowerCallback(int unknown, int pwrflags)
 //		S9xCloseSoundDevice();
 	}
 
-	if(pwrflags & POWER_CB_BATLOW){
+	if(pwrflags & PSP_POWER_CB_BATTERY_LOW){
 		scePowerSetClockFrequency(222,222,111);
 		S9xSetInfoString( "PSP Battery is Low!" );
 	}
@@ -76,7 +76,7 @@ int SetupCallbacks()
 {
 	int thid = 0;
 
-	thid = sceKernelCreateThread( "update_thread", (void *)CallbackThread, 0x11, 0xFA0, THREAD_ATTR_USER, 0 );
+	thid = sceKernelCreateThread( "update_thread", (SceKernelThreadEntry)CallbackThread, 0x11, 0xFA0, THREAD_ATTR_USER, 0 );
 	if( thid >= 0 ){
 		sceKernelStartThread(thid, 0, 0);
 	}

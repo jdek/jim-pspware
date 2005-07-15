@@ -126,20 +126,6 @@ extern "C" char *osd_GetPackDir();
 //while *nix doesn't, so this was to "un-M$" the function.
 #define splitpath _splitpath
 
-#ifdef PSP
-// From psplib.cpp...
-  extern FILE *fopen(const char *path, const char *mode);
-  extern size_t fread(void *buf, size_t size, size_t n, FILE *fp);
-  extern int fclose(FILE *fp);
-  extern size_t fwrite(const void *buf, size_t size, size_t n, FILE *fp);
-  extern void _makepath( char *path, const char *drive, const char *dir, const char *fname, const char *ext );
-  extern void _splitpath( const char *path, char *drive, char *dir, char *fname, char *ext );
-  extern time_t time (time_t*);
-//  extern void* malloc (size_t);
-#endif
-
-
-
 //not much headroom, but FEOEZ has 41 tables, I think, and SPL4 has 38.
 #define MAX_TABLES 48
 

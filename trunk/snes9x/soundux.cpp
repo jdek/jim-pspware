@@ -101,7 +101,7 @@
 extern "C" {
 void debug_log( const char* message );
 void debug_int( const char* message, int value );
-};
+}
 static int s_iSoundMulRate = 0;
 
 #define PSP_PLAYBACK_RATE	44100
@@ -702,7 +702,6 @@ void AltDecodeBlock (Channel *ch)
 
 void AltDecodeBlock2 (Channel *ch)
 {
-#ifndef PSP
     int32 out;
     unsigned char filter;
     unsigned char shift;
@@ -771,7 +770,11 @@ void AltDecodeBlock2 (Channel *ch)
 			//Sample 1 = Top Nibble, shifted down and Sign Extended.
 			sample1 >>= 4;
 			out = (int32)(sample1 << shift);
+#ifdef PSP
+			out += (int32)((float)prev0 * 15/16);
+#else
 			out += (int32)((double)prev0 * 15/16);
+#endif // PSP
 			
 			prev1 = prev0;
 			prev0 = out;
@@ -779,7 +782,11 @@ void AltDecodeBlock2 (Channel *ch)
 			*raw++ = (int16)out;
 			
 			out = (int32)(sample2 << shift);
+#ifdef PSP
+			out += (int32)((float)prev0 * 15/16);
+#else
 			out += (int32)((double)prev0 * 15/16);
+#endif // PSP
 			
 			prev1 = prev0;
 			prev0 = out;
@@ -821,7 +828,12 @@ void AltDecodeBlock2 (Channel *ch)
 			//Sample 1 = Top Nibble, shifted down and Sign Extended.
 			sample1 >>= 4;
 			out = (int32)(sample1 << shift);
+#ifdef PSP
+			out += (int32)((float)prev0 * 115/64 - (float)prev1 * 13/16);
+#else
 			out += (int32)((double)prev0 * 115/64 - (double)prev1 * 13/16);
+#endif // PSP
+
 			
 			prev1 = prev0;
 			prev0 = out;
@@ -830,7 +842,11 @@ void AltDecodeBlock2 (Channel *ch)
 			*raw++ = (int16)out;
 			
 			out = (int32)(sample2 << shift);
+#ifdef PSP
+			out += (int32)((float)prev0 * 115/64 - (float)prev1 * 13/16);
+#else
 			out += (int32)((double)prev0 * 115/64 - (double)prev1 * 13/16);
+#endif // PSP
 			
 			prev1 = prev0;
 			prev0 = out;
@@ -843,7 +859,6 @@ void AltDecodeBlock2 (Channel *ch)
     ch->previous [0] = prev0;
     ch->previous [1] = prev1;
     ch->block_pointer += 9;
-#endif // PSP
 }
 
 void DecodeBlock (Channel *ch)
@@ -1275,8 +1290,10 @@ void MixStereo (int sample_count)
 		
 		if (ch->state == SOUND_SILENT || !(so.sound_switch & (1 << J)))
 			continue;
-		
-#ifndef PSP
+	
+#ifdef PSP
+//		freq0 = (unsigned long) ((float) freq0 * 0.985f);//uncommented by jonathan gevaryahu, as it is necessary for most cards in linux
+#else
 		freq0 = (unsigned long) ((double) freq0 * 0.985);//uncommented by jonathan gevaryahu, as it is necessary for most cards in linux
 #endif // PSP
 		

@@ -92,11 +92,11 @@
 #include "memmap.h"
 #include <math.h>
 
+extern "C" {
 #include "dsp1emu.c"
-#ifndef PSP
 #include "dsp2emu.c"
+}
 #include "dsp3emu.cpp"
-#endif // PSP
 
 void (*SetDSP)(uint8, uint16)=&DSP1SetByte;
 uint8 (*GetDSP)(uint16)=&DSP1GetByte;

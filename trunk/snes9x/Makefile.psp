@@ -4,7 +4,7 @@
 #ASMCPU=1
 #SPC700ASM=1
 #NETPLAY=1
-UNZIP=1
+##UNZIP=1
 #JMA=1
 #GLIDE=1
 #OPENGL=1
@@ -118,9 +118,7 @@ OBC1OBJ=obc1.o
 SETAOBJ=seta.o seta010.o seta011.o seta018.o
 
 ifdef PSP
-SPC7110OBJ=
 C4OBJ=c4.o c4emu.o
-SETAOBJ=
 OBJECTS=$(CPUOBJ) $(SOUNDOBJ) $(FXOBJ) $(C4OBJ) \
 	cpu.o sa1.o sdd1.o debug.o srtc.o tile.o gfx.o memmap.o clip.o \
 	dsp1.o ppu.o dma.o data.o globals.o \
@@ -219,27 +217,33 @@ ifdef OPTI
 DEFS     += -DOPTI
 endif
 CPUFLAGS = -mno-check-zero-division
-#OPTIMISE = -O2 -fno-exceptions
-#OPTIMISE = -fno-exceptions
+#CPUFLAGS = -march=allegrex -mgp32 -mlong32 -msingle-float -mabi=eabi -mhard-float -mtune=allegrex -mlong-calls -mno-check-zero-division -mno-fp-exceptions #-mfix-r4000
 # http://www.cqpub.co.jp/interface/column/freesoft/2002/200208/08-4.htm
 #OPTIMISE=-O4 -ffreestanding -ffast-math -fschedule-insns2 -fomit-frame-pointer -fno-inline-functions -fno-defer-pop -fforce-addr -fstrict-aliasing -funroll-loops -fdelete-null-pointer-checks -fno-exceptions
-OPTIMISE=-O2 -G8 -fstrict-aliasing -ffast-math -fsingle-precision-constant
-OPTIMISE_C = $(OPTIMISE)
-OPTIMISE_CXX = $(OPTIMISE) -fno-exceptions -fno-rtti
+#OPTIMISE=-O2 -G8 -fstrict-aliasing -ffast-math -fsingle-precision-constant
+OPTIMISE=-O4 -ffast-math -fforce-addr \
+	 -fsingle-precision-constant -funroll-loops -fpeel-loops -funswitch-loops \
+	 -fbranch-target-load-optimize2 \
+	 -fvariable-expansion-in-unroller -ftracer -ftree-vectorize -fivopts -ftree-loop-im -ftree-loop-linear \
+	 -floop-optimize2 -freorder-blocks-and-partition \
+	 -fsched-spec-load-dangerous -ftree-loop-ivcanon
+OPTIMISE_C=-ffreestanding $(OPTIMISE)
+OPTIMISE_CXX=-fno-exceptions -fno-rtti $(OPTIMISE)
 
-#PSP_OBJECTS=cpuops.o cpuexec.o sa1cpu.o spc700.o soundux.o apu.o  apudebug.o fxinst.o fxemu.o fxdbg.o  cpu.o sa1.o debug.o tile.o gfx.o memmap.o clip.o dsp1.o ppu.o dma.o data.o globals.o  obc1.o     psp/psp.o  
 
 ifdef CPU_OPTI
 PSP_OBJECTS=globals.o cpuexec.o sa1cpu.o spc700.o soundux.o apu.o fxinst.o fxemu.o c4.o c4emu.o cpu.o sa1.o tile.o srtc.o gfx.o memmap.o clip.o dsp1.o ppu.o dma.o data.o obc1.o sdd1.o sdd1emu.o psp/config.o psp/psp.o psp/pg.o psp/filer.o snapshot.o $(UNZIP_OBJECTS)
 else
-PSP_OBJECTS=globals.o cpuops.o cpuexec.o sa1cpu.o spc700.o soundux.o apu.o fxinst.o fxemu.o c4.o c4emu.o cpu.o sa1.o tile.o srtc.o gfx.o memmap.o clip.o dsp1.o ppu.o dma.o data.o obc1.o sdd1.o sdd1emu.o psp/config.o psp/psp.o  psp/pg.o psp/filer.o snapshot.o $(UNZIP_OBJECTS)
+PSP_OBJECTS=$(OBJECTS) $(UNZIP_OBJECTS)
 endif
 
 PLATFORMOBJ   = psp/psp.o psp/config.o psp/pg.o psp/filer.o psp/config.o
 SNAPOBJ       = snapshot.o
 SCREENSHOTOBJ =
 MOVIEOBJ      =
-SPC7110OBJ    =
+
+# Allow Yoshi's Island to run (even though it runs REALLY slow)
+DEFS     += -DDETECT_NASTY_FX_INTERLEAVE
 endif
 
 DEFS += \
@@ -279,9 +283,9 @@ CXXFLAGS = $(OPTIMISE_CXX) $(CPUFLAGS) $(INCLUDES) $(DEFS)
 #FIXME: Why is this set statically?
 #LDLIBS = -L/usr/X11R6/lib
 # -L../zlib
-LDLIBS =  -L`psp-config -p`/lib \
+LDLIBS =  psp/unziplib.a -L`psp-config -p`/lib \
 	  -lpspaudio -lpspctrl -lpsppower -lpspdebug -lpspgu -lpspge -lpspdisplay \
-	  -lc -lpspglue -lpspuser -lpspkernel
+	  -lpsplibc -lpspglue -lpspuser -lpspkernel -lm
 
 ifdef GLIDE
 SNES9XBIN=gsnes9x
@@ -305,6 +309,9 @@ all: $(SNES9XBIN) EBOOT.PBP
 
 #ggisnes9x
 
+kxploit: all
+	kxploit EBOOT.PBP SNES9X /mnt/PSP/PSP/GAME
+	
 #FIXME: Make this more portable and add install.sh, maybe add strip
 install: all
 	install -D $(SNES9XBIN) "$(exec_prefix)/bin/$(SNES9XBIN)"
@@ -317,11 +324,6 @@ directories:
 
 snes9x: $(PSP_OBJECTS)
 	psp-gcc -o $@ $(PSP_OBJECTS) $(LDLIBS) $(EXTRALIBS)
-#	cp snes9x out
-#	outpatch "uo_Snes9x for PSP"
-#	ee-objdump -x snes9x.elf > aaa.txt
-#	ee-strip outp
-#	elf2pbp outp "uo_Snes9x for PSP 0.02y11"
 
 EBOOT.PBP: $(SNES9XBIN) PARAM.SFO
 	psp-strip $(SNES9XBIN) -o $(SNES9XBIN)_stripped
@@ -329,7 +331,7 @@ EBOOT.PBP: $(SNES9XBIN) PARAM.SFO
 	-rm -f $(SNES9XBIN)_stripped
 
 PARAM.SFO:
-	mksfo "uo_Snes9x 0.02y11 PSPSDK" $@
+	mksfo "uo_Snes9x 0.02pd1" $@
 
 #snes9x: $(OBJECTS) unix/x11.o $(AIDOOBJS)
 #	$(CCC) $(INCLUDES) -o $@ $(OBJECTS) $(AIDOOBJS) $(GLIDEOBJS) $(OPENGLOBJS) unix/x11.o $(LDLIBS) $(GLIDELIBS) $(OPENGLLIBS)   -lXext -lX11 $(EXTRALIBS) -lm
@@ -458,7 +460,8 @@ verify: snes9x
 
 #FIXME: Make a auto-self-reference.
 depend:
-	$(CC) $(CFLAGS) -MM -MG \
+	@echo "Calculating dependencies..."
+	@$(CCC) $(CXXFLAGS) -MM -MG \
 	  `find . '(' -name '*.c' -o -name '*.cpp' -o -name '*.S' ')' -print -o -name msdos -prune` \
 	  | sed -e 's@^[^ :]*: *\([^ ]*/\)[^ /]*@\1&@' \
 	  >dependencies
@@ -467,4 +470,4 @@ depend:
 TAGS: *.c *.h unix/*.c unix/*.h unzip/*.c unzip/*.h jma/*.cpp jma/*.h 
 	-etags *.c *.h unix/*.c unix/*.h unzip/*.c unzip/*.h  jma/*.cpp jma/*.h
 
-
+include dependencies

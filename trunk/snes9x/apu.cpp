@@ -117,6 +117,11 @@ void S9xTraceSoundDSP (const char *s, int i1 = 0, int i2 = 0, int i3 = 0,
 static uint8	IAPU_RAM[0x10000];
 static uint8	IAPU_ShadowRAM[0x10000];
 static uint8	IAPU_CachedSamples[0x40000];
+
+/* We don't allocate heap memory in the PSP port, we shouldn't try to
+   free it either... */
+#undef free
+#define free(x) ;
 #endif // PSP
 
 bool8 S9xInitAPU ()
