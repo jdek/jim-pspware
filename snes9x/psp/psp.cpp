@@ -127,6 +127,8 @@ extern "C" {
 // Reserve 360 Kb for freeze buffers, increase if needed...
 #define MAX_FREEZE_SIZE 368640 
 //#define MAX_FREEZE_SIZE 409600 /* 400 Kb */
+
+bool8 bGUIMode = FALSE;
 };
 
 
@@ -156,6 +158,8 @@ void S9xMarkScreenDirtyEx (void);
 
 extern "C" void init_blit_backend (void);
 
+extern "C" void draw_menu (void);
+
 PSPSETTINGS PSP_Settings;
 
 #define UPPER_THRESHOLD		0xcf
@@ -167,6 +171,8 @@ volatile bool8			g_bROMLoaded = false;
 //
 volatile bool8			g_bLoop = true;
 int						g_thread = -1;
+int				g_iMainMenuSel = 0;
+char				g_szMainMenuMsg[256];
 static uint8			SoundBuffer[MAX_BUFFER_SIZE];
 
 //#define FRAMESIZE				0x44000			//in byte
@@ -692,6 +698,9 @@ void key_config()
 			PSP_KEY_CONFIG[sel] = PSP_CTRL_RTRIGGER;
 		}
 		
+		// Update any text on the main menu...
+		draw_menu ();
+		
 		key_config_disp( sel );
 	}
 	return; // voidだからいらないんだけどね。
@@ -821,6 +830,9 @@ void state_config (void)
 		else {
 		}
 
+		// Update any text on the main menu...
+		draw_menu ();
+
 		state_config_disp (sel);
 	}
 
@@ -926,8 +938,7 @@ void display_config_disp (int cur_pos)
 
 	AddConfigValue ("\n"
 	                "NOTE: The sceGu blit backend is experimental, it may \n"
-	                "      cause the GUI to become unreadable among other \n"
-	                "      things... *** You have been warned!\n")
+	                "      cause some games to become unplayable...\n")
 
 	message_dialog( 34, 50, " 　【　　Display Config　　】　 \0", dialog_text_all );
 }
@@ -1133,6 +1144,9 @@ void display_config (void)
 				sel = 0;
 		}
 
+		// Update any text on the main menu...
+		draw_menu ();
+
 		display_config_disp (sel);
 	}
 }
@@ -1336,6 +1350,9 @@ void sound_config (void)
 					break;
 			}
 		}
+
+		// Update any text on the main menu...
+		draw_menu ();
 
 		sound_config_disp (sel);
 	}
@@ -2022,10 +2039,10 @@ void S9xPutImage( int width, int height )
 }
 #endif
 
-static uint8 __attribute__((aligned(16))) GFX_Screen[512 * 478 * 2];
-static uint8	GFX_SubScreen[512 * 478 * 2];
-static uint8	GFX_ZBuffer[512 * 478 * 2];
-static uint8	GFX_SubZBuffer[512 * 478 * 2];
+static uint16 __attribute__((aligned(16))) GFX_Screen[512 * 478];
+static uint16	GFX_SubScreen[512 * 478];
+static uint16	GFX_ZBuffer[512 * 478];
+static uint16	GFX_SubZBuffer[512 * 478];
 
 
 enum {
@@ -2116,12 +2133,13 @@ bool8 S9xDeinitUpdate (int Width, int Height, bool8 sixteen_bit)
 		pgPrintBG( CMAX_X - 6, 0, 0xffff, FPSbuf );
 	}
 
-	if (! PSP_Settings.bUseGUBlit) {
-		if (PSP_Settings.bVSync) {
-			pgScreenFlipV();
-		} else {
-			pgScreenFlip();
-		}
+	if (PSP_Settings.bVSync) {
+		pgScreenFlipV ();
+	} else {
+		if (PSP_Settings.bUseGUBlit)
+			pgScreenSync ();
+		else
+			pgScreenFlip ();
 	}
 
 	if (! PSP_Settings.bUseGUBlit) {
@@ -2130,7 +2148,7 @@ bool8 S9xDeinitUpdate (int Width, int Height, bool8 sixteen_bit)
 			if (PSP_Settings.iScreenSize == 0)
 				GFX.Screen = (uint8*)pgGetVramAddr( (SCREEN_WIDTH - SNES_WIDTH) >> 1, (SCREEN_HEIGHT - SNES_HEIGHT) >> 1 );
 			else
-				GFX.Screen = GFX_Screen;
+				GFX.Screen = (uint8*)GFX_Screen;
 
 		ELSE_DEBUG_CODE
 
@@ -2721,43 +2739,242 @@ int state_delete_check()
 }
 
 
-void open_menu(void)
-{
-	enum {
-		SRAM_SAVE,
+enum {
+	SRAM_SAVE,
 		
-		STATE_SLOT,
-		STATE_SAVE,
-		STATE_LOAD,
-		STATE_DEL,
-		STATE_COMPRESS,
-		STATE_CONFIG,
-		STATE_REFRESH,
+	STATE_SLOT,
+	STATE_SAVE,
+	STATE_LOAD,
+	STATE_DEL,
+	STATE_COMPRESS,
+	STATE_CONFIG,
+	STATE_REFRESH,
 
-		DISPLAY_CONFIG,
-		SOUND_CONFIG,
-		KEY_CONFIG,
+	DISPLAY_CONFIG,
+	SOUND_CONFIG,
+	KEY_CONFIG,
 
-		FRAME_SKIP,
-		AUTO_SKIP,
-		HBLANK_CYCLE,
-		APU_CYCLE,
-		PSP_CLOCKUP,
+	FRAME_SKIP,
+	AUTO_SKIP,
+	HBLANK_CYCLE,
+	APU_CYCLE,
+	PSP_CLOCKUP,
 
-		LOAD_ROM,
-		RESET,
-		EXIT_HOME,
-		CONTINUE,
-	};
-	char msg[256], tmp[256];
-	static int sel=0;
-	int x, y;
+	LOAD_ROM,
+	RESET,
+	EXIT_HOME,
+	CONTINUE,
+};
 
+void draw_menu (void)
+{
+	char* msg = g_szMainMenuMsg;
+	int&  sel = g_iMainMenuSel;
+
+	char tmp[256];
+	uint8 tmp_color;
+
+	int x,y;
+	
 //  add by J
 	// 充電電圧
 	long BatteryVolt_ret;
 	// アダプタ・バッテリー判定
 	long BatteryCharging_ret;
+
+	menu_frame((unsigned char *)msg, (unsigned char *)"○：OK  ×：Continue  SELECT+START：Exit to PSP Menu");
+		
+	mh_print(33, 33, (unsigned char*)Memory.ROMFilename, RGB(95,95,125));
+		
+	x = 2;
+	y = 6;
+		
+	pgPrint(x,y++,0xffff,"  SRAM Save");
+		
+	y++;
+		
+	strcpy(tmp,"  Save Slot     : 0");
+	tmp[strlen(tmp)-1] = PSP_Settings.iSaveSlot + '0';
+	pgPrint(x,y++,0xffff,tmp);
+		
+	pgPrint(x,y++,0xffff,"  State Save");
+	pgPrint(x,y++,0xffff,"  State Load");
+	pgPrint(x,y++,0xffff,"  State Delete");
+		
+	if (save_slots [PSP_Settings.iSaveSlot].compression == 1)
+		pgPrint(x,y++,0xffff,"  State Decompress");
+	else
+		pgPrint(x,y++,0xffff,"  State Compress");
+
+	pgPrint(x,y++,0xffff,"  State Config");
+
+	pgPrint(x,y++,0xffff,"  Refresh List");
+
+	y++;
+		
+	pgPrint(x,y++,0xffff,"  Display Config");
+
+	pgPrint(x,y++,0xffff,"  Sound Config");
+
+	pgPrint(x,y++,0xffff,"  Key Config");
+
+	y++;
+
+	strcpy(tmp,"  FrameSkip     : 00");
+	tmp[strlen(tmp)-2] = PSP_Settings.iSkipFrames / 10 + '0';
+	tmp[strlen(tmp)-1] = PSP_Settings.iSkipFrames % 10 + '0';
+	pgPrint(x,y++,0xffff,tmp);
+
+	if (PSP_Settings.bAutoSkip) {
+		pgPrint(x,y++,0xffff,"  Auto FrameSkip: ON");
+	} else {
+		pgPrint(x,y++,0xffff,"  Auto FrameSkip: OFF");
+	}
+
+	strcpy(tmp,"x0.0");
+	tmp[strlen(tmp)-3] = PSP_Settings.iHBlankCycleDiv / 10 + '0';
+	tmp[strlen(tmp)-1] = PSP_Settings.iHBlankCycleDiv % 10 + '0';
+	pgPrint(x,y,0xffff,"  Graphic Speed : ");
+	tmp_color = 255-((PSP_Settings.iHBlankCycleDiv - 10) * 10);
+	pgPrint(x+18,y++,RGB(255,tmp_color,tmp_color),tmp);
+	strcpy(tmp,"x0.0");
+	tmp[strlen(tmp)-3] = PSP_Settings.iAPUTimerCycleDiv / 10 + '0';
+	tmp[strlen(tmp)-1] = PSP_Settings.iAPUTimerCycleDiv % 10 + '0';
+	pgPrint(x,y,0xffff,"  Sound Speed   : ");
+	tmp_color = 255-((PSP_Settings.iAPUTimerCycleDiv - 10) * 10);
+	pgPrint(x+18,y++,RGB(255,tmp_color,tmp_color),tmp);
+
+	pgPrint(x,y,0xffff,"  PSP Clock     : ");
+	if (PSP_Settings.iPSP_ClockUp == 2) pgPrint(x+18,y++,RGB(255,95,95),"333MHz");
+	else if (PSP_Settings.iPSP_ClockUp == 1) pgPrint(x+18,y++,RGB(255,255,95),"266MHz");
+	else pgPrint(x+18,y++,0xffff,"222MHz");
+	y++;
+
+	pgPrint(x,y++,0xffff,"  ROM Selector");
+	pgPrint(x,y++,0xffff,"  Reset");
+	pgPrint(x,y++,0xffff,"  Exit to PSP Menu");
+	pgPrint(x,y++,0xffff,"  Continue");
+		
+	y = sel + 6;
+	if (sel >= STATE_SLOT) {
+		y++;
+	}
+	if (sel >= DISPLAY_CONFIG){
+		y++;
+	}
+	if (sel >= FRAME_SKIP){
+		y++;
+	}
+	if (sel >= LOAD_ROM){
+		y++;
+	}
+		
+	pgPutChar((x+1)*8,y*8,0xffff,0,127,1,0,1);
+		
+	if (save_slots[PSP_Settings.iSaveSlot].flag && save_slots[PSP_Settings.iSaveSlot].thumbflag) {
+		pgDrawFrame(327,129,456,242,RGB(85,85,95));
+		pgBitBlt(328,130,128,112,1,save_slots[PSP_Settings.iSaveSlot].thumbnail);
+	}
+
+	int  size_of_states = 0;
+	char state_list_txt  [64];
+	char slot_descriptor [64];
+
+	for(y=0; y<=SAVE_SLOT_MAX; y++){
+		size_of_states += save_slots [y].size;
+			
+		if (save_slots [y].flag)
+			sprintf (slot_descriptor, "%s - %3d Kb", save_slots [y].date, save_slots [y].size / 1024);
+		else
+			sprintf (slot_descriptor, "%s", save_slots [y].date);
+				
+		if (y==PSP_Settings.iSaveSlot) {
+			pgPrint(22,y+7,0xffff,slot_descriptor);
+		} else {
+			pgPrint(22,y+7,RGB(105,105,115),slot_descriptor);
+		}
+	}
+		
+	sprintf (state_list_txt, "State Save List             %1.2f Mb", ((float)size_of_states / 1024.0f / 1024.0f));
+	pgPrint (22,6, RGB (105,105,115), state_list_txt);
+
+// add by J
+	// このAPI遅いんじゃないかな？
+	BatteryVolt_ret     = scePowerGetBatteryVolt(); // バッテリー充電電圧(5000で5Vかな)
+	BatteryCharging_ret = scePowerIsBatteryCharging(); // バッテリーなし:- 充電中:1 アダプターなし:0
+	char message[256];
+	char BatteryVolt_ret_text[16];
+	char BatteryCharge_percent[16];
+	bool BatteryFull = false;
+	if ( ( BatteryVolt_ret > 999 ) && ( BatteryVolt_ret < 9999 )) {
+		sprintf (BatteryVolt_ret_text, "(%1.3fV)", (float)BatteryVolt_ret / 1000);
+	}else {
+		strcpy( BatteryVolt_ret_text, "(No Battery or Bad Voltage)" );
+	}
+	// Assume 4.13 volts indicates a full battery... (*** Is this valid? -Andon)
+	if (BatteryVolt_ret < 4130) {
+		sprintf (BatteryCharge_percent, "%d%%", (int)(((float)BatteryVolt_ret / 4130.0f) * 100.0f), BatteryVolt_ret_text);
+	} else {
+		BatteryFull = true;
+		strcpy (BatteryCharge_percent, "Full");
+	}
+	// Running on AC power...
+	if ( BatteryCharging_ret <  0 ) {
+		mh_print(0, 0, (unsigned char*)"[Running on AC Power]", RGB(0,255,0));
+	}
+	// Battery is being used...
+	else if ( BatteryCharging_ret == 0 ) {
+		sprintf  (message, "[Battery: %s %s]", BatteryCharge_percent, BatteryVolt_ret_text);
+		mh_print (0, 0, (unsigned char*)message, BatteryFull ? RGB (0,0,255) :
+		                                                       RGB (255,0,0));
+	}
+	// Battery is being charged...
+	else {
+		long BatteryTemp_ret = scePowerGetBatteryTemp();
+		// If the battery temp. is > 38C (100F), display the temp.
+		if ((BatteryTemp_ret > 38) && (BatteryTemp_ret < 100)) {
+			sprintf (message, "[Charging: %s %s - %dｰ F]", BatteryCharge_percent, BatteryVolt_ret_text, (int)((9.0f/5.0f) * (float)BatteryTemp_ret) + 32);
+			mh_print(0, 0, (unsigned char*)message, RGB(255,0,0));
+		} else {
+			sprintf( message, "[Charging: %s %s]", BatteryCharge_percent, BatteryVolt_ret_text );
+			mh_print(0, 0, (unsigned char*)message, RGB(0,0,255));
+		}
+	}
+}
+
+void close_menu (void)
+{
+	S9xMarkScreenDirtyEx ();
+
+/*
+	BEGIN_RELEASE_CODE
+	if (PSP_Settings.iScreenSize == 0) {
+		GFX.Screen = (uint8*)pgGetVramAddr( (SCREEN_WIDTH - SNES_WIDTH) >> 1, (SCREEN_HEIGHT - SNES_HEIGHT) >> 1 );
+	} else {
+		GFX.Screen = (uint8*)GFX_Screen;
+	}
+	END_RELEASE_CODE
+*/
+
+	if      (PSP_Settings.iPSP_ClockUp == 2) scePowerSetClockFrequency (333, 333, 166);
+	else if (PSP_Settings.iPSP_ClockUp == 1) scePowerSetClockFrequency (266, 266, 133);
+	else                                     scePowerSetClockFrequency (222, 222, 111);
+	
+	g_bSleep = false;
+
+	// Restore GU blitting, if used
+	bGUIMode = FALSE;
+	init_blit_backend ();
+}
+
+void open_menu (void)
+{
+	// While the menu is open, temporarily disable GU blitting...
+	bGUIMode = TRUE;
+	init_blit_backend ();
+
+	char* msg = g_szMainMenuMsg;
+	int&  sel = g_iMainMenuSel;
 	
 	get_screenshot((unsigned char *)GFX.Screen);
 	scePowerSetClockFrequency(222,222,111);
@@ -2769,16 +2986,13 @@ void open_menu(void)
 	///get_thumbs(S9xGetFilename("tn0"));
 
 	bool f_bExit = false;
-	uint8 tmp_color;
 	
 	old_pad = PSP_CTRL_LEFT;
 	
 	msg[0]=0;
 
-	if (PSP_Settings.bUseGUBlit) readpad();
-
 	for(;;){
-		if (! PSP_Settings.bUseGUBlit) readpad();
+		readpad();
 
 		if (new_pad & PSP_CTRL_CIRCLE){
 			if (sel == SRAM_SAVE){
@@ -2969,6 +3183,8 @@ void open_menu(void)
 
 						refresh_state_list ();
 
+						close_menu ();
+
 						return;
 					} else {
 						strcpy(msg, "Rom image Load Failed.");
@@ -3087,170 +3303,8 @@ void open_menu(void)
 			}
 		}
 		
-		menu_frame((unsigned char *)msg, (unsigned char *)"○：OK  ×：Continue  SELECT+START：Exit to PSP Menu");
-		
-		mh_print(33, 33, (unsigned char*)Memory.ROMFilename, RGB(95,95,125));
-		
-		x = 2;
-		y = 6;
-		
-		pgPrint(x,y++,0xffff,"  SRAM Save");
-		
-		y++;
-		
-		strcpy(tmp,"  Save Slot     : 0");
-		tmp[strlen(tmp)-1] = PSP_Settings.iSaveSlot + '0';
-		pgPrint(x,y++,0xffff,tmp);
-		
-		pgPrint(x,y++,0xffff,"  State Save");
-		pgPrint(x,y++,0xffff,"  State Load");
-		pgPrint(x,y++,0xffff,"  State Delete");
-		
-		if (save_slots [PSP_Settings.iSaveSlot].compression == 1)
-			pgPrint(x,y++,0xffff,"  State Decompress");
-		else
-			pgPrint(x,y++,0xffff,"  State Compress");
-
-		pgPrint(x,y++,0xffff,"  State Config");
-
-		pgPrint(x,y++,0xffff,"  Refresh List");
-
-		y++;
-		
-		pgPrint(x,y++,0xffff,"  Display Config");
-
-		pgPrint(x,y++,0xffff,"  Sound Config");
-
-		pgPrint(x,y++,0xffff,"  Key Config");
-
-		y++;
-
-		strcpy(tmp,"  FrameSkip     : 00");
-		tmp[strlen(tmp)-2] = PSP_Settings.iSkipFrames / 10 + '0';
-		tmp[strlen(tmp)-1] = PSP_Settings.iSkipFrames % 10 + '0';
-		pgPrint(x,y++,0xffff,tmp);
-		
-		if (PSP_Settings.bAutoSkip) {
-			pgPrint(x,y++,0xffff,"  Auto FrameSkip: ON");
-		} else {
-			pgPrint(x,y++,0xffff,"  Auto FrameSkip: OFF");
-		}
-
-		strcpy(tmp,"x0.0");
-		tmp[strlen(tmp)-3] = PSP_Settings.iHBlankCycleDiv / 10 + '0';
-		tmp[strlen(tmp)-1] = PSP_Settings.iHBlankCycleDiv % 10 + '0';
-		pgPrint(x,y,0xffff,"  Graphic Speed : ");
-		tmp_color = 255-((PSP_Settings.iHBlankCycleDiv - 10) * 10);
-		pgPrint(x+18,y++,RGB(255,tmp_color,tmp_color),tmp);
-		strcpy(tmp,"x0.0");
-		tmp[strlen(tmp)-3] = PSP_Settings.iAPUTimerCycleDiv / 10 + '0';
-		tmp[strlen(tmp)-1] = PSP_Settings.iAPUTimerCycleDiv % 10 + '0';
-		pgPrint(x,y,0xffff,"  Sound Speed   : ");
-		tmp_color = 255-((PSP_Settings.iAPUTimerCycleDiv - 10) * 10);
-		pgPrint(x+18,y++,RGB(255,tmp_color,tmp_color),tmp);
-
-		pgPrint(x,y,0xffff,"  PSP Clock     : ");
-		if (PSP_Settings.iPSP_ClockUp == 2) pgPrint(x+18,y++,RGB(255,95,95),"333MHz");
-		else if (PSP_Settings.iPSP_ClockUp == 1) pgPrint(x+18,y++,RGB(255,255,95),"266MHz");
-		else pgPrint(x+18,y++,0xffff,"222MHz");
-		y++;
-
-		pgPrint(x,y++,0xffff,"  ROM Selector");
-		pgPrint(x,y++,0xffff,"  Reset");
-		pgPrint(x,y++,0xffff,"  Exit to PSP Menu");
-		pgPrint(x,y++,0xffff,"  Continue");
-		
-		y = sel + 6;
-		if (sel >= STATE_SLOT) {
-			y++;
-		}
-		if (sel >= DISPLAY_CONFIG){
-			y++;
-		}
-		if (sel >= FRAME_SKIP){
-			y++;
-		}
-		if (sel >= LOAD_ROM){
-			y++;
-		}
-		
-		pgPutChar((x+1)*8,y*8,0xffff,0,127,1,0,1);
-		
-		if (save_slots[PSP_Settings.iSaveSlot].flag && save_slots[PSP_Settings.iSaveSlot].thumbflag) {
-			pgDrawFrame(327,129,456,242,RGB(85,85,95));
-			pgBitBlt(328,130,128,112,1,save_slots[PSP_Settings.iSaveSlot].thumbnail);
-		}
-
-		int  size_of_states = 0;
-		char state_list_txt  [64];
-		char slot_descriptor [64];
-
-		for(y=0; y<=SAVE_SLOT_MAX; y++){
-			size_of_states += save_slots [y].size;
-			
-			if (save_slots [y].flag)
-				sprintf (slot_descriptor, "%s - %3d Kb", save_slots [y].date, save_slots [y].size / 1024);
-			else
-				sprintf (slot_descriptor, "%s", save_slots [y].date);
-				
-			if (y==PSP_Settings.iSaveSlot) {
-				pgPrint(22,y+7,0xffff,slot_descriptor);
-			} else {
-				pgPrint(22,y+7,RGB(105,105,115),slot_descriptor);
-			}
-		}
-		
-		sprintf (state_list_txt, "State Save List             %1.2f Mb", ((float)size_of_states / 1024.0f / 1024.0f));
-		pgPrint (22,6, RGB (105,105,115), state_list_txt);
-
-// add by J
-		// このAPI遅いんじゃないかな？
-		BatteryVolt_ret     = scePowerGetBatteryVolt(); // バッテリー充電電圧(5000で5Vかな)
-		BatteryCharging_ret = scePowerIsBatteryCharging(); // バッテリーなし:- 充電中:1 アダプターなし:0
-		char message[256];
-		char BatteryVolt_ret_text[16];
-		char BatteryCharge_percent[16];
-		bool BatteryFull = false;
-		if ( ( BatteryVolt_ret > 999 ) && ( BatteryVolt_ret < 9999 )) {
-			sprintf (BatteryVolt_ret_text, "(%1.3fV)", (float)BatteryVolt_ret / 1000);
-		}else {
-			strcpy( BatteryVolt_ret_text, "(No Battery or Bad Voltage)" );
-		}
-		// Assume 4.13 volts indicates a full battery... (*** Is this valid? -Andon)
-		if (BatteryVolt_ret < 4130) {
-			sprintf (BatteryCharge_percent, "%d%%", (int)(((float)BatteryVolt_ret / 4130.0f) * 100.0f), BatteryVolt_ret_text);
-		} else {
-			BatteryFull = true;
-			strcpy (BatteryCharge_percent, "Full");
-		}
-		// Running on AC power...
-		if ( BatteryCharging_ret <  0 ) {
-			mh_print(0, 0, (unsigned char*)"[Running on AC Power]", RGB(0,255,0));
-		}
-		// Battery is being used...
-		else if ( BatteryCharging_ret == 0 ) {
-			sprintf  (message, "[Battery: %s %s]", BatteryCharge_percent, BatteryVolt_ret_text);
-			mh_print (0, 0, (unsigned char*)message, BatteryFull ? RGB (0,0,255) :
-			                                                       RGB (255,0,0));
-		}
-		// Battery is being charged...
-		else {
-			long BatteryTemp_ret = scePowerGetBatteryTemp();
-			// If the battery temp. is > 38C (100F), display the temp.
-			if ((BatteryTemp_ret > 38) && (BatteryTemp_ret < 100)) {
-				sprintf (message, "[Charging: %s %s - %dｰ F]", BatteryCharge_percent, BatteryVolt_ret_text, (int)((9.0f/5.0f) * (float)BatteryTemp_ret) + 32);
-				mh_print(0, 0, (unsigned char*)message, RGB(255,0,0));
-			} else {
-				sprintf( message, "[Charging: %s %s]", BatteryCharge_percent, BatteryVolt_ret_text );
-				mh_print(0, 0, (unsigned char*)message, RGB(0,0,255));
-			}
-		}
-
-		if (! PSP_Settings.bUseGUBlit) {
-			pgScreenFlipV ();
-		} else {
-			do readpad (); while (! new_pad);
-		}
+		draw_menu     ();
+		pgScreenFlipV ();
 	}
 	
 	if (f_bExit) {
@@ -3278,22 +3332,8 @@ void open_menu(void)
 	} else {
 		Settings.Transparency = FALSE;
 	}
-	Settings.SkipFrames = PSP_Settings.iSkipFrames;
 
-/*
-	BEGIN_RELEASE_CODE
-	if (PSP_Settings.iScreenSize == 0) {
-		GFX.Screen = (uint8*)pgGetVramAddr( (SCREEN_WIDTH - SNES_WIDTH) >> 1, (SCREEN_HEIGHT - SNES_HEIGHT) >> 1 );
-	} else {
-		GFX.Screen = (uint8*)GFX_Screen;
-	}
-	END_RELEASE_CODE
-*/
-
-	if (PSP_Settings.iPSP_ClockUp == 2) scePowerSetClockFrequency(333,333,166);
-	else if (PSP_Settings.iPSP_ClockUp == 1) scePowerSetClockFrequency(266,266,133);
-	else scePowerSetClockFrequency(222,222,111);
-	g_bSleep = false;
+	close_menu ();
 }
 
 void S9xProcessEvents( bool8 block )
@@ -3306,8 +3346,6 @@ void S9xProcessEvents( bool8 block )
 		S9xSetSoundMute( TRUE );
 	
 		open_menu();
-
-		S9xMarkScreenDirtyEx ();
 
 		pgWaitVn (8);
 

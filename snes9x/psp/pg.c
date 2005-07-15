@@ -12,6 +12,8 @@
 #include "font.c"
 #include "fontNaga10.c"
 
+#include "port.h"
+
 #define SLICE_SIZE 64 // change this to experiment with different page-cache sizes
 
 #ifdef __cplusplus
@@ -29,8 +31,9 @@ unsigned long pgc_fgcolor[2], pgc_bgcolor[2];
 char pgc_fgdraw[2], pgc_bgdraw[2];
 char pgc_mag[2];
 
-static unsigned short framebuf[262144] __attribute__((aligned(16)));
 static unsigned int list[262144] __attribute__((aligned(16)));
+
+extern bool8 bGUIMode;
 
 void pgWaitVn(unsigned long count)
 {
@@ -48,14 +51,18 @@ void pgWaitV(void)
 
 unsigned char *pgGetVramAddr(unsigned long x,unsigned long y)
 {
-	return (unsigned char *)pg_vramtop+(pg_drawframe?FRAMESIZE:0)+x*PIXELSIZE*2+y*LINESIZE*2+0x40000000;
+	if ((! PSP_Settings.bUseGUBlit) || bGUIMode) {
+		return (unsigned char *)pg_vramtop+(pg_drawframe?FRAMESIZE:0)+x*PIXELSIZE*2+y*LINESIZE*2+0x40000000;
 //	return pg_vramtop+(pg_drawframe?FRAMESIZE:0)+x*PIXELSIZE*2+y*LINESIZE*2;//+0x40000000;	//変わらないらしい
+	} else {
+		return (unsigned char *)pg_vramtop+x*PIXELSIZE*2+y*LINESIZE*2+0x40000000;
+	}
 }
 
 
 void pgInit(void)
 {
-	if (PSP_Settings.bUseGUBlit) {
+	if (PSP_Settings.bUseGUBlit && (! bGUIMode)) {
 		sceGuInit();
 
 		// setup
@@ -79,17 +86,16 @@ void pgInit(void)
 		sceGuFinish();
 		sceGuSync(0,0);
 
-//		pg_vramtop = framebuf;
 		pg_vramtop = (char *) (sceGeEdramGetAddr() | 0x04000000);
 		sceDisplaySetFrameBuf(pg_vramtop,LINESIZE,1,1);
 	} else {
 		sceGuTerm ();
 	}
 	
-	sceDisplaySetMode(0,SCREEN_WIDTH,SCREEN_HEIGHT);
+//	sceDisplaySetMode(0,SCREEN_WIDTH,SCREEN_HEIGHT);
 	pgScreenFrame(0,0);
 
-	if (! PSP_Settings.bUseGUBlit)
+	if (! PSP_Settings.bUseGUBlit || bGUIMode)
 		pg_vramtop = (char *)0x04000000;
 
 }
@@ -478,7 +484,7 @@ void pgPrintWF(unsigned long x,unsigned long y,unsigned long color,const char *s
 
 void pgScreenFrame(long mode,long frame)
 {
-	if (PSP_Settings.bUseGUBlit)
+	if (PSP_Settings.bUseGUBlit && (! bGUIMode))
 		return;
 
 	pg_screenmode=mode;
@@ -526,7 +532,6 @@ void pgRenderTex(char *tex, int width, int height, int x, int y, int xscale, int
 	sceGuTexFilter(tex_filter,tex_filter);
 	sceGuTexScale(1,1);
 	sceGuTexOffset(0,0);
-	sceGuTexSync();
 	sceGuAmbientColor(0xffffffff);
 
 	// do a striped blit (takes the page-cache into account)
@@ -545,41 +550,21 @@ void pgRenderTex(char *tex, int width, int height, int x, int y, int xscale, int
 		sceGuDrawArray(GU_PRIM_SPRITES,GE_SETREG_VTYPE(GE_TT_16BIT,GE_CT_5551,0,GE_MT_16BIT,0,0,0,0,GE_BM_2D),2,0,vertices);
 	}
 
-	/*
-	vertices = (struct Vertex*)sceGuGetMemory(4 * sizeof(struct Vertex));
-	
-	vertices [0].u = 0; vertices [0].v = 0;
-	vertices [0].color = 0;
-	vertices [0].x = 0; vertices [0].y = 0; vertices [0].z = 0;
-
-	vertices [1].u = 1; vertices [1].v = 0;
-	vertices [1].color = 0;
-	vertices [1].x = 480; vertices [1].y = 0; vertices [1].z = 0;
-
-	vertices [2].u = 1; vertices [2].v = 1;
-	vertices [2].color = 0;
-	vertices [2].x = 480; vertices [2].y = 272; vertices [2].z = 0;
-
-	vertices [3].u = 0; vertices [3].v = 1;
-	vertices [3].color = 0;
-	vertices [3].x = 0; vertices [3].y = 272; vertices [3].z = 0;
-
-	sceGuDrawArray(GU_PRIM_TRIFANS,GE_SETREG_VTYPE(GE_TT_16BIT,GE_CT_5551,0,GE_MT_16BIT,0,0,0,0,GE_BM_2D),4,0,vertices);
-	*/
-
 	sceGuFinish();
+}
+
+void pgScreenSync(void)
+{
 	sceGuSync(0,0);
 }
 
 void pgScreenFlip()
 {
-	if (! PSP_Settings.bUseGUBlit) {
+	if ((! PSP_Settings.bUseGUBlit) || bGUIMode) {
 		pg_showframe=(pg_showframe?0:1);
 		pg_drawframe=(pg_drawframe?0:1);
 		sceDisplaySetFrameBuf((char *)pg_vramtop+(pg_showframe?FRAMESIZE:0),LINESIZE,PIXELSIZE,0);
 	} else {
-//		sceDisplaySetFrameBuf(pg_vramtop,LINESIZE,1,1);
-//		pgRenderTex(framebuf,512,512,0,0,512,512);
 		sceGuSync(0,0);
 		sceGuSwapBuffers();
 	}
@@ -588,8 +573,14 @@ void pgScreenFlip()
 
 void pgScreenFlipV(void)
 {
-	pgWaitV();
-	pgScreenFlip();
+	if ((! PSP_Settings.bUseGUBlit) || bGUIMode) {
+		pgWaitV();
+		pgScreenFlip();
+	} else {
+		sceGuSync(0,0);
+		pgWaitV();
+		sceGuSwapBuffers();
+	}
 }
 
 // by kwn
@@ -854,7 +845,7 @@ void pgiInit()
 
 void pgMain(void)
 {
-	sceDisplaySetMode(0,SCREEN_WIDTH,SCREEN_HEIGHT);
+//	sceDisplaySetMode(0,SCREEN_WIDTH,SCREEN_HEIGHT);
 
 	pgScreenFrame(0,1);
 	pgcLocate(0,0);
@@ -869,6 +860,8 @@ void pgMain(void)
 
 	pgiInit();
 
+//	if (PSP_Settings.bUseGUBlit)
+//		sceDisplaySetMode(1,SCREEN_WIDTH,SCREEN_HEIGHT);
 }
 
 // add by J
@@ -988,7 +981,7 @@ void message_dialog( int dialog_pos_x, int dialog_pos_y, const char *title, cons
 	}
 
 	// ダイアログ表示
-	if (! PSP_Settings.bUseGUBlit)
+	if (! PSP_Settings.bUseGUBlit || bGUIMode)
 		pgScreenFlipV();
 
 	return; // voidだからいらないんだけどね
