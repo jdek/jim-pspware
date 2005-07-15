@@ -34,6 +34,7 @@ void pgInit(void);
 void pgWaitV(void);
 void pgWaitVn(unsigned long count);
 void pgScreenFrame(long mode,long frame);
+void pgScreenSync(void);
 void pgScreenFlip(void);
 void pgScreenFlipV(void);
 void pgPrint(unsigned long x,unsigned long y,unsigned long color,const char *str);
