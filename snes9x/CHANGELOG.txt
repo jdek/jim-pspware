@@ -1,0 +1,50 @@
+Andon (15/Jul/05)
+-----------------
+ CHANGES
+---------
+ + Changed the version string to 0.02pd1
+  >> (Short for PSP Dev. 1)
+ + Merged the uo_Snes9x 0.02y11J3a5 codebase.
+ + Compressing and Decompressing save states
+   now preserves the original file timestamp.
+ + The battery info is now printed in English.
+ + The 'Fit' screen mode becomes 4:3 when the
+   sceGu blit backend is enabled.
+ + The Makefile will use dependencies again.
+  >> If you get an error about missing the
+     "dependencies" file, then `make depend`.
+ + Links against psplibc instead of libc now.
+  >> newlib's libc has VERY slow file I/O.
+ + Reverted back to unziplib, because it has
+   a much needed progress callback.
+  >> If anyone needs something to do, add a
+     progress callback to the official Snes9x
+     unzip code.
+
+ 
+ ADDITIONS
+-----------
+ + Added this CHANGELOG, for pspdev changes.
+ + Added Bit Blit Backend to the display config
+   menu.
+  >> GU doesn't work very well, so you can turn
+     it on/off during runtime for testing...
+     * Your preference will be saved on a
+       per-game basis.
+ + Added options for the GU blit filter
+   technique and HiRes mode to the display
+   config menu.
+ + Added a Sample Decode option to the sound
+   config menu.
+  >> This will make some games sound better,
+     and make others worse.
+ + Added clear_execute_bit (...) to clear a
+   file's execute attrib and modes.
+  >> The sce API requires new files to be
+     created using 0777, so call this after
+     you write a file if you don't want it
+     to be executable.
+ + Added a kxploit Makefile rule, which will
+   invoke kxploit on EBOOT.PBP.
+  >> Assumes you have your PSP mounted as
+     '/mnt/PSP'.
