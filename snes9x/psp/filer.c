@@ -22,7 +22,7 @@ void menu_frame(const unsigned char *msg0, const unsigned char *msg1)
 //		pgBitBlt(0,0,480,272,1,bgBitmap);
 //	else
 		pgFillvram(0x9063);
-	mh_print(286, 0, (unsigned char *)" ■ uo_Snes9x for PSP Ver0.02pd1 ■", RGB(85,85,95));
+	mh_print(286, 0, (unsigned char *)" ■ uo_Snes9x for PSP Ver0.02pd2 ■", RGB(85,85,95));
 
 	// メッセージなど
 	if(msg0!=0) mh_print(17, 14, msg0, RGB(105,105,115));
