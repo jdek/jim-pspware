@@ -70,11 +70,7 @@
 
 #define ZOOM_START 40
 #define ONEUP_SCORE 10000
-#ifdef PSP
-#define FPS 60
-#else
 #define FPS 50
-#endif
 
 #ifndef EMBEDDED
 #ifndef PSP
