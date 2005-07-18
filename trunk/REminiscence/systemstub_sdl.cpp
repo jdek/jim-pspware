@@ -25,7 +25,11 @@ struct SystemStub_SDL : SystemStub {
 	enum {
 		MAX_BLIT_RECTS = 200,
 		SOUND_SAMPLE_RATE = 11025,
+#ifndef PSP
 		JOYSTICK_COMMIT_VALUE = 3200
+#else
+		JOYSTICK_COMMIT_VALUE = 4096
+#endif
 	};
 
 	uint8 *_offscreen;
@@ -85,8 +89,13 @@ void SystemStub_SDL::init(const char *title, uint16 w, uint16 h) {
 		error("SystemStub_SDL::init() Unable to allocate offscreen buffer");
 	}
 	memset(_offscreen, 0, size_offscreen);
+#ifndef PSP
 	_fullscreen = false;
 	_scaler = 2;
+#else
+	_fullscreen = true;
+	_scaler = 0;
+#endif
 	memset(_pal, 0, sizeof(_pal));
 	prepareGfxMode();
 	_joystick = NULL;
@@ -254,6 +263,7 @@ void SystemStub_SDL::processEvents() {
 				_pi.dirMask |= PlayerInput::DIR_RIGHT;
 			}
 			break;
+#ifndef PSP
 		case SDL_JOYAXISMOTION:
 			switch (ev.jaxis.axis) {
 			case 0:
@@ -288,20 +298,46 @@ void SystemStub_SDL::processEvents() {
 				break;
 			}
             break;
+#endif /* !PSP */
 		case SDL_JOYBUTTONDOWN:
 			switch (ev.jbutton.button) {
 			case 0:
 				_pi.space = true;
 				break;
+#ifndef PSP
 			case 1:
+#else
+			case 3:		/* Square button. */
+#endif
 			    _pi.shift = true;
 			    break;
 			case 2:
 			    _pi.enter = true;
 			    break;
+#ifndef PSP
 			case 3:
+#else
+			case 1:		/* Circle button. */
+#endif
 			    _pi.backspace = true;
 			    break;
+#ifdef PSP
+			case 11:	/* Start button. */
+			    _pi.escape = true;
+			    break;
+			case 6:		/* D-pad down. */
+			    _pi.dirMask |= PlayerInput::DIR_DOWN;
+			    break;
+			case 7:		/* D-pad left. */
+			    _pi.dirMask |= PlayerInput::DIR_LEFT;
+			    break;
+			case 8:		/* D-pad up. */
+			    _pi.dirMask |= PlayerInput::DIR_UP;
+			    break;
+			case 9:		/* D-pad right. */
+			    _pi.dirMask |= PlayerInput::DIR_RIGHT;
+			    break;
+#endif /* PSP */
 			}
 			break;
 		case SDL_JOYBUTTONUP:
@@ -309,15 +345,40 @@ void SystemStub_SDL::processEvents() {
 			case 0:
 				_pi.space = false;
 				break;
+#ifndef PSP
 			case 1:
+#else
+			case 3:		/* Square button. */
+#endif
 			    _pi.shift = false;
 			    break;
 			case 2:
 			    _pi.enter = false;
 			    break;
+#ifndef PSP
 			case 3:
+#else
+			case 1:		/* Circle button. */
+#endif
 			    _pi.backspace = false;
 			    break;
+#ifdef PSP
+			case 11:	/* Start button. */
+			    _pi.escape = false;
+			    break;
+			case 6:		/* D-pad down. */
+			    _pi.dirMask &= ~PlayerInput::DIR_DOWN;
+			    break;
+			case 7:		/* D-pad left. */
+			    _pi.dirMask &= ~PlayerInput::DIR_LEFT;
+			    break;
+			case 8:		/* D-pad up. */
+			    _pi.dirMask &= ~PlayerInput::DIR_UP;
+			    break;
+			case 9:		/* D-pad right. */
+			    _pi.dirMask &= ~PlayerInput::DIR_RIGHT;
+			    break;
+#endif
 			}
 		case SDL_KEYUP:
 			switch (ev.key.keysym.sym) {
