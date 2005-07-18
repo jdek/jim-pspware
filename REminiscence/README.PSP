@@ -1,0 +1,48 @@
+REminiscence for PSP
+
+Original port by lantus (http://www.lantus-x.com/PSP/)
+Additional work by Marcus R. Brown <mrbrown@ocgnet.org>
+--
+
+To run REminiscene, you'll need a copy of the data files from the DOS version
+of Flashback.  I was able to find them as abandonware from
+http://www.abandonia.com/games/74/download/Flashback.htm.
+
+Requirements:
+
+   SDL
+   zlib
+
+To build:
+
+   make PSP=1
+
+To install:
+
+   Copy the Flashback data files to ms0:/PSP/GAME/REminiscence/data/
+   Create an empty directory called ms0:/PSP/GAME/REminiscence/save/
+
+   1.0 users:
+   Copy EBOOT.PBP to ms0:/PSP/GAME/REminiscene/
+
+   1.5 users:
+   make PSP=1 kxploit
+   Copy the REminiscence and REminiscence% directories to ms0:/PSP/GAME/
+
+Controls:
+
+   D-Pad    - Move left, right, up, or down
+   Analog   - Disabled; see "Known issues" below.
+   Cross    - Enter (Use object)
+   Circle   - Backspace (Inventory / exit from a cinematic scene)
+   Triangle - Space (Take out / put back gun)
+   Square   - Shift (Operate / run / take)
+   Start    - Esc (Game options)
+
+Known issues:
+
+   The analog control was very erratic, so I disabled it.
+   If you have .mod versions of the music, they will play but sound distorted.
+   There could be other issues with sound.
+
+Enjoy!

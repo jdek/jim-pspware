@@ -96,4 +96,14 @@ inline uint32 READ_BE_UINT32(const void *ptr) {
 
 #endif
 
+#ifdef PSP
+extern "C" void pspDebugScreenPrintf(const char *fmt, ...) __attribute__((format(printf,1,2)));
+
+/* Send stdout and stderr to the screen. */
+#if 0
+#define fprintf(x, args...) pspDebugScreenPrintf(args)
+#define printf(args...) pspDebugScreenPrintf(args)
+#endif
+#endif /* PSP */
+
 #endif // __SYS_H__
