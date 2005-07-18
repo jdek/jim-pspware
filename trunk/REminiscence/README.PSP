@@ -8,6 +8,12 @@ To run REminiscene, you'll need a copy of the data files from the DOS version
 of Flashback.  I was able to find them as abandonware from
 http://www.abandonia.com/games/74/download/Flashback.htm.
 
+If you want to hear music, you have to find MOD (.mod) files of the Flashback
+BGM.  I found a compatible set of MODs at
+http://exotica.fix.no/tunes/unexotica/games/Flashback.html.  You must make sure
+all MODs end in .mod.  The MOD files go into the same directory as the rest of
+the Flashback data files.
+
 Requirements:
 
    SDL
@@ -42,7 +48,8 @@ Controls:
 Known issues:
 
    The analog control was very erratic, so I disabled it.
-   If you have .mod versions of the music, they will play but sound distorted.
+   If you have .mod versions of the music, they will play but may cut off too
+   early.
    There could be other issues with sound.
 
 Enjoy!
