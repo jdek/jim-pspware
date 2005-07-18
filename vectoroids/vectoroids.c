@@ -70,7 +70,11 @@
 
 #define ZOOM_START 40
 #define ONEUP_SCORE 10000
+#ifdef PSP
+#define FPS 60
+#else
 #define FPS 50
+#endif
 
 #ifndef EMBEDDED
 #ifndef PSP
@@ -2102,7 +2106,7 @@ void setup(int argc, char * argv[])
   
   if (fullscreen)
     {
-      screen = set_vid_mode(SDL_FULLSCREEN | SDL_HWSURFACE);
+      screen = set_vid_mode(SDL_FULLSCREEN | SDL_HWSURFACE | SDL_DOUBLEBUF);
       
       if (screen == NULL)
         {
