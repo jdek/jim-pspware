@@ -95,10 +95,17 @@
 
 struct SGFX{
     // Initialize these variables
+#ifdef PSP
+    uint8  __attribute__((aligned (16))) *Screen;
+    uint8  __attribute__((aligned (16))) *SubScreen;
+    uint8  __attribute__((aligned (16))) *ZBuffer;
+    uint8  __attribute__((aligned (16))) *SubZBuffer;
+#else
     uint8  *Screen;
     uint8  *SubScreen;
     uint8  *ZBuffer;
     uint8  *SubZBuffer;
+#endif // PSP
     uint32 Pitch;
 
     // Setup in call to S9xGraphicsInit()
@@ -112,9 +119,16 @@ struct SGFX{
     uint32 PPL;	      // Number of pixels on each of Screen buffer
     uint32 PPLx2;
     uint32 PixSize;
+#ifdef PSP
+    uint8  __attribute__((aligned (16))) *S;
+    uint8  __attribute__((aligned (16))) *DB;
+    uint16 __attribute__((aligned (16))) *ScreenColors;
+#else
     uint8  *S;
     uint8  *DB;
     uint16 *ScreenColors;
+#endif // PSP
+
     uint32 DepthDelta;
     uint8  Z1;          // Depth for comparison
     uint8  Z2;          // Depth to save

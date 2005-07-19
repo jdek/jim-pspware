@@ -1,3 +1,61 @@
+Andon (19/Jul/05)
+-----------------
+ ADDITIONS
+-----------
+ + Because the PSP toolchain lacks support for
+   gprof, I had to write my own ad-hoc profiler
+   code.
+  >> It's disabled by default, but to enable it,
+     add USE_PROFILER and PROFILE_TILES and/or
+     PROFILE_GFX to the defines and rebuild
+     tile.o, gfx.o and psp/psp.o.
+ + When profiling is enabled, you can use the
+   "hold" switch to toggle it on/off.
+  >> NOTE: It doesn't work in the menu and to
+           turn it back on/off, you have to move
+	   the switch from the on position to
+	   the hold position (can't go from hold
+	   to on).
+
+
+
+Andon (17/Jul/05)
+-----------------
+ CHANGES
+---------
+ + Integrated most of y's hackish optimizations
+   from y28.
+  >> As a result, some games will no longer run.
+     I will undo the optimizations that break
+     things shortly, be patient until then.
+ + The Makefile now removes the Snes9x bin and
+   EBOOT.PBP files in the clean rule.
+ + Games that run with 239 scanlines no
+   longer have the bottom cut off in 4:3
+   and Full modes using sceGu.
+ + The position of the viewport in Normal mode
+   when using sceGu is now based on the number
+   of scanlines the game uses.
+ + Changed the sceGu blit code so that the
+   unrendered portions of the texture will be
+   clipped.
+  >> This is esspecially handy for HiRes mode.
+
+
+ ADDITIONS
+-----------
+ + Added projected battery life stats.
+ 
+
+ BUG FIXES
+-----------
+ + Fixed a bug in filer.c that was causing
+   directories to be ignored in the ROM sel-
+   ector.
+ + Corrected the reported battery charge %.
+
+
+
 Andon (15/Jul/05)
 -----------------
  CHANGES

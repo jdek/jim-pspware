@@ -112,6 +112,8 @@
 #include "pg.h"
 #include "filer.h"
 
+#include "profiler.h"
+
 #define RELEASE
 
 /* Define the module info section */
@@ -174,6 +176,9 @@ int						g_thread = -1;
 int				g_iMainMenuSel = 0;
 char				g_szMainMenuMsg[256];
 static uint8			SoundBuffer[MAX_BUFFER_SIZE];
+volatile bool8			g_bShowProfilerInfo = false;
+static bool8			s_bShowProfilerInfo_old = false;
+
 
 //#define FRAMESIZE				0x44000			//in byte
 
@@ -445,14 +450,7 @@ void S9xAutoSaveSRAM()
 bool8 S9xOpenSoundDevice( int mode, bool8 stereo, int buffer_size )
 {
 	so.mute_sound  = TRUE;
-/*
-int		pos;
-
-pos = format_int( buf, buffer_size );
-strcat( &buf[pos], "BufSize" );
-
-debug_log( buf );
-*/
+	
 	if ( buffer_size <= 0 ){
 		return FALSE;
 	}
@@ -466,14 +464,13 @@ debug_log( buf );
 	so.encoded      = FALSE;
 
 	// Initialize channel and allocate buffer
-	so.sound_fd = sceAudioChReserve( -1, buffer_size, 0 );
+	so.sound_fd = sceAudioChReserve (-1, buffer_size, 0);
 	if ( so.sound_fd < 0 ){
 		return FALSE;
 	}
 
 #ifdef OPTI
-	so.buffer_size *= 2;
-	so.buffer_size *= 2;
+	so.buffer_size <<= 2;
 #else
 	if ( so.stereo ){
 		so.buffer_size *= 2;
@@ -575,7 +572,8 @@ void S9xLoadSDD1Data (void)
     Memory.FreeSDD1Data ();
 
     if (strncmp (Memory.ROMName, "Star Ocean",            10) == 0 ||
-        strncmp (Memory.ROMName, "STREET FIGHTER ALPHA2", 21) == 0)
+        strncmp (Memory.ROMName, "STREET FIGHTER ALPHA2", 21) == 0 ||
+	strncmp (Memory.ROMName, "STREET FIGHTER ZERO2",  20) == 0)
     {
         Settings.SDD1Pack = TRUE;
     }
@@ -1520,102 +1518,7 @@ bool8 S9xSPCDump( const char *filename )
 
 void S9xGenerateSound()
 {
-#ifndef PSP
-    /* Linux and Sun versions */
-    
-#ifdef OPTI
-    int bytes_so_far = so.samples_mixed_so_far << 1;
-#else
-    int bytes_so_far = so.sixteen_bit ? (so.samples_mixed_so_far << 1) :
-				        so.samples_mixed_so_far;
-#endif // OPTI
-	if (Settings.SoundSync == 2)
- 	{
- 	// Assumes sound is signal driven
-//	while (so.samples_mixed_so_far >= so.buffer_size && !so.mute_sound)
-//	    pause ();
-    }
-    else
-    if (bytes_so_far >= so.buffer_size)
-	return;
 
-    if (Settings.ThreadSound)
-    {
-//	if (block_generate_sound || pthread_mutex_trylock (&mutex))
-	if (block_generate_sound)
-	    return;
-    }
-
-    block_signal = TRUE;
-
-    so.err_counter += so.err_rate;
-    if (so.err_counter >= FIXED_POINT)
-    {
-        int sample_count = so.err_counter >> FIXED_POINT_SHIFT;
-		int byte_offset;
-		int byte_count;
-
-        so.err_counter &= FIXED_POINT_REMAINDER;
-#ifndef OPTI
-	if (so.stereo)
-#endif // OPTI
-	    sample_count <<= 1;
-		byte_offset = bytes_so_far + so.play_position;
-	    
-	do
-	{
-	    int sc = sample_count;
-	    byte_count = sample_count;
-#ifndef OPTI
-	    if (so.sixteen_bit)
-#endif // OPTI
-		byte_count <<= 1;
-	    
-	    if ((byte_offset & SOUND_BUFFER_SIZE_MASK) + byte_count > SOUND_BUFFER_SIZE)
-	    {
-			sc = SOUND_BUFFER_SIZE - (byte_offset & SOUND_BUFFER_SIZE_MASK);
-			byte_count = sc;
-#ifndef OPTI
-		if (so.sixteen_bit)
-#endif // OPTI
-		    sc >>= 1;
-	    }
-	    if (bytes_so_far + byte_count > so.buffer_size)
-	    {
-			byte_count = so.buffer_size - bytes_so_far;
-			if (byte_count == 0)
-		    	break;
-			sc = byte_count;
-#ifndef OPTI
-		if (so.sixteen_bit)
-#endif // OPTI
-		    sc >>= 1;
-	    }
-	    S9xMixSamplesO (SoundBuffer, sc,
-			    byte_offset & SOUND_BUFFER_SIZE_MASK);
-	    so.samples_mixed_so_far += sc;
-	    sample_count -= sc;
-#ifdef OPTI
-	    bytes_so_far = so.samples_mixed_so_far << 1;
-#else
-	    bytes_so_far = so.sixteen_bit ? (so.samples_mixed_so_far << 1) :
-	 	           so.samples_mixed_so_far;
-#endif // OPTI
-	    byte_offset += byte_count;
-	} while (sample_count > 0);
-    }
-    block_signal = FALSE;
-
-	if (Settings.ThreadSound)
-		;
-//	pthread_mutex_unlock (&mutex);
-    else
-    if (pending_signal)
-	{
-		S9xProcessSound (NULL);
-		pending_signal = FALSE;
-	}
-#endif // PSP
 }
 
 void S9xShutdown (void)
@@ -1643,148 +1546,43 @@ void S9xExit (void)
 //	exit (0);
 }
 
-void CopyAudio( char* buf, int len )
-{
-	static int	pos  = 0;
-	static char	tmp[SOUND_SAMPLE * 2 * 2];
-	int		i;
-
-	for ( i = 0; i < len; i++ ){
-		tmp[pos++] = buf[i];
-		if ( pos >= (SOUND_SAMPLE * 2 * 2) ){
-			sceAudioOutputPannedBlocking( so.sound_fd, MAXVOLUME, MAXVOLUME, (char*)tmp );
-			pos = 0;
-		}
-	}
-}
-
-// mod by y
 void *S9xProcessSound (void *)
 {
-//debug_log( "Thread start!" );
-    /* Linux and Sun versions */
-    
-    /* If threads in use, this is to loop indefinitely */
-    /* If not, this will be called by timer */
-    
-    do
-    {
-//		sceDisplayWaitVblankStart();
-
-    /* Number of samples to generate now */
-    int sample_count = so.buffer_size;
-    unsigned byte_offset;
-    
-#ifndef OPTI
-    if (so.sixteen_bit)
-#endif // OPTI
-    {
-        /* to prevent running out of buffer space,
-         * create less samples
-         */
-		sample_count >>= 1;
-    }
-
-//	if (Settings.ThreadSound)
-//		;
-//	pthread_mutex_lock (&mutex);
-//	else
-#ifndef PSP
-    if (!Settings.ThreadSound) {
-		if (block_signal)
-		{
-			pending_signal = TRUE;
-			return (NULL);
-		}
-	}
-	block_generate_sound = TRUE;
-#endif // PSP
-    /* If we need more audio samples */
-    if (so.samples_mixed_so_far < sample_count)
-    {
-	/* Where to put the samples to */
+	do {
 #ifdef OPTI
-		byte_offset = so.play_position + (so.samples_mixed_so_far << 1);
-#else
-		byte_offset = so.play_position + 
-		      (so.sixteen_bit ? (so.samples_mixed_so_far << 1)
-				      : so.samples_mixed_so_far);
-#endif // OPTI
-//printf ("%d:", sample_count - so.samples_mixed_so_far); fflush (stdout);
-#ifdef PSP
-		S9xMixSamplesO (SoundBuffer, sample_count - so.samples_mixed_so_far,
-			byte_offset & SOUND_BUFFER_SIZE_MASK);
-#else
-		if (Settings.SoundSync == 2)
-		{
-//			memset (SoundBuffer + (byte_offset & SOUND_BUFFER_SIZE_MASK), 0,
-//			    sample_count - so.samples_mixed_so_far);
-		} else {
-		    /* Mix the missing samples */
-		    S9xMixSamplesO (SoundBuffer, sample_count - so.samples_mixed_so_far,
-				    byte_offset & SOUND_BUFFER_SIZE_MASK);
-		}
-#endif // PSP
-		so.samples_mixed_so_far = 0;
-    } else {
-		so.samples_mixed_so_far -= sample_count;
-    }
-    
-//    if (!so.mute_sound)
-    {
-#ifdef OPTI
-		unsigned bytes_to_write = so.buffer_size;
-//		bytes_to_write <<= 1;
-#else
-		unsigned bytes_to_write = sample_count;
-		if(so.sixteen_bit) bytes_to_write <<= 1;
-#endif // OPTI
-
+		unsigned byte_offset;
+		unsigned bytes_to_write;
 		byte_offset = so.play_position;
-		so.play_position = (so.play_position + so.buffer_size) & SOUND_BUFFER_SIZE_MASK;
-//	so.play_position += bytes_to_write;
-//	so.play_position &= SOUND_BUFFER_SIZE_MASK; /* wrap to beginning */
-
-#ifndef PSP
-	if (Settings.ThreadSound)
-//	    pthread_mutex_unlock (&mutex);
-		block_generate_sound = FALSE;
-#endif // PSP
-
-	/* Feed the samples to the soundcard until nothing is left */
-		for(;;)
-		{
-		    int I = bytes_to_write;
-		    if (byte_offset + I > SOUND_BUFFER_SIZE)
-		    {
-		        I = SOUND_BUFFER_SIZE - byte_offset;
-		    }
-		    if(I == 0) break;
-	    
-//            I = write (so.sound_fd, (char *) Buf + byte_offset, I);
-#if 0
-			CopyAudio( (char*)SoundBuffer + byte_offset, I );
+		S9xMixSamples (SoundBuffer + byte_offset, (SOUND_SAMPLE << 1));
+		bytes_to_write = (SOUND_SAMPLE << 2);
+		so.play_position = (so.play_position + (SOUND_SAMPLE << 2)) & SOUND_BUFFER_SIZE_MASK;
 #else
-			sceAudioOutputPannedBlocking( so.sound_fd, MAXVOLUME, MAXVOLUME, (char*)SoundBuffer + byte_offset );
-//debug_log( "sceAudio_2" );
-#endif
-            if (I > 0)
-            {
-                bytes_to_write -= I;
-                byte_offset += I;
-                byte_offset &= SOUND_BUFFER_SIZE_MASK; /* wrap */
-            }
-            /* give up if an unrecoverable error happened */
-//            if(I < 0 && errno != EINTR) break;
+		int sample_count;
+		unsigned byte_offset;
+		unsigned bytes_to_write;
+		sample_count = so.buffer_size >> 1;
+		byte_offset = so.play_position;
+		S9xMixSamples (SoundBuffer + byte_offset, sample_count);
+		bytes_to_write = so.buffer_size;
+		so.play_position = (so.play_position + so.buffer_size) & SOUND_BUFFER_SIZE_MASK;
+#endif // OPTI
+		for(;;) {
+			int I = bytes_to_write;
+			if (byte_offset + I > SOUND_BUFFER_SIZE) {
+				I = SOUND_BUFFER_SIZE - byte_offset;
+			}
+			if(I == 0) break;
+			sceAudioOutputPannedBlocking(so.sound_fd, MAXVOLUME, MAXVOLUME, (char*)SoundBuffer + byte_offset);
+			if (I > 0) {
+				bytes_to_write -= I;
+				byte_offset += I;
+				byte_offset &= SOUND_BUFFER_SIZE_MASK; /* wrap */
+			}
 		}
-	/* All data sent. */
-    }
-//    so.samples_mixed_so_far -= sample_count;
-    } while (Settings.ThreadSound);
-//debug_log( "Thread end" );
-
-    return (NULL);
+	} while (Settings.ThreadSound);
+	return (NULL);
 }
+
 
 void InitTimer()
 {
@@ -1800,7 +1598,7 @@ void InitTimer()
 	debug_log( "Thread ok" );
 }
 
-//mod by y
+static struct timeval next1 = {0, 0};
 void S9xSyncSpeed()
 {
 	BEGIN_DEBUG_CODE
@@ -1815,7 +1613,8 @@ void S9xSyncSpeed()
 
 	ELSE_RELEASE_CODE
 	S9xProcessEvents( FALSE );
-	if (!PSP_Settings.bAutoSkip || Settings.SkipFrames == 0) {
+
+	if (!PSP_Settings.bAutoSkip) {
 		if (++IPPU.FrameSkip >= Settings.SkipFrames) {
 			IPPU.FrameSkip = 0;
 			IPPU.SkippedFrames = 0;
@@ -1824,115 +1623,41 @@ void S9xSyncSpeed()
 			IPPU.SkippedFrames++;
 			IPPU.RenderThisFrame = FALSE;
 		}
-		return;
 	} else {
-		static struct timeval next1 = {0, 0};
 		struct timeval now;
 		
-		while (gettimeofday(&now, 0) < 0) ;
+		sceKernelLibcGettimeofday(&now, NULL);
 		if (next1.tv_sec == 0) {
 			next1 = now;
 			next1.tv_usec++;
 		}
 		if (timercmp(&next1, &now, >)) {
-			IPPU.FrameSkip = 0;
+			if (IPPU.SkippedFrames == 0) {
+				unsigned int timeleft = (next1.tv_sec - now.tv_sec) * 1000000
+									+ next1.tv_usec - now.tv_usec;
+				if (timeleft < Settings.FrameTime)
+					sceKernelDelayThread(timeleft);
+				sceKernelLibcGettimeofday(&now, NULL);
+				next1 = now;
+			}
 			IPPU.SkippedFrames = 0;
 			IPPU.RenderThisFrame = TRUE;
-			next1 = now;
 		} else {
-			if (++IPPU.FrameSkip >= Settings.SkipFrames) {
-				IPPU.FrameSkip = 0;
+			if (IPPU.SkippedFrames < Settings.SkipFrames) {
+				IPPU.SkippedFrames++;
+				IPPU.RenderThisFrame = FALSE;
+			} else {
 				IPPU.SkippedFrames = 0;
 				IPPU.RenderThisFrame = TRUE;
 				next1 = now;
-			} else {
-				IPPU.SkippedFrames++;
-				IPPU.RenderThisFrame = FALSE;
 			}
 		}
-		next1.tv_usec += Settings.FrameTime * (IPPU.FrameSkip + 1) ;
+		next1.tv_usec += Settings.FrameTime;
 		if (next1.tv_usec >= 1000000) {
 			next1.tv_sec += next1.tv_usec / 1000000;
 			next1.tv_usec %= 1000000;
 		}
-		return;
 	}
-/*
-	static struct timeval next1 = { 0, 0 };
-	struct timeval now;
-
-	CHECK_SOUND(); S9xProcessEvents( FALSE );
-
-	sceKernelLibcGettimeofday( &now, 0 );
-	if ( next1.tv_sec == 0 ){
-		next1 = now;
-		++next1.tv_usec;
-	}
-*/
-
-#if 1
-/*
-	unsigned limit = Settings.SkipFrames;
-
-	IPPU.RenderThisFrame = ++IPPU.SkippedFrames >= limit;
-	if ( IPPU.RenderThisFrame ){
-		IPPU.SkippedFrames = 0;
-	}
-*/
-#else
-#if 0
-	if ( timercmp( &next1, &now, >= ) ){
- 		if ( IPPU.SkippedFrames == 0 ){
-			while ( timercmp( &next1, &now, > ) ){
-				sceKernelLibcGettimeofday( &now, 0 );
-			}
-		}
-		IPPU.RenderThisFrame = TRUE;
-		IPPU.SkippedFrames = 0;
-	} else {
-		if ( IPPU.SkippedFrames < Settings.AutoMaxSkipFrames ){
-			IPPU.SkippedFrames++;
-			IPPU.RenderThisFrame = FALSE;
-		} else {
-			IPPU.RenderThisFrame = TRUE;
-			IPPU.SkippedFrames = 0;
-			next1 = now;
-		}
-	}
-#else
-	unsigned limit = Settings.SkipFrames == AUTO_FRAMERATE ? (timercmp( &next1, &now, < ) ? Settings.AutoMaxSkipFrames : 1) : Settings.SkipFrames;
-
-	IPPU.RenderThisFrame = ++IPPU.SkippedFrames >= limit;
-	if ( IPPU.RenderThisFrame ){
-		IPPU.SkippedFrames = 0;
-	} else {
-		if ( timercmp( &next1, &now, < ) ){
-			unsigned int lag;
-			lag = (now.tv_sec - next1.tv_sec) * 1000000 + now.tv_usec - next1.tv_usec;
-			if ( lag >= 1000000 ){
-				next1 = now;
-			}
-		}
-	}
-
-	while ( timercmp( &next1, &now, > ) ){
-/*
-		unsigned timeleft;
-
-		timeleft = (next1.tv_sec - now.tv_sec) * 1000000 + next1.tv_usec - now.tv_usec;
-		usleep( timeleft );
-
-		CHECK_SOUND(); S9xProcessEvents( FALSE );
-*/
-		gettimeofday( &now, 0 );
-	}
-#endif
-	next1.tv_usec += Settings.FrameTime;
-	if ( next1.tv_usec >= 1000000 ){
-		next1.tv_sec += next1.tv_usec / 1000000;
-		next1.tv_usec %= 1000000;
-	}
-#endif
 
 	END_RELEASE_CODE
 }
@@ -2038,10 +1763,10 @@ void S9xPutImage( int width, int height )
 }
 #endif
 
-static uint16 __attribute__((aligned(16))) GFX_Screen[512 * 478];
-static uint16	GFX_SubScreen[512 * 478];
-static uint16	GFX_ZBuffer[512 * 478];
-static uint16	GFX_SubZBuffer[512 * 478];
+static uint16 __attribute__((aligned(16))) GFX_Screen     [512 * 512];
+static uint16                              GFX_SubScreen  [512 * 512];
+static uint16                              GFX_ZBuffer    [512 * 512];
+static uint16                              GFX_SubZBuffer [512 * 512];
 
 
 enum {
@@ -2056,12 +1781,103 @@ static char FPSbuf[6];
 extern int S9xDisplayGetMaxCharsX (void);
 extern void S9xDisplayStringEx (const char *string, int x, int y);
 
+
 #ifdef OPTI
 bool8 S9xDeinitUpdate (int Width, int Height)
 #else
 bool8 S9xDeinitUpdate (int Width, int Height, bool8 sixteen_bit)
 #endif // OPTI
 {
+#ifdef USE_PROFILER
+	if (s_bShowProfilerInfo_old != g_bShowProfilerInfo) {
+	  s_bShowProfilerInfo_old = g_bShowProfilerInfo;
+	  
+	  if (! (!s_bShowProfilerInfo_old)) {
+	    bGUIMode = TRUE;
+
+	    init_pg ();
+
+	    pspDebugScreenInit     ();
+
+#ifdef HW_PROFILER
+	    pspDebugProfilerClear  ();
+	    pspDebugProfilerEnable ();
+#endif
+
+	    bGUIMode = TRUE;
+	  } else {
+	    pspDebugProfilerDisable ();
+	    S9xMarkScreenDirtyEx    ();
+	    
+	    bGUIMode = FALSE;
+
+	    init_pg ();
+	  }
+	}
+
+	if (g_bShowProfilerInfo) {
+	  pspDebugScreenSetXY       (0, 0);
+
+          pspDebugScreenPrintf ("IPPU Rendered Pixel Height: %d\n\n", IPPU.RenderedScreenHeight);
+
+	  #define LOG_PROFILE_FUNC(func,type) \
+	    pspDebugScreenPrintf ("%25s (...) =%u usecs\n", #func, type.time_##func);
+
+#ifdef GFX_PROFILER
+	  pspDebugScreenPrintf ("RenderScreen         (...) = %u usecs\n", gfx_profile.time_RenderScreen);
+	  pspDebugScreenPrintf ("DrawObjs             (...) = %u usecs\n", gfx_profile.time_DrawObjs);
+	  pspDebugScreenPrintf ("SelectTileRenderer   (...) = %u usecs\n", gfx_profile.time_SelectTileRenderer);
+	  pspDebugScreenPrintf ("DrawBackground       (...) = %u usecs\n", gfx_profile.time_DrawBackground);
+	  pspDebugScreenPrintf ("DrawBackground_8     (...) = %u usecs\n", gfx_profile.time_DrawBackground_8);
+	  pspDebugScreenPrintf ("DrawBakground_16     (...) = %u usecs\n", gfx_profile.time_DrawBackground_16);
+	  pspDebugScreenPrintf ("DrawBackgroundMosaic (...) = %u usecs\n", gfx_profile.time_DrawBackgroundMosaic);
+	  pspDebugScreenPrintf ("DrawBackgroundOffset (...) = %u usecs\n", gfx_profile.time_DrawBackgroundOffset);
+	  pspDebugScreenPrintf ("DrawBackgroundMode5  (...) = %u usecs\n", gfx_profile.time_DrawBackgroundMode5);
+#endif
+
+#ifdef TILE_PROFILER
+	  LOG_PROFILE_FUNC (DrawTile, tile_profile)
+	  LOG_PROFILE_FUNC (DrawTilex2, tile_profile)
+	  LOG_PROFILE_FUNC (DrawTilex2x2, tile_profile)
+	  LOG_PROFILE_FUNC (DrawClippedTilex2x2, tile_profile)
+	  LOG_PROFILE_FUNC (DrawTile16, tile_profile)
+	  LOG_PROFILE_FUNC (DrawTile16_OBJ, tile_profile)
+	  LOG_PROFILE_FUNC (DrawClippedTile16, tile_profile)
+/*
+	  LOG_PROFILE_FUNC (DrawTile16x2, tile_profile)
+	  LOG_PROFILE_FUNC (DrawClippedTile16x2, tile_profile)
+	  LOG_PROFILE_FUNC (DrawTile16x2x2, tile_profile)
+	  LOG_PROFILE_FUNC (DrawClippedTile16x2x2, tile_profile)
+	  LOG_PROFILE_FUNC (DrawTile16Add, tile_profile)
+	  LOG_PROFILE_FUNC (DrawClippedTile16Add, tile_profile)
+	  LOG_PROFILE_FUNC (DrawTile16Add1_2, tile_profile)
+	  LOG_PROFILE_FUNC (DrawClippedTile16Add1_2, tile_profile)
+	  LOG_PROFILE_FUNC (DrawTile16Sub, tile_profile)
+	  LOG_PROFILE_FUNC (DrawClippedTile16Sub, tile_profile)
+	  LOG_PROFILE_FUNC (DrawTile16sub1_2, tile_profile)
+	  LOG_PROFILE_FUNC (DrawClippedTile16Sub1_2, tile_profile)
+	  LOG_PROFILE_FUNC (DrawTile16FixedAdd1_2, tile_profile)
+	  LOG_PROFILE_FUNC (DrawClippedTile16FixAdd1_2, tile_profile)
+	  LOG_PROFILE_FUNC (DrawTile16FixedSub1_2, tile_profile)
+	  LOG_PROFILE_FUNC (DrawClippedTile16FixedSub1_2, tile_profile)
+*/
+	  LOG_PROFILE_FUNC (DrawLargePixel, tile_profile)
+	  LOG_PROFILE_FUNC (DrawLargePixel16, tile_profile)
+	  LOG_PROFILE_FUNC (DrawLargePixel16Add, tile_profile)
+	  LOG_PROFILE_FUNC (DrawLargePixel16Add1_2, tile_profile)
+	  LOG_PROFILE_FUNC (DrawLargePixel16Sub, tile_profile)
+	  LOG_PROFILE_FUNC (DrawLargePixel16Sub1_2, tile_profile)
+#endif
+
+#ifdef HW_PROFILER
+	  pspDebugProfilerPrint     ();
+#endif
+	  sceDisplayWaitVblankStart ();
+
+	  return TRUE;
+	}
+#endif /* USE_PROFILER */
+
 //	S9xPutImage( Width, Height );
 // mod by y
 
@@ -2088,22 +1904,30 @@ bool8 S9xDeinitUpdate (int Width, int Height, bool8 sixteen_bit)
 		switch(PSP_Settings.iScreenSize) {
 			case SCR_FIT:
 			{
+				// Most games run at 224 lines, but some have 239
+				const int y_res   = IPPU.RenderedScreenHeight;
 				// 60 pixels on either side (4:3)...
 				const int x_scale = (PSP_Settings.bSupportHiRes ? 720 : 360);
-				const int y_scale = (PSP_Settings.bSupportHiRes ? 624 : 312);
-				pgRenderTex((char *)GFX.Screen,tex_res,tex_res,60,0,x_scale,y_scale);
+				const int y_scale = (PSP_Settings.bSupportHiRes ? (y_res == 239 ? 584 : 624) :
+				                                                  (y_res == 239 ? 292 : 312));
+				pgRenderTex((char *)GFX.Screen,tex_res,tex_res,60,0,x_scale,y_scale,(480 - 120),272);
 			} break;
 			case SCR_FULL:
 			case SCR_FULLFIT:
 			{
+				// Most games run at 224 lines, but some have 239
+				const int y_res   = IPPU.RenderedScreenHeight;
 				const int x_scale = (PSP_Settings.bSupportHiRes ? 960 : 480);
-				const int y_scale = (PSP_Settings.bSupportHiRes ? 624 : 312);
-				pgRenderTex((char *)GFX.Screen,tex_res,tex_res,0,0,x_scale,y_scale);
+				const int y_scale = (PSP_Settings.bSupportHiRes ? (y_res == 239 ? 584 : 624) :
+				                                                  (y_res == 239 ? 292 : 312));
+				pgRenderTex((char *)GFX.Screen,tex_res,tex_res,0,0,x_scale,y_scale,480,272);
 			} break;
 			case SCR_X1:
 			default:
+				const int y_res    = IPPU.RenderedScreenHeight;
+				const int x_res    = IPPU.RenderedScreenWidth;
 				const int xy_scale = (PSP_Settings.bSupportHiRes ? 512 : 256);
-				pgRenderTex((char *)GFX.Screen,tex_res,tex_res,(480/2)-(256/2),(272/2)-(224/2),xy_scale,xy_scale);
+				pgRenderTex((char *)GFX.Screen,tex_res,tex_res,(480/2)-(256/2),(272/2)-(y_res/2),xy_scale,xy_scale,x_res,y_res);
 				break;
 		}
 	} else {
@@ -2708,12 +2532,6 @@ void draw_menu (void)
 
 	int x,y;
 	
-//  add by J
-	// 充電電圧
-	long BatteryVolt_ret;
-	// アダプタ・バッテリー判定
-	long BatteryCharging_ret;
-
 	menu_frame((unsigned char *)msg, (unsigned char *)"○：OK  ×：Continue  SELECT+START：Exit to PSP Menu");
 		
 	mh_print(33, 33, (unsigned char*)Memory.ROMFilename, RGB(95,95,125));
@@ -2829,49 +2647,6 @@ void draw_menu (void)
 		
 	sprintf (state_list_txt, "State Save List             %1.2f Mb", ((float)size_of_states / 1024.0f / 1024.0f));
 	pgPrint (22,6, RGB (105,105,115), state_list_txt);
-
-// add by J
-	// このAPI遅いんじゃないかな？
-	BatteryVolt_ret     = scePowerGetBatteryVolt(); // バッテリー充電電圧(5000で5Vかな)
-	BatteryCharging_ret = scePowerIsBatteryCharging(); // バッテリーなし:- 充電中:1 アダプターなし:0
-	char message[256];
-	char BatteryVolt_ret_text[16];
-	char BatteryCharge_percent[16];
-	bool BatteryFull = false;
-	if ( ( BatteryVolt_ret > 999 ) && ( BatteryVolt_ret < 9999 )) {
-		sprintf (BatteryVolt_ret_text, "(%1.3fV)", (float)BatteryVolt_ret / 1000);
-	}else {
-		strcpy( BatteryVolt_ret_text, "(No Battery or Bad Voltage)" );
-	}
-	// Assume 4.13 volts indicates a full battery... (*** Is this valid? -Andon)
-	if (BatteryVolt_ret < 4130) {
-		sprintf (BatteryCharge_percent, "%d%%", (int)(((float)BatteryVolt_ret / 4130.0f) * 100.0f), BatteryVolt_ret_text);
-	} else {
-		BatteryFull = true;
-		strcpy (BatteryCharge_percent, "Full");
-	}
-	// Running on AC power...
-	if ( BatteryCharging_ret <  0 ) {
-		mh_print(0, 0, (unsigned char*)"[Running on AC Power]", RGB(0,255,0));
-	}
-	// Battery is being used...
-	else if ( BatteryCharging_ret == 0 ) {
-		sprintf  (message, "[Battery: %s %s]", BatteryCharge_percent, BatteryVolt_ret_text);
-		mh_print (0, 0, (unsigned char*)message, BatteryFull ? RGB (0,0,255) :
-		                                                       RGB (255,0,0));
-	}
-	// Battery is being charged...
-	else {
-		long BatteryTemp_ret = scePowerGetBatteryTemp();
-		// If the battery temp. is > 38C (100F), display the temp.
-		if ((BatteryTemp_ret > 38) && (BatteryTemp_ret < 100)) {
-			sprintf (message, "[Charging: %s %s - %dｰ F]", BatteryCharge_percent, BatteryVolt_ret_text, (int)((9.0f/5.0f) * (float)BatteryTemp_ret) + 32);
-			mh_print(0, 0, (unsigned char*)message, RGB(255,0,0));
-		} else {
-			sprintf( message, "[Charging: %s %s]", BatteryCharge_percent, BatteryVolt_ret_text );
-			mh_print(0, 0, (unsigned char*)message, RGB(0,0,255));
-		}
-	}
 }
 
 void close_menu (void)
@@ -3456,7 +3231,7 @@ Settings.SkipFrames = 0;
 //Settings.SkipFrames = AUTO_FRAMERATE;
 //Settings.AutoMaxSkipFrames = 10;
 //Settings.SoundBufferSize = 44100 * 2 * 2 / 1000;
-Settings.SoundBufferSize = MAX_SOUND_SAMPLE;/*SOUND_SAMPLE;*/
+Settings.SoundBufferSize = SOUND_SAMPLE;/* MAX_SOUND_SAMPLE; */
 Settings.SoundSync = FALSE;
 Settings.SoundEnvelopeHeightReading = TRUE;
 Settings.ThreadSound = TRUE;
@@ -3472,7 +3247,7 @@ Settings.PSP_APUTimerCycle = SNES_APUTIMER2_CYCLEx10000;
 	}
 
 	if ( Settings.Transparency ){
-//		Settings.SixteenBit = TRUE;
+		Settings.SixteenBit = TRUE;
 	}
 #endif // OPTI
 
@@ -3566,33 +3341,14 @@ Settings.PSP_APUTimerCycle = SNES_APUTIMER2_CYCLEx10000;
 	S9xSetSoundMute( TRUE );
 
 	while ( g_bLoop ){
-#if 1
 		if ( !Settings.Paused ){
 			S9xMainLoop();
 		}
-#else
-		if ( !Settings.Paused ){
-			S9xMainLoop();
-		}
-
-		if ( Settings.Paused ){
-			S9xSetSoundMute( TRUE );
-		}
-
-		if ( Settings.Paused ){
-			S9xProcessEvents( FALSE );
-//			usleep(100000);
-		}
-
-		S9xProcessEvents( FALSE );
-	
-		if ( !Settings.Paused ){
-			S9xSetSoundMute( FALSE );
-		}
-#endif
-// add by y
+		
 		if (g_bSleep){
-			pgWaitVn(180);
+			while (g_bSleep) pgWaitV();
+			sceKernelLibcGettimeofday(&s_tvStart, NULL);
+			next1.tv_sec = 0;
 			if (PSP_Settings.iPSP_ClockUp == 2) scePowerSetClockFrequency(333,333,166);
 			else if (PSP_Settings.iPSP_ClockUp == 1) scePowerSetClockFrequency(266,266,133);
 			if (!PSP_Settings.bSoundOff) { S9xSetSoundMute( FALSE );}

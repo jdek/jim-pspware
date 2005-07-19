@@ -58,7 +58,7 @@ void pgDrawFrame(unsigned long x1, unsigned long y1, unsigned long x2, unsigned 
 void pgFillBox(unsigned long x1, unsigned long y1, unsigned long x2, unsigned long y2, unsigned long color);
 void mh_print(int x,int y,const unsigned char *str,int col);
 unsigned char *pgGetVramAddr(unsigned long x,unsigned long y);
-void pgRenderTex(char *tex, int width, int height, int x, int y, int xscale, int yscale);
+void pgRenderTex(char *tex, int width, int height, int x, int y, int xscale, int yscale, int xres, int yres);
 
 // add by J
 #define D_text_all_MAX  3200

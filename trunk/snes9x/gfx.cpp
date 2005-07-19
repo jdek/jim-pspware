@@ -97,6 +97,7 @@
 #include "apu.h"
 #include "cheats.h"
 #include "screenshot.h"
+#include "profiler.h"
 
 extern "C" {
 void debug_log( const char* message );
@@ -108,7 +109,132 @@ void StartAnalyze();
 void StopAnalyze();
 };
 
+extern uint32 HeadMask [4];
+extern uint32 TailMask [5];
+
+inline uint8 ConvertTile (uint8 *pCache, uint32 TileAddr)
+{
+    register uint8 *tp = &Memory.VRAM[TileAddr];
+    uint32 *p = (uint32 *) pCache;
+    uint32 non_zero = 0;
+    uint8 line;
+
+    switch (BG.BitShift)
+    {
+    case 8:
+	for (line = 8; line != 0; line--, tp += 2)
+	{
+	    uint32 p1 = 0;
+	    uint32 p2 = 0;
+	    register uint8 pix;
+
+	    if ((pix = *(tp + 0)))
+	    {
+		p1 |= odd_high[0][pix >> 4];
+		p2 |= odd_low[0][pix & 0xf];
+	    }
+	    if ((pix = *(tp + 1)))
+	    {
+		p1 |= even_high[0][pix >> 4];
+		p2 |= even_low[0][pix & 0xf];
+	    }
+	    if ((pix = *(tp + 16)))
+	    {
+		p1 |= odd_high[1][pix >> 4];
+		p2 |= odd_low[1][pix & 0xf];
+	    }
+	    if ((pix = *(tp + 17)))
+	    {
+		p1 |= even_high[1][pix >> 4];
+		p2 |= even_low[1][pix & 0xf];
+	    }
+	    if ((pix = *(tp + 32)))
+	    {
+		p1 |= odd_high[2][pix >> 4];
+		p2 |= odd_low[2][pix & 0xf];
+	    }
+	    if ((pix = *(tp + 33)))
+	    {
+		p1 |= even_high[2][pix >> 4];
+		p2 |= even_low[2][pix & 0xf];
+	    }
+	    if ((pix = *(tp + 48)))
+	    {
+		p1 |= odd_high[3][pix >> 4];
+		p2 |= odd_low[3][pix & 0xf];
+	    }
+	    if ((pix = *(tp + 49)))
+	    {
+		p1 |= even_high[3][pix >> 4];
+		p2 |= even_low[3][pix & 0xf];
+	    }
+	    *p++ = p1;
+	    *p++ = p2;
+	    non_zero |= p1 | p2;
+	}
+	break;
+
+    case 4:
+	for (line = 8; line != 0; line--, tp += 2)
+	{
+	    uint32 p1 = 0;
+	    uint32 p2 = 0;
+	    register uint8 pix;
+	    if ((pix = *(tp + 0)))
+	    {
+		p1 |= odd_high[0][pix >> 4];
+		p2 |= odd_low[0][pix & 0xf];
+	    }
+	    if ((pix = *(tp + 1)))
+	    {
+		p1 |= even_high[0][pix >> 4];
+		p2 |= even_low[0][pix & 0xf];
+	    }
+	    if ((pix = *(tp + 16)))
+	    {
+		p1 |= odd_high[1][pix >> 4];
+		p2 |= odd_low[1][pix & 0xf];
+	    }
+	    if ((pix = *(tp + 17)))
+	    {
+		p1 |= even_high[1][pix >> 4];
+		p2 |= even_low[1][pix & 0xf];
+	    }
+	    *p++ = p1;
+	    *p++ = p2;
+	    non_zero |= p1 | p2;
+	}
+	break;
+
+    case 2:
+	for (line = 8; line != 0; line--, tp += 2)
+	{
+	    uint32 p1 = 0;
+	    uint32 p2 = 0;
+	    register uint8 pix;
+	    if ((pix = *(tp + 0)))
+	    {
+		p1 |= odd_high[0][pix >> 4];
+		p2 |= odd_low[0][pix & 0xf];
+	    }
+	    if ((pix = *(tp + 1)))
+	    {
+		p1 |= even_high[0][pix >> 4];
+		p2 |= even_low[0][pix & 0xf];
+	    }
+	    *p++ = p1;
+	    *p++ = p2;
+	    non_zero |= p1 | p2;
+	}
+	break;
+    }
+    return (non_zero ? TRUE : BLANK_TILE);
+}
+
+
 uint32 TileBlank;
+
+#define ANDON_OPT
 
 const int tx_table[16] = {
 // t1 = 16, t2 =  0
@@ -328,6 +454,196 @@ void DrawLargePixel16Sub (uint32 Tile, uint32 Offset,
 void DrawLargePixel16Sub1_2 (uint32 Tile, uint32 Offset,
 			     uint32 StartPixel, uint32 Pixels,
 			     uint32 StartLine, uint32 LineCount);
+
+inline void DrawTile16_OBJ_inline (uint32 Tile, uint32 Offset, uint32 StartLine, uint32 LineCount)
+{
+//	TILE_PREAMBLE
+
+    uint8 *pCache;
+    uint32 TileAddr = BG.TileAddress + ((Tile & 0x3ff) << 5);
+    if ((Tile & 0x1ff) >= 256){
+		TileAddr += BG.NameSelect;
+	}
+
+    TileAddr &= 0xffff;
+
+    uint32 TileNumber;
+    pCache = &BG.Buffer[(TileNumber = (TileAddr >> 5)) << 6];
+
+    if (!BG.Buffered [TileNumber]){
+		BG.Buffered[TileNumber] = ConvertTile (pCache, TileAddr);
+	}
+
+    if (BG.Buffered [TileNumber] == BLANK_TILE){
+		TileBlank = Tile & 0xFFFFFFFF;
+		return;
+	}
+
+	GFX.ScreenColors = &IPPU.ScreenColors [(((Tile >> 10) & 7) << 4) + 128];
+
+    register uint8*	bp;
+	register int	inc;
+
+    if (Tile & V_FLIP){
+		bp  = pCache + 56 - StartLine;
+		inc = -8;
+	} else {
+		bp  = pCache + StartLine;
+		inc = 8;
+	}
+
+    register uint16* 	__attribute__ ((aligned (16))) Screen  = (uint16 *) GFX.S + Offset;
+    register uint16* 	__attribute__ ((aligned (16))) Colors  = GFX.ScreenColors;
+    register uint8*  	__attribute__ ((aligned (16))) Depth   = GFX.DB + Offset;
+    const int     	GFX_PPL = GFX.PPL;
+    const int     	GFX_Z1  = GFX.Z1;
+    const int     	GFX_Z2  = GFX.Z2;
+
+    if (!(Tile & H_FLIP)){
+#define FN(N) \
+    if (GFX_Z1 > Depth[N] && bp[N]){ \
+		Screen[N] = Colors[bp[N]]; \
+		Depth[N]  = GFX_Z2; \
+	}
+		while ( LineCount-- ){
+		    if ( *(uint32*)bp ){
+				FN(0); FN(1); FN(2); FN(3);
+			}
+
+		    if ( *(uint32 *)(bp + 4) ){
+				FN(4); FN(5); FN(6); FN(7);
+			}
+			bp += inc;
+			Screen += GFX_PPL;
+			Depth  += GFX_PPL;
+		}
+#undef FN
+	} else {
+#define FN(N, B) \
+	if (GFX_Z1 > Depth[N] && bp[B]){ \
+		Screen[N] = Colors[bp[B]]; \
+		Depth[N]  = GFX_Z2; \
+    }
+		while ( LineCount-- ){
+		    if ( *(uint32 *)(bp + 4) ){
+				FN(0, 7); FN(1, 6); FN(2, 5); FN(3, 4);
+			}
+
+		    if ( *(uint32*)bp ){
+				FN(4, 3); FN(5, 2); FN(6, 1); FN(7, 0);
+			}
+		    bp += inc;
+		    Screen += GFX_PPL;
+		    Depth  += GFX_PPL;
+		}
+#undef FN
+	}
+}
+
+inline void DrawTile16_inline (uint32 Tile, uint32 Offset, uint32 StartLine, uint32 LineCount)
+{
+//	TILE_PREAMBLE
+
+    uint8 *pCache;
+    uint32 TileAddr = BG.TileAddress + ((Tile & 0x3ff) << BG.TileShift);
+
+    TileAddr &= 0xffff;
+
+    uint32 TileNumber;
+    pCache = &BG.Buffer[(TileNumber = (TileAddr >> BG.TileShift)) << 6];
+
+    if (!BG.Buffered [TileNumber]){
+		BG.Buffered[TileNumber] = ConvertTile (pCache, TileAddr);
+	}
+
+    if (BG.Buffered [TileNumber] == BLANK_TILE){
+		TileBlank = Tile & 0xFFFFFFFF;
+		return;
+	}
+
+    if (BG.DirectColourMode){
+		if (IPPU.DirectColourMapsNeedRebuild){
+			S9xBuildDirectColourMaps ();
+		}
+        GFX.ScreenColors = DirectColourMaps [(Tile >> 10) & BG.PaletteMask];
+    } else {
+		GFX.ScreenColors = &IPPU.ScreenColors [(((Tile >> 10) & BG.PaletteMask) << BG.PaletteShift) + BG.StartPalette];
+	}
+
+    register uint8*	bp;
+	register int	inc;
+
+    if (Tile & V_FLIP){
+		bp  = pCache + 56 - StartLine;
+		inc = -8;
+	} else {
+		bp  = pCache + StartLine;
+		inc = 8;
+	}
+
+    register uint16*	__attribute__((aligned (16))) Screen = (uint16 *) GFX.S + Offset;
+    register uint16*	__attribute__((aligned (16))) Colors =  GFX.ScreenColors;
+    register uint8*	__attribute__((aligned (16))) Depth  =  GFX.DB + Offset;
+	const int	GFX_PPL = GFX.PPL;
+	const int	GFX_Z1  = GFX.Z1;
+//	int		GFX_Z2  = GFX.Z2;
+
+    if (!(Tile & H_FLIP)){
+#define FN(N) \
+    if (GFX_Z1 > Depth[N] && bp[N]){ \
+		Screen[N] = Colors[bp[N]]; \
+		Depth[N]  = GFX_Z1; \
+	}
+		while ( LineCount-- ){
+		    if ( *(uint32 *)bp ){
+				FN(0); FN(1); FN(2); FN(3);
+			}
+
+		    if ( *(uint32 *)(bp + 4) ){
+				FN(4); FN(5); FN(6); FN(7);
+			}
+		    bp += inc;
+		    Screen += GFX_PPL;
+		    Depth  += GFX_PPL;
+		}
+#undef FN
+	} else {
+#define FN(N, B) \
+	if (GFX_Z1 > Depth[N] && bp[B]){ \
+		Screen[N] = Colors[bp[B]]; \
+		Depth[N]  = GFX_Z1; \
+    }
+		while ( LineCount-- ){
+		    if ( *(uint32 *)(bp + 4) ){
+				FN(0, 7); FN(1, 6); FN(2, 5); FN(3, 4);
+			}
+
+		    if ( *(uint32*)bp ){
+				FN(4, 3); FN(5, 2); FN(6, 1); FN(7, 0);
+			}
+			bp += inc;
+			Screen += GFX_PPL;
+			Depth  += GFX_PPL;
+		}
+#undef FN
+	}
+}
+
+
+#define CALL_DRAW_TILE_FUNC(Func,Tile,Offset,StartLine,LineCount) {   \
+      if (Func == DrawTile16_OBJ) {                                   \
+        DrawTile16_OBJ_inline (Tile, Offset, StartLine, LineCount);   \
+     } else if (Func == DrawTile16) {                                 \
+        DrawTile16_inline (Tile, Offset, StartLine, LineCount);       \
+     } else {                                                         \
+        (*DrawTilePtr) (Tile,Offset,StartLine,LineCount);             \
+    }                                                                 \
+}
+
+#define CALL_DRAW_CLIPPED_TILE_FUNC(Func,a,b,c,d,e,f) \
+ (*Func) (a, b, c, d, e, f);
+
+
 
 #ifdef PSP
 static uint16	GFX_X2[0x10000];
@@ -682,7 +998,6 @@ void S9xGraphicsDeinit (void)
 
 void S9xBuildDirectColourMaps ()
 {
-debug_log( "S9xBuildDirectColourMaps" );
     for (uint32 p = 0; p < 8; p++)
     {
 	for (uint32 c = 0; c < 256; c++)
@@ -984,6 +1299,8 @@ void S9xSetInfoString (const char *string)
 
 inline void SelectTileRenderer (bool8 normal)
 {
+    START_PROFILE_GFX_FUNC (SelectTileRenderer);
+
     if (normal)
     {
 	DrawTilePtr = DrawTile16;
@@ -1041,6 +1358,8 @@ inline void SelectTileRenderer (bool8 normal)
 	    }
 	}
     }
+
+    FINISH_PROFILE_GFX_FUNC (SelectTileRenderer);
 }
 
 void S9xSetupOBJ ()
@@ -1251,6 +1570,8 @@ void S9xSetupOBJ ()
 
 void DrawOBJS (bool8 OnMain = FALSE, uint8 D = 0)
 {
+	START_PROFILE_GFX_FUNC(DrawOBJS)
+	
 #ifdef MK_DEBUG_RTO
 	if(Settings.BGLayering) fprintf(stderr, "Entering DrawOBJS() for %d-%d\n", GFX.StartY, GFX.EndY);
 #endif
@@ -1462,11 +1783,11 @@ if(Settings.BGLayering) {
 				}
 
 				if(X+8<NextPos){
-					if(WinStat) (*DrawTilePtr) (BaseTile|TileX, O, TileLine, 1);
+					if(WinStat) CALL_DRAW_TILE_FUNC (*DrawTilePtr, BaseTile|TileX, O, TileLine, 1);
 				} else {
 					int x=X;
 					while(x<X+8){
-						if(WinStat) (*DrawClippedTilePtr) (BaseTile|TileX, O, x-X, NextPos-x, TileLine, 1);
+						if(WinStat) CALL_DRAW_CLIPPED_TILE_FUNC (DrawClippedTilePtr, BaseTile|TileX, O, x-X, NextPos-x, TileLine, 1);
 						x=NextPos;
 						for(; WinIdx<7 && Windows[WinIdx].Pos<=x; WinIdx++);
 						if(WinIdx==0) WinStat=FALSE;
@@ -1484,10 +1805,14 @@ if(Settings.BGLayering) {
 #ifdef MK_DEBUG_RTO
 	if(Settings.BGLayering) fprintf(stderr, "Exiting DrawOBJS() for %d-%d\n", GFX.StartY, GFX.EndY);
 #endif
+
+	FINISH_PROFILE_GFX_FUNC(DrawOBJS)
 }
 
 void DrawBackgroundMosaic (uint32 BGMode, uint32 bg, uint8 Z1, uint8 Z2)
 {
+    START_PROFILE_GFX_FUNC (DrawBackgroundMosaic);
+
     CHECK_SOUND();
 
     uint32 Tile;
@@ -1712,10 +2037,14 @@ void DrawBackgroundMosaic (uint32 BGMode, uint32 bg, uint8 Z1, uint8 Z2)
 	    }
 	}
     }
+
+    FINISH_PROFILE_GFX_FUNC (DrawBackgroundMosaic)
 }
 
 void DrawBackgroundOffset (uint32 BGMode, uint32 bg, uint8 Z1, uint8 Z2)
 {
+    START_PROFILE_GFX_FUNC (DrawBackgroundOffset)
+
     CHECK_SOUND();
 	
     uint32 Tile;
@@ -2021,20 +2350,21 @@ void DrawBackgroundOffset (uint32 BGMode, uint32 bg, uint8 Z1, uint8 Z2)
 #ifdef OPTI
 			if (Tile != TileBlank)
 #endif // OPTI
-				if (BG.TileSize == 8)
-					(*DrawClippedTilePtr) (Tile, s, Offset, Count, VirtAlign, Lines);
+				if (BG.TileSize == 8) {
+					CALL_DRAW_CLIPPED_TILE_FUNC (DrawClippedTilePtr, Tile, s, Offset, Count, VirtAlign, Lines);
+				}
 				else
 				{
 #ifdef OPTI
 					Tile += tx_table[tx_index + ((Tile & (H_FLIP | V_FLIP)) >> 13) + (Quot & 1)];
 					if (Tile != TileBlank){
-						(*DrawClippedTilePtr) (Tile, s, Offset, Count, VirtAlign, Lines);
+						CALL_DRAW_CLIPPED_TILE_FUNC (DrawClippedTilePtr, Tile, s, Offset, Count, VirtAlign, Lines);
 					}
 #else
 					if (!(Tile & (V_FLIP | H_FLIP)))
 					{
 						// Normal, unflipped
-						(*DrawClippedTilePtr) (Tile + t1 + (Quot & 1),
+						CALL_DRAW_CLIPPED_TILE_FUNC (DrawClippedTilePtr, Tile + t1 + (Quot & 1),
 							s, Offset, Count, VirtAlign, Lines);
 					}
 					else
@@ -2043,20 +2373,20 @@ void DrawBackgroundOffset (uint32 BGMode, uint32 bg, uint8 Z1, uint8 Z2)
 							if (Tile & V_FLIP)
 							{
 								// H & V flip
-								(*DrawClippedTilePtr) (Tile + t2 + 1 - (Quot & 1),
+								CALL_DRAW_CLIPPED_TILE_FUNC (DrawClippedTilePtr, Tile + t2 + 1 - (Quot & 1),
 									s, Offset, Count, VirtAlign, Lines);
 							}
 							else
 							{
 								// H flip only
-								(*DrawClippedTilePtr) (Tile + t1 + 1 - (Quot & 1),
+								CALL_DRAW_CLIPPED_TILE_FUNC (DrawClippedTilePtr, Tile + t1 + 1 - (Quot & 1),
 									s, Offset, Count, VirtAlign, Lines);
 							}
 						}
 						else
 						{
 							// V flip only
-							(*DrawClippedTilePtr) (Tile + t2 + (Quot & 1),
+							CALL_DRAW_CLIPPED_TILE_FUNC (DrawClippedTilePtr, Tile + t2 + (Quot & 1),
 								s, Offset, Count, VirtAlign, Lines);
 						}
 #endif // OPTI
@@ -2069,10 +2399,14 @@ void DrawBackgroundOffset (uint32 BGMode, uint32 bg, uint8 Z1, uint8 Z2)
 		}
 	}
     }
+
+    FINISH_PROFILE_GFX_FUNC (DrawBackgroundOffset);
 }
 
 void DrawBackgroundMode5 (uint32 /* BGMODE */, uint32 bg, uint8 Z1, uint8 Z2)
 {
+    START_PROFILE_GFX_FUNC (DrawBackgroundMode5);
+
     CHECK_SOUND();
 
     if(IPPU.Interlace)
@@ -2400,11 +2734,14 @@ void DrawBackgroundMode5 (uint32 /* BGMODE */, uint32 bg, uint8 Z1, uint8 Z2)
     GFX.Pitch = IPPU.DoubleHeightPixels ? (GFX.RealPitch << 2) : GFX.RealPitch;
     GFX.PPL = IPPU.DoubleHeightPixels ? GFX.PPLx2 : (GFX.PPLx2 >> 1);
 
+    FINISH_PROFILE_GFX_FUNC (DrawBackgroundMode5);
 }
 
 #ifdef OPTI
 void DrawBackground_8 (uint32 BGMode, uint32 bg, uint8 Z1, uint8 Z2)
 {
+    START_PROFILE_GFX_FUNC (DrawBackground_8);
+
     uint32 Tile;
     uint16 *SC0;
     uint16 *SC1;
@@ -2506,7 +2843,7 @@ void DrawBackground_8 (uint32 BGMode, uint32 bg, uint8 Z1, uint8 Z2)
 					Tile = READ_2BYTES(t);
 					if (Tile != TileBlank){
 						GFX.Z1 = GFX.Z2 = depths [(Tile & 0x2000) >> 13];
-						(*DrawClippedTilePtr) (Tile, s, Offset, Count, VirtAlign, Lines);
+						CALL_DRAW_CLIPPED_TILE_FUNC (DrawClippedTilePtr, Tile, s, Offset, Count, VirtAlign, Lines);
 					}
 					t++;
 					if (Quot == 31)	t = b2; else if (Quot == 63)  t = b1;
@@ -2520,7 +2857,7 @@ void DrawBackground_8 (uint32 BGMode, uint32 bg, uint8 Z1, uint8 Z2)
 					Tile = READ_2BYTES(t);
 					if (Tile != TileBlank){
 						GFX.Z1 = GFX.Z2 = depths [(Tile & 0x2000) >> 13];
-						(*DrawTilePtr) (Tile, s, VirtAlign, Lines);
+						CALL_DRAW_TILE_FUNC (DrawTilePtr, Tile, s, VirtAlign, Lines);
 					}
 
 					t++;
@@ -2532,16 +2869,20 @@ void DrawBackground_8 (uint32 BGMode, uint32 bg, uint8 Z1, uint8 Z2)
 					Tile = READ_2BYTES(t);
 					if (Tile != TileBlank){
 						GFX.Z1 = GFX.Z2 = depths [(Tile & 0x2000) >> 13];
-						(*DrawClippedTilePtr) (Tile, s, 0, Count & 7, VirtAlign, Lines);
+						CALL_DRAW_CLIPPED_TILE_FUNC (DrawClippedTilePtr, Tile, s, 0, Count & 7, VirtAlign, Lines);
 					}
 				}
 		}
     }
 	GFX.Z1 = GFX.Z2 = depths [(Tile & 0x2000) >> 13];
+
+	FINISH_PROFILE_GFX_FUNC (DrawBackground_8);
 }
 
 void DrawBackground_16 (uint32 BGMode, uint32 bg, uint8 Z1, uint8 Z2)
 {
+    START_PROFILE_GFX_FUNC (DrawBackground_16);
+
     uint32 Tile;
     uint16 *SC0;
     uint16 *SC1;
@@ -2645,7 +2986,7 @@ void DrawBackground_16 (uint32 BGMode, uint32 bg, uint8 Z1, uint8 Z2)
 					Tile += tx_table[tx_index + ((Tile & (H_FLIP | V_FLIP)) >> 13) + (Quot & 1)];
 					if (Tile != TileBlank){
 						GFX.Z1 = GFX.Z2 = depths [(Tile & 0x2000) >> 13];
-						(*DrawClippedTilePtr) (Tile, s, Offset, Count, VirtAlign, Lines);
+						CALL_DRAW_CLIPPED_TILE_FUNC (DrawClippedTilePtr, Tile, s, Offset, Count, VirtAlign, Lines);
 					}
 
 					t += Quot & 1;
@@ -2661,7 +3002,7 @@ void DrawBackground_16 (uint32 BGMode, uint32 bg, uint8 Z1, uint8 Z2)
 					Tile += tx_table[tx_index + ((Tile & (H_FLIP | V_FLIP)) >> 13) + (Quot & 1)];
 					if (Tile != TileBlank){
 						GFX.Z1 = GFX.Z2 = depths [(Tile & 0x2000) >> 13];
-						(*DrawTilePtr) (Tile, s, VirtAlign, Lines);
+						CALL_DRAW_TILE_FUNC (DrawTilePtr, Tile, s, VirtAlign, Lines);
 					}
 
 					t += Quot & 1;
@@ -2674,16 +3015,23 @@ void DrawBackground_16 (uint32 BGMode, uint32 bg, uint8 Z1, uint8 Z2)
 					Tile += tx_table[tx_index + ((Tile & (H_FLIP | V_FLIP)) >> 13) + (Quot & 1)];
 					if (Tile != TileBlank){
 						GFX.Z1 = GFX.Z2 = depths [(Tile & 0x2000) >> 13];
-						(*DrawClippedTilePtr) (Tile, s, 0, Count & 7, VirtAlign, Lines);
+						CALL_DRAW_CLIPPED_TILE_FUNC (DrawClippedTilePtr, Tile, s, 0, Count & 7, VirtAlign, Lines);
 					}
 				}
 		}
     }
 	GFX.Z1 = GFX.Z2 = depths [(Tile & 0x2000) >> 13];
+
+	FINISH_PROFILE_GFX_FUNC (DrawBackground_16);
 }
 
 inline void DrawBackground (uint32 BGMode, uint32 bg, uint8 Z1, uint8 Z2)
 {
+	START_PROFILE_GFX_FUNC (DrawBackground);
+
+#ifndef ANDON_OPT
+	return;
+#endif
 //StartAnalyze();
     GFX.PixSize = 1;
 	
@@ -2735,256 +3083,6 @@ inline void DrawBackground (uint32 BGMode, uint32 bg, uint8 Z1, uint8 Z2)
 		DrawBackground_16 (BGMode, bg, Z1, Z2);
 	}
 }
-/*
-void DrawBackground (uint32 BGMode, uint32 bg, uint8 Z1, uint8 Z2)
-{
-    GFX.PixSize = 1;
-	
-    BG.TileSize = BGSizes [PPU.BG[bg].BGSize];
-    BG.BitShift = BitShifts[BGMode][bg];
-    BG.TileShift = TileShifts[BGMode][bg];
-    BG.TileAddress = PPU.BG[bg].NameBase << 1;
-    BG.NameSelect = 0;
-    BG.Buffer = IPPU.TileCache [Depths [BGMode][bg]];
-    BG.Buffered = IPPU.TileCached [Depths [BGMode][bg]];
-    BG.PaletteShift = PaletteShifts[BGMode][bg];
-    BG.PaletteMask = PaletteMasks[BGMode][bg];
-    BG.DirectColourMode = (BGMode == 3 || BGMode == 4) && bg == 0 &&
-		(GFX.r2130 & 1);
-
-#ifdef OPTI
-	if ( DrawTilePtr == DrawTile16_OBJ ){
-		DrawTilePtr = DrawTile16;
-	}
-#endif // OPTI
-	
-    if (PPU.BGMosaic [bg] && PPU.Mosaic > 1){
-		DrawBackgroundMosaic (BGMode, bg, Z1, Z2);
-		return;
-		
-    }
-    switch (BGMode)
-    {
-    case 2:
-    case 4: // Used by Puzzle Bobble
-        DrawBackgroundOffset (BGMode, bg, Z1, Z2);
-		return;
-		
-    case 5:
-    case 6: // XXX: is also offset per tile.
-		if (Settings.SupportHiRes){
-			DrawBackgroundMode5 (BGMode, bg, Z1, Z2);
-			return;
-		}
-		break;
-    }
-    CHECK_SOUND();
-	
-//	DrawBackgroundFast (BGMode, bg, Z1, Z2);
-
-    uint32 Tile;
-    uint16 *SC0;
-    uint16 *SC1;
-    uint16 *SC2;
-    uint16 *SC3;
-    uint32 Width;
-    uint8 depths [2] = {Z1, Z2};
-    
-    if (BGMode == 0)
-		BG.StartPalette = bg << 5;
-    else BG.StartPalette = 0;
-	
-    SC0 = (uint16 *) &Memory.VRAM[PPU.BG[bg].SCBase << 1];
-	
-    if (PPU.BG[bg].SCSize & 1)
-		SC1 = SC0 + 1024;
-    else
-		SC1 = SC0;
-	
-	if(SC1>=(unsigned short*)(Memory.VRAM+0x10000))
-		SC1=(uint16*)&Memory.VRAM[((uint8*)SC1-&Memory.VRAM[0])%0x10000];
-	
-    if (PPU.BG[bg].SCSize & 2)
-		SC2 = SC1 + 1024;
-    else
-		SC2 = SC0;
-	
-	if(((uint8*)SC2-Memory.VRAM)>=0x10000)
-		SC2-=0x08000;
-	
-    if (PPU.BG[bg].SCSize & 1)
-		SC3 = SC2 + 1024;
-    else
-		SC3 = SC2;
-    
-	if(((uint8*)SC3-Memory.VRAM)>=0x10000)
-		SC3-=0x08000;
-
-	
-	
-    int Lines;
-    int OffsetMask;
-    int OffsetShift;
-	
-    if (BG.TileSize == 16){
-		OffsetMask = 0x3ff;
-		OffsetShift = 4;
-    } else {
-		OffsetMask = 0x1ff;
-		OffsetShift = 3;
-    }
-	
-	TileBlank = 0xFFFFFFFF;
-    for (uint32 Y = GFX.StartY; Y <= GFX.EndY; Y += Lines){
-		uint32 VOffset = LineData [Y].BG[bg].VOffset;
-		uint32 HOffset = LineData [Y].BG[bg].HOffset;
-		int VirtAlign = (Y + VOffset) & 7;
-		
-		for (Lines = 1; Lines < 8 - VirtAlign; Lines++)
-			if ((VOffset != LineData [Y + Lines].BG[bg].VOffset) ||
-				(HOffset != LineData [Y + Lines].BG[bg].HOffset))
-				break;
-			
-			if (Y + Lines > GFX.EndY)
-				Lines = GFX.EndY + 1 - Y;
-			
-			VirtAlign <<= 3;
-			
-			uint32 ScreenLine = (VOffset + Y) >> OffsetShift;
-			int		tx_index;
-			tx_index = ( ((VOffset + Y) & 15) <= 7 ) << 3;
-			uint16 *b1;
-			uint16 *b2;
-			
-			if (ScreenLine & 0x20)
-				b1 = SC2, b2 = SC3;
-			else
-				b1 = SC0, b2 = SC1;
-			
-			b1 += (ScreenLine & 0x1f) << 5;
-			b2 += (ScreenLine & 0x1f) << 5;
-			
-			int clipcount = GFX.pCurrentClip->Count [bg];
-			if (!clipcount)
-				clipcount = 1;
-			for (int clip = 0; clip < clipcount; clip++){
-				uint32 Left;
-				uint32 Right;
-				
-				if (!GFX.pCurrentClip->Count [bg]){
-					Left = 0;
-					Right = 256;
-				} else {
-					Left = GFX.pCurrentClip->Left [clip][bg];
-					Right = GFX.pCurrentClip->Right [clip][bg];
-					
-					if (Right <= Left)
-						continue;
-				}
-				
-				uint32 s = Left + Y * GFX.PPL;
-				uint32 HPos = (HOffset + Left) & OffsetMask;
-				uint32 Quot = HPos >> 3;
-				uint16 *t;
-
-				if (BG.TileSize == 8){
-					if (Quot > 31) t = b2 +  (Quot       & 0x1f); else t = b1 +  Quot;
-				} else {
-					if (Quot > 63) t = b2 + ((Quot >> 1) & 0x1f); else t = b1 + (Quot >> 1);
-				}
-
-				Width = Right - Left;
-
-				if ((HPos & 7) == 0){
-					// Middle, unclipped tiles
-					for (int C = Width >> 3; C > 0; s += 8, Quot++, C--){
-						Tile = READ_2BYTES(t);
-						GFX.Z1 = GFX.Z2 = depths [(Tile & 0x2000) >> 13];
-
-						if (BG.TileSize != 8){
-							Tile += tx_table[tx_index + ((Tile & (H_FLIP | V_FLIP)) >> 13) + (Quot & 1)];
-						}
-
-						if (Tile != TileBlank){
-							(*DrawTilePtr) (Tile, s, VirtAlign, Lines);
-						}
-
-						if (BG.TileSize != 8){
-							t += Quot & 1;
-							if (Quot == 63)	t = b2; else if (Quot == 127) t = b1;
-						} else {
-							t++;
-							if (Quot == 31) t = b2; else if (Quot == 63)  t = b1;
-						}
-					}
-				} else {
-					uint32 Count;
-					
-					// Left hand edge clipped tile
-					uint32 Offset = (HPos & 7);
-					Count = 8 - Offset;
-					if (Count > Width) Count = Width;
-					s -= Offset;
-					Tile = READ_2BYTES(t);
-					GFX.Z1 = GFX.Z2 = depths [(Tile & 0x2000) >> 13];
-
-					if (BG.TileSize != 8){
-						Tile += tx_table[tx_index + ((Tile & (H_FLIP | V_FLIP)) >> 13) + (Quot & 1)];
-					}
-
-					if (Tile != TileBlank){
-						(*DrawClippedTilePtr) (Tile, s, Offset, Count, VirtAlign, Lines);
-					}
-
-					if (BG.TileSize == 8){
-						t++;
-						if (Quot == 31)	t = b2; else if (Quot == 63)  t = b1;
-					} else {
-						t += Quot & 1;
-						if (Quot == 63) t = b2; else if (Quot == 127) t = b1;
-					}
-					Quot++;
-					s += 8;
-					
-					// Middle, unclipped tiles
-					Count = Width - Count;
-					for (int C = Count >> 3; C > 0; s += 8, Quot++, C--){
-						Tile = READ_2BYTES(t);
-						GFX.Z1 = GFX.Z2 = depths [(Tile & 0x2000) >> 13];
-
-						if (BG.TileSize != 8){
-							Tile += tx_table[tx_index + ((Tile & (H_FLIP | V_FLIP)) >> 13) + (Quot & 1)];
-						}
-
-						if (Tile != TileBlank){
-							(*DrawTilePtr) (Tile, s, VirtAlign, Lines);
-						}
-
-						if (BG.TileSize == 8){
-							t++;
-							if (Quot == 31) t = b2; else if (Quot == 63)  t = b1;
-						} else {
-							t += Quot & 1;
-							if (Quot == 63) t = b2; else if (Quot == 127) t = b1;
-						}
-					}
-
-					// Right-hand edge clipped tiles
-					Tile = READ_2BYTES(t);
-					GFX.Z1 = GFX.Z2 = depths [(Tile & 0x2000) >> 13];
-					
-					if (BG.TileSize != 8){
-						Tile += tx_table[tx_index + ((Tile & (H_FLIP | V_FLIP)) >> 13) + (Quot & 1)];
-					}
-
-					if (Tile != TileBlank){
-						(*DrawClippedTilePtr) (Tile, s, 0, Count & 7, VirtAlign, Lines);
-					}
-				}
-		}
-    }
-}
-*/
 #else
 void DrawBackground (uint32 BGMode, uint32 bg, uint8 Z1, uint8 Z2)
 {
@@ -3098,10 +3196,6 @@ void DrawBackground (uint32 BGMode, uint32 bg, uint8 Z1, uint8 Z2)
 			VirtAlign <<= 3;
 			
 			uint32 ScreenLine = (VOffset + Y) >> OffsetShift;
-#ifdef OPTI
-			int		tx_index;
-			tx_index = ( ((VOffset + Y) & 15) <= 7 ) << 3;
-#else
 			uint32 t1;
 			uint32 t2;
 			if (((VOffset + Y) & 15) > 7)
@@ -3114,7 +3208,6 @@ void DrawBackground (uint32 BGMode, uint32 bg, uint8 Z1, uint8 Z2)
 				t1 = 0;
 				t2 = 16;
 			}
-#endif // OPTI
 			uint16 *b1;
 			uint16 *b2;
 			
@@ -3184,19 +3277,15 @@ void DrawBackground (uint32 BGMode, uint32 bg, uint8 Z1, uint8 Z2)
 					
 					if (BG.TileSize == 8)
 					{
-						(*DrawClippedTilePtr) (Tile, s, Offset, Count, VirtAlign,
+						CALL_DRAW_CLIPPED_TILE_FUNC (DrawClippedTilePtr, Tile, s, Offset, Count, VirtAlign,
 							Lines);
 					}
 					else
 					{
-#ifdef OPTI
-						Tile += tx_table[tx_index + ((Tile & (H_FLIP | V_FLIP)) >> 13) + (Quot & 1)];
-						(*DrawClippedTilePtr) (Tile, s, Offset, Count, VirtAlign, Lines);
-#else
 						if (!(Tile & (V_FLIP | H_FLIP)))
 						{
 							// Normal, unflipped
-							(*DrawClippedTilePtr) (Tile + t1 + (Quot & 1),
+							CALL_DRAW_CLIPPED_TILE_FUNC (DrawClippedTilePtr, Tile + t1 + (Quot & 1),
 								s, Offset, Count, VirtAlign, Lines);
 						}
 						else
@@ -3205,23 +3294,22 @@ void DrawBackground (uint32 BGMode, uint32 bg, uint8 Z1, uint8 Z2)
 								if (Tile & V_FLIP)
 								{
 									// H & V flip
-									(*DrawClippedTilePtr) (Tile + t2 + 1 - (Quot & 1),
+									CALL_DRAW_CLIPPED_TILE_FUNC (DrawClippedTilePtr, Tile + t2 + 1 - (Quot & 1),
 										s, Offset, Count, VirtAlign, Lines);
 								}
 								else
 								{
 									// H flip only
-									(*DrawClippedTilePtr) (Tile + t1 + 1 - (Quot & 1),
+									CALL_DRAW_CLIPPED_TILE_FUNC (DrawClippedTilePtr, Tile + t1 + 1 - (Quot & 1),
 										s, Offset, Count, VirtAlign, Lines);
 								}
 							}
 							else
 							{
 								// V flip only
-								(*DrawClippedTilePtr) (Tile + t2 + (Quot & 1), s, 
+								CALL_DRAW_CLIPPED_TILE_FUNC (DrawClippedTilePtr, Tile + t2 + (Quot & 1), s, 
 									Offset, Count, VirtAlign, Lines);
 							}
-#endif // OPTI
 					}
 					
 					if (BG.TileSize == 8)
@@ -3255,23 +3343,19 @@ void DrawBackground (uint32 BGMode, uint32 bg, uint8 Z1, uint8 Z2)
 					
 					if (BG.TileSize != 8)
 					{
-#ifdef OPTI
-						Tile += tx_table[tx_index + ((Tile & (H_FLIP | V_FLIP)) >> 13) + (Quot & 1)];
-						(*DrawTilePtr) (Tile, s, VirtAlign, Lines);
-#else
 						if (Tile & H_FLIP)
 						{
 							// Horizontal flip, but what about vertical flip ?
 							if (Tile & V_FLIP)
 							{
 								// Both horzontal & vertical flip
-								(*DrawTilePtr) (Tile + t2 + 1 - (Quot & 1), s, 
+								CALL_DRAW_TILE_FUNC (DrawTilePtr, Tile + t2 + 1 - (Quot & 1), s, 
 									VirtAlign, Lines);
 							}
 							else
 							{
 								// Horizontal flip only
-								(*DrawTilePtr) (Tile + t1 + 1 - (Quot & 1), s, 
+								CALL_DRAW_TILE_FUNC (DrawTilePtr, Tile + t1 + 1 - (Quot & 1), s, 
 									VirtAlign, Lines);
 							}
 						}
@@ -3281,21 +3365,20 @@ void DrawBackground (uint32 BGMode, uint32 bg, uint8 Z1, uint8 Z2)
 							if (Tile & V_FLIP)
 							{
 								// Vertical flip only
-								(*DrawTilePtr) (Tile + t2 + (Quot & 1), s,
+								CALL_DRAW_TILE_FUNC (DrawTilePtr, Tile + t2 + (Quot & 1), s,
 									VirtAlign, Lines);
 							}
 							else
 							{
 								// Normal unflipped
-								(*DrawTilePtr) (Tile + t1 + (Quot & 1), s,
+								CALL_DRAW_TILE_FUNC (DrawTilePtr, Tile + t1 + (Quot & 1), s,
 									VirtAlign, Lines);
 							}
 						}
-#endif // OPTI
 					}
 					else
 					{
-						(*DrawTilePtr) (Tile, s, VirtAlign, Lines);
+						CALL_DRAW_TILE_FUNC (DrawTilePtr, Tile, s, VirtAlign, Lines);
 					}
 					
 					if (BG.TileSize == 8)
@@ -3324,18 +3407,14 @@ void DrawBackground (uint32 BGMode, uint32 bg, uint8 Z1, uint8 Z2)
 					GFX.Z1 = GFX.Z2 = depths [(Tile & 0x2000) >> 13];
 					
 					if (BG.TileSize == 8)
-						(*DrawClippedTilePtr) (Tile, s, 0, Count, VirtAlign, 
+						CALL_DRAW_CLIPPED_TILE_FUNC (DrawClippedTilePtr, Tile, s, 0, Count, VirtAlign, 
 						Lines);
 					else
 					{
-#ifdef OPTI
-						Tile += tx_table[tx_index + ((Tile & (H_FLIP | V_FLIP)) >> 13) + (Quot & 1)];
-						(*DrawClippedTilePtr) (Tile, s, 0, Count, VirtAlign, Lines);
-#else
 						if (!(Tile & (V_FLIP | H_FLIP)))
 						{
 							// Normal, unflipped
-							(*DrawClippedTilePtr) (Tile + t1 + (Quot & 1), s, 0, 
+							CALL_DRAW_CLIPPED_TILE_FUNC (DrawClippedTilePtr, Tile + t1 + (Quot & 1), s, 0, 
 								Count, VirtAlign, Lines);
 						}
 						else if (Tile & H_FLIP)
@@ -3343,14 +3422,14 @@ void DrawBackground (uint32 BGMode, uint32 bg, uint8 Z1, uint8 Z2)
 							if (Tile & V_FLIP)
 							{
 								// H & V flip
-								(*DrawClippedTilePtr) (Tile + t2 + 1 - (Quot & 1),
+								CALL_DRAW_CLIPPED_TILE_FUNC (DrawClippedTilePtr, Tile + t2 + 1 - (Quot & 1),
 									s, 0, Count, VirtAlign, 
 									Lines);
 							}
 							else
 							{
 								// H flip only
-								(*DrawClippedTilePtr) (Tile + t1 + 1 - (Quot & 1),
+								CALL_DRAW_CLIPPED_TILE_FUNC (DrawClippedTilePtr, Tile + t1 + 1 - (Quot & 1),
 									s, 0, Count, VirtAlign,
 									Lines);
 							}
@@ -3358,15 +3437,16 @@ void DrawBackground (uint32 BGMode, uint32 bg, uint8 Z1, uint8 Z2)
 						else
 						{
 							// V flip only
-							(*DrawClippedTilePtr) (Tile + t2 + (Quot & 1),
+							CALL_DRAW_CLIPPED_TILE_FUNC (DrawClippedTilePtr, Tile + t2 + (Quot & 1),
 								s, 0, Count, VirtAlign, 
 								Lines);
 						}
-#endif // OPTI
 					}
 				}
 		}
     }
+
+    FINISH_PROFILE_GFX_FUNC (DrawBackground);
 }
 #endif // OPTI
 
@@ -3506,16 +3586,28 @@ void DrawBackground (uint32 BGMode, uint32 bg, uint8 Z1, uint8 Z2)
 
 void DrawBGMode7Background (uint8 *Screen, int bg)
 {
+#ifndef ANDON_OPT
+	return;
+#endif
+
     RENDER_BACKGROUND_MODE7 (uint8, (uint8) (b & GFX.Mode7Mask))
 }
 
 void DrawBGMode7Background16 (uint8 *Screen, int bg)
 {
+#ifndef ANDON_OPT
+	return;
+#endif
+
     RENDER_BACKGROUND_MODE7 (uint16, GFX.ScreenColors [b & GFX.Mode7Mask]);
 }
 
 void DrawBGMode7Background16Add (uint8 *Screen, int bg)
 {
+#ifndef ANDON_OPT
+	return;
+#endif
+
     RENDER_BACKGROUND_MODE7 (uint16, *(d + GFX.DepthDelta) ?
 					(*(d + GFX.DepthDelta) != 1 ?
 					    COLOR_ADD (GFX.ScreenColors [b & GFX.Mode7Mask],
@@ -3527,6 +3619,10 @@ void DrawBGMode7Background16Add (uint8 *Screen, int bg)
 
 void DrawBGMode7Background16Add1_2 (uint8 *Screen, int bg)
 {
+#ifndef ANDON_OPT
+	return;
+#endif
+
     RENDER_BACKGROUND_MODE7 (uint16, *(d + GFX.DepthDelta) ?
 					(*(d + GFX.DepthDelta) != 1 ?
 					    COLOR_ADD1_2 (GFX.ScreenColors [b & GFX.Mode7Mask],
@@ -3538,6 +3634,10 @@ void DrawBGMode7Background16Add1_2 (uint8 *Screen, int bg)
 
 void DrawBGMode7Background16Sub (uint8 *Screen, int bg)
 {
+#ifndef ANDON_OPT
+	return;
+#endif
+
     RENDER_BACKGROUND_MODE7 (uint16, *(d + GFX.DepthDelta) ?
 					(*(d + GFX.DepthDelta) != 1 ?
 					    COLOR_SUB (GFX.ScreenColors [b & GFX.Mode7Mask],
@@ -3549,6 +3649,10 @@ void DrawBGMode7Background16Sub (uint8 *Screen, int bg)
 
 void DrawBGMode7Background16Sub1_2 (uint8 *Screen, int bg)
 {
+#ifndef ANDON_OPT
+	return;
+#endif
+
     RENDER_BACKGROUND_MODE7 (uint16, *(d + GFX.DepthDelta) ?
 					(*(d + GFX.DepthDelta) != 1 ?
 					    COLOR_SUB1_2 (GFX.ScreenColors [b & GFX.Mode7Mask],
@@ -4027,6 +4131,10 @@ HIGH_BITS_SHIFTED_TWO_MASK = (( (FIRST_COLOR_MASK | SECOND_COLOR_MASK | THIRD_CO
 
 void RenderScreen (uint8 *Screen, bool8 sub, bool8 force_no_add, uint8 D)
 {
+//#ifndef ANDON_OPT
+//    return;
+//#endif
+    
     bool8 BG0;
     bool8 BG1;
     bool8 BG2;
@@ -4349,7 +4457,7 @@ void S9xUpdateScreen ()
 		(GFX.r2131 & 0x3f) == 0;
 
 #endif
-	
+
     if (IPPU.OBJChanged)
 		S9xSetupOBJ ();
 	
@@ -4877,8 +4985,10 @@ void S9xUpdateScreen ()
 		if (!PPU.ForcedBlanking)
 		{
 #ifdef OPTI
-			uint32	len = (endy - starty + 1) * (IPPU.RenderedScreenWidth << 1);
-			ZeroMemory( GFX.ZBuffer + starty * GFX.ZPitch, len );
+			if (endy >= starty) {
+				uint32 len = (endy - starty + 1) * GFX.ZPitch;
+				ZeroMemory (GFX.ZBuffer + starty * GFX.ZPitch, len);
+			}
 #else
 			for (uint32 y = starty; y <= endy; y++)
 			{
@@ -4923,11 +5033,18 @@ void S9xUpdateScreen ()
 #endif // OPTI
 		if (!PPU.ForcedBlanking)
 		{
+#ifdef OPTI
+			if (endy >= starty) {
+				uint32 len = (endy - starty + 1) * GFX.ZPitch;
+				ZeroMemory (GFX.ZBuffer + starty * GFX.ZPitch, len);
+			}
+#else
 			for (uint32 y = starty; y <= endy; y++)
 			{
 				ZeroMemory (GFX.ZBuffer + y * GFX.ZPitch,
 					IPPU.RenderedScreenWidth);
 			}
+#endif // OPTI
 			GFX.DB = GFX.ZBuffer;
 			GFX.pCurrentClip = &IPPU.Clip [0];
 			

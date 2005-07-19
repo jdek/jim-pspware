@@ -103,8 +103,21 @@ extern "C"
 	extern uint8 OpenBus;
 }
 
+#ifndef OPTI
+static uint8 _GetPPU(uint32 Address)
+{
+	return (S9xGetPPU (Address & 0xffff));
+}
 
-#ifdef OPTI
+static uint8 _GetCPU(uint32 Address)
+{
+	return (S9xGetCPU (Address & 0xffff));
+}
+
+static uint8 _GetDSP(uint32 Address)
+{
+	return (S9xGetDSP (Address & 0xffff));
+}
 
 static uint8 _GetLOROM_SRAM(uint32 Address)
 {
@@ -130,28 +143,40 @@ static uint8 _GetBWRAM(uint32 Address)
 	return (*(Memory.BWRAM + ((Address & 0x7fff) - 0x6000)));
 }
 
+static uint8 _GetC4(uint32 Address)
+{
+	return (S9xGetC4 (Address & 0xffff));
+}
+
+static uint8 _GetOBC1(uint32 Address)
+{
+	return (GetOBC1(Address & 0xffff));
+}
+
+
+
 static uint8 _GetNONE(uint32 Address)
 {
 	return OpenBus;
 }
 
 static uint8 (*GetByte[])(uint32 Address) = {
-	(uint8 (*)(unsigned int))S9xGetPPU,			// MAP_PPU
-	(uint8 (*)(unsigned int))S9xGetCPU,			// MAP_CPU
-	(uint8 (*)(unsigned int))S9xGetDSP,			// MAP_DSP
-	 _GetLOROM_SRAM,							// MAP_LOROM_SRAM
-	_GetHIROM_SRAM,								// MAP_HIROM_SRAM
-	_GetNONE,									// MAP_NONE
-	_GetNONE,									// MAP_DEBUG
-	(uint8 (*)(unsigned int))S9xGetC4,			// MAP_C4
-	_GetBWRAM,									// MAP_BWRAM
-	_GetNONE,									// MAP_BWRAM_BITMAP
-	_GetNONE,									// MAP_BWRAM_BITMAP2
-	_GetLOROM_SRAM,								// MAP_SA1RAM
+	_GetPPU,			// MAP_PPU
+	_GetCPU,			// MAP_CPU
+	_GetDSP,			// MAP_DSP
+	_GetLOROM_SRAM,		// MAP_LOROM_SRAM
+	_GetHIROM_SRAM,		// MAP_HIROM_SRAM
+	_GetNONE,			// MAP_NONE
+	_GetNONE,			// MAP_DEBUG
+	_GetC4,				// MAP_C4
+	_GetBWRAM,			// MAP_BWRAM
+	_GetNONE,			// MAP_BWRAM_BITMAP
+	_GetNONE,			// MAP_BWRAM_BITMAP2
+	_GetLOROM_SRAM,		// MAP_SA1RAM
 	(uint8 (*)(unsigned int))S9xGetSPC7110Byte,	// MAP_SPC7110_ROM
 	(uint8 (*)(unsigned int))S9xGetSPC7110,		// MAP_SPC7110_DRAM
-	_GetHIROM_SRAM,								// MAP_RONLY_SRAM
-	(uint8 (*)(unsigned int))GetOBC1,			// MAP_OBC_RAM
+	_GetHIROM_SRAM,					// MAP_RONLY_SRAM
+	_GetOBC1,					// MAP_OBC_RAM
 	(uint8 (*)(unsigned int))S9xGetSetaDSP,		// MAP_SETA_DSP
 	(uint8 (*)(unsigned int))S9xGetST018,		// MAP_SETA_RISC
 };

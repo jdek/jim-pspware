@@ -94,6 +94,8 @@
 #include "gfx.h"
 #include "tile.h"
 
+#include "profiler.h"
+
 #ifdef USE_GLIDE
 #include "3d.h"
 #endif
@@ -352,64 +354,88 @@ inline void WRITE_4PIXELS_FLIPPEDx2x2 (uint32 Offset, uint8 *Pixels)
 void DrawTile (uint32 Tile, uint32 Offset, uint32 StartLine,
 	       uint32 LineCount)
 {
+    START_PROFILE_TILE_FUNC (DrawTile);
+
     TILE_PREAMBLE
 
     register uint8 *bp;
 
     RENDER_TILE(WRITE_4PIXELS, WRITE_4PIXELS_FLIPPED, 4)
+
+    FINISH_PROFILE_TILE_FUNC (DrawTile);
 }
 
 void DrawClippedTile (uint32 Tile, uint32 Offset,
 		      uint32 StartPixel, uint32 Width,
 		      uint32 StartLine, uint32 LineCount)
 {
+    START_PROFILE_TILE_FUNC (DrawTile);
+
     TILE_PREAMBLE
     register uint8 *bp;
 
     TILE_CLIP_PREAMBLE
     RENDER_CLIPPED_TILE(WRITE_4PIXELS, WRITE_4PIXELS_FLIPPED, 4)
+
+    FINSIH_PROFILE_FUNC (DrawClippedTile);
 }
 
 void DrawTilex2 (uint32 Tile, uint32 Offset, uint32 StartLine,
 		 uint32 LineCount)
 {
+    START_PROFILE_TILE_FUNC (DrawTile);
+
     TILE_PREAMBLE
 
     register uint8 *bp;
 
     RENDER_TILE(WRITE_4PIXELSx2, WRITE_4PIXELS_FLIPPEDx2, 8)
+
+    FINISH_PROFILE_TILE_FUNC (DrawTilex2);
 }
 
 void DrawClippedTilex2 (uint32 Tile, uint32 Offset,
 			uint32 StartPixel, uint32 Width,
 			uint32 StartLine, uint32 LineCount)
 {
+    START_PROFILE_TILE_FUNC (DrawClippedTilex2);
+
     TILE_PREAMBLE
     register uint8 *bp;
 
     TILE_CLIP_PREAMBLE
     RENDER_CLIPPED_TILE(WRITE_4PIXELSx2, WRITE_4PIXELS_FLIPPEDx2, 8)
+
+    FINISH_PROFILE_TILE_FUNC (DrawClippedTilex2);
 }
 
 void DrawTilex2x2 (uint32 Tile, uint32 Offset, uint32 StartLine,
 		   uint32 LineCount)
 {
+    START_PROFILE_TILE_FUNC (DrawTilex2x2);
+
     TILE_PREAMBLE
 
     register uint8 *bp;
 
     RENDER_TILE(WRITE_4PIXELSx2x2, WRITE_4PIXELS_FLIPPEDx2x2, 8)
+
+    FINISH_PROFILE_TILE_FUNC (DrawTilex2x2);
 }
 
 void DrawClippedTilex2x2 (uint32 Tile, uint32 Offset,
 			  uint32 StartPixel, uint32 Width,
 			  uint32 StartLine, uint32 LineCount)
 {
+    START_PROFILE_TILE_FUNC (DrawClippedTilex2x2);
+
     TILE_PREAMBLE
     register uint8 *bp;
 
     TILE_CLIP_PREAMBLE
     RENDER_CLIPPED_TILE(WRITE_4PIXELSx2x2, WRITE_4PIXELS_FLIPPEDx2x2, 8)
+
+    FINISH_PROFILE_TILE_FUNC (DrawClippedTilex2x2);
 }
 #endif // OPTI
 
@@ -538,6 +564,8 @@ inline void WRITE_4PIXELS16_FLIPPEDx2x2 (uint32 Offset, uint8 *Pixels)
 #ifdef OPTI
 void DrawTile16_OBJ (uint32 Tile, uint32 Offset, uint32 StartLine, uint32 LineCount)
 {
+    START_PROFILE_TILE_FUNC (DrawTile16_OBJ);
+    
 //	TILE_PREAMBLE
 
     uint8 *pCache;
@@ -556,7 +584,7 @@ void DrawTile16_OBJ (uint32 Tile, uint32 Offset, uint32 StartLine, uint32 LineCo
 	}
 
     if (BG.Buffered [TileNumber] == BLANK_TILE){
-		TileBlank = Tile & 0xFFFFFFFE;
+		TileBlank = Tile & 0xFFFFFFFF;
 		return;
 	}
 
@@ -619,10 +647,14 @@ void DrawTile16_OBJ (uint32 Tile, uint32 Offset, uint32 StartLine, uint32 LineCo
 		}
 #undef FN
 	}
+
+     FINISH_PROFILE_TILE_FUNC (DrawTile16_OBJ);
 }
 
 void DrawTile16 (uint32 Tile, uint32 Offset, uint32 StartLine, uint32 LineCount)
 {
+    START_PROFILE_TILE_FUNC (DrawTile16);
+    
 //	TILE_PREAMBLE
 
     uint8 *pCache;
@@ -638,7 +670,7 @@ void DrawTile16 (uint32 Tile, uint32 Offset, uint32 StartLine, uint32 LineCount)
 	}
 
     if (BG.Buffered [TileNumber] == BLANK_TILE){
-		TileBlank = Tile & 0xFFFFFFFE;
+		TileBlank = Tile & 0xFFFFFFFF;
 		return;
 	}
 
@@ -708,108 +740,22 @@ void DrawTile16 (uint32 Tile, uint32 Offset, uint32 StartLine, uint32 LineCount)
 		}
 #undef FN
 	}
+
+    FINISH_PROFILE_TILE_FUNC (DrawTile16);
 }
-/*
-void DrawTile16 (uint32 Tile, uint32 Offset, uint32 StartLine, uint32 LineCount)
-{
-//	TILE_PREAMBLE
 
-    uint8 *pCache;
-    uint32 TileAddr = BG.TileAddress + ((Tile & 0x3ff) << BG.TileShift);
-    if ((Tile & 0x1ff) >= 256){
-		TileAddr += BG.NameSelect;
-	}
-
-    TileAddr &= 0xffff;
-
-    uint32 TileNumber;
-    pCache = &BG.Buffer[(TileNumber = (TileAddr >> BG.TileShift)) << 6];
-
-    if (!BG.Buffered [TileNumber]){
-		BG.Buffered[TileNumber] = ConvertTile (pCache, TileAddr);
-	}
-
-    if (BG.Buffered [TileNumber] == BLANK_TILE){
-		TileBlank = Tile & 0xFFFFFFFE;
-		return;
-	}
-
-    if (BG.DirectColourMode){
-		if (IPPU.DirectColourMapsNeedRebuild){
-			S9xBuildDirectColourMaps ();
-		}
-        GFX.ScreenColors = DirectColourMaps [(Tile >> 10) & BG.PaletteMask];
-    } else {
-		GFX.ScreenColors = &IPPU.ScreenColors [(((Tile >> 10) & BG.PaletteMask) << BG.PaletteShift) + BG.StartPalette];
-	}
-
-    register uint8*	bp;
-	register int	inc;
-
-    if (!(Tile & V_FLIP)){
-		bp  = pCache + StartLine;
-		inc = 8;
-	} else {
-		bp  = pCache + 56 - StartLine;
-		inc = -8;
-	}
-
-    uint16*	Screen = (uint16 *) GFX.S + Offset;
-	uint16* Colors =  GFX.ScreenColors;
-    uint8*	Depth = GFX.DB + Offset;
-	int		GFX_PPL = GFX.PPL;
-	int		GFX_Z1  = GFX.Z1;
-	int		GFX_Z2  = GFX.Z2;
-
-    if (Tile & H_FLIP){
-#define FN(N, B) \
-	if (GFX_Z1 > Depth[N] && bp[B]){ \
-		Screen[N] = Colors[bp[B]]; \
-		Depth[N]  = GFX_Z2; \
-    }
-		while ( LineCount-- ){
-		    if ( *(uint32 *)(bp + 4) ){
-				FN(0, 7); FN(1, 6); FN(2, 5); FN(3, 4);
-			}
-
-		    if ( *(uint32*)bp ){
-				FN(4, 3); FN(5, 2); FN(6, 1); FN(7, 0);
-			}
-			bp += inc;
-			Screen += GFX_PPL;
-			Depth  += GFX_PPL;
-		}
-#undef FN
-	} else {
-#define FN(N) \
-    if (GFX_Z1 > Depth[N] && bp[N]){ \
-		Screen[N] = Colors[bp[N]]; \
-		Depth[N]  = GFX_Z2; \
-	}
-		while ( LineCount-- ){
-		    if ( *(uint32*)bp ){
-				FN(0); FN(1); FN(2); FN(3);
-			}
-
-		    if ( *(uint32 *)(bp + 4) ){
-				FN(4); FN(5); FN(6); FN(7);
-			}
-			bp += inc;
-			Screen += GFX_PPL;
-			Depth  += GFX_PPL;
-		}
-	}
-#undef FN
-}
-*/
 #else
 void DrawTile16 (uint32 Tile, uint32 Offset, uint32 StartLine,
 	         uint32 LineCount)
 {
+    START_PROFILE_TILE_FUNC (DrawTile16);
+    
     TILE_PREAMBLE
     register uint8 *bp;
 
     RENDER_TILE(WRITE_4PIXELS16, WRITE_4PIXELS16_FLIPPED, 4)
+
+    FINISH_PROILE_FUNC (DrawTile16);
 }
 #endif // OPTI
 
@@ -817,51 +763,71 @@ void DrawClippedTile16 (uint32 Tile, uint32 Offset,
 			uint32 StartPixel, uint32 Width,
 			uint32 StartLine, uint32 LineCount)
 {
+    START_PROFILE_TILE_FUNC (DrawClippedTile16);
+    
     TILE_PREAMBLE
     register uint8 *bp;
 
     TILE_CLIP_PREAMBLE
     RENDER_CLIPPED_TILE(WRITE_4PIXELS16, WRITE_4PIXELS16_FLIPPED, 4)
+
+    FINISH_PROFILE_TILE_FUNC (DrawClippedTile16);
 }
 
 void DrawTile16x2 (uint32 Tile, uint32 Offset, uint32 StartLine,
 		   uint32 LineCount)
 {
+    START_PROFILE_TILE_FUNC (DrawTile16x2);
+    
     TILE_PREAMBLE
     register uint8 *bp;
 
     RENDER_TILE(WRITE_4PIXELS16x2, WRITE_4PIXELS16_FLIPPEDx2, 8)
+
+    FINISH_PROFILE_TILE_FUNC (DrawTile16x2);
 }
 
 void DrawClippedTile16x2 (uint32 Tile, uint32 Offset,
 			  uint32 StartPixel, uint32 Width,
 			  uint32 StartLine, uint32 LineCount)
 {
+    START_PROFILE_TILE_FUNC (DrawClippedTile16x2);
+    
     TILE_PREAMBLE
     register uint8 *bp;
 
     TILE_CLIP_PREAMBLE
     RENDER_CLIPPED_TILE(WRITE_4PIXELS16x2, WRITE_4PIXELS16_FLIPPEDx2, 8)
+
+    FINISH_PROFILE_TILE_FUNC (DrawClippedTile16x2);
 }
 
 void DrawTile16x2x2 (uint32 Tile, uint32 Offset, uint32 StartLine,
 		     uint32 LineCount)
 {
+    START_PROFILE_TILE_FUNC (DrawTile16x2x2);
+    
     TILE_PREAMBLE
     register uint8 *bp;
 
     RENDER_TILE(WRITE_4PIXELS16x2x2, WRITE_4PIXELS16_FLIPPEDx2x2, 8)
+
+    FINISH_PROFILE_TILE_FUNC (DrawTile16x2x2);
 }
 
 void DrawClippedTile16x2x2 (uint32 Tile, uint32 Offset,
 			    uint32 StartPixel, uint32 Width,
 			    uint32 StartLine, uint32 LineCount)
 {
+    START_PROFILE_TILE_FUNC (DrawClippedTile16x2x2);
+    
     TILE_PREAMBLE
     register uint8 *bp;
 
     TILE_CLIP_PREAMBLE
     RENDER_CLIPPED_TILE(WRITE_4PIXELS16x2x2, WRITE_4PIXELS16_FLIPPEDx2x2, 8)
+
+    FINISH_PROFILE_TILE_FUNC (DrawClippedTile16x2x2);
 }
 
 inline void WRITE_4PIXELS16_ADD (uint32 Offset, uint8 *Pixels)
@@ -1036,30 +1002,42 @@ inline void WRITE_4PIXELS16_FLIPPED_SUB1_2 (uint32 Offset, uint8 *Pixels)
 void DrawTile16Add (uint32 Tile, uint32 Offset, uint32 StartLine,
 		    uint32 LineCount)
 {
+    START_PROFILE_TILE_FUNC (DrawTile16Add);
+    
     TILE_PREAMBLE
     register uint8 *bp;
 
     RENDER_TILE(WRITE_4PIXELS16_ADD, WRITE_4PIXELS16_FLIPPED_ADD, 4)
+
+    FINISH_PROFILE_TILE_FUNC (DrawTile16Add);
 }
 
 void DrawClippedTile16Add (uint32 Tile, uint32 Offset,
 			   uint32 StartPixel, uint32 Width,
 			   uint32 StartLine, uint32 LineCount)
 {
+    START_PROFILE_TILE_FUNC (DrawClippedTile16Add);
+    
     TILE_PREAMBLE
     register uint8 *bp;
 
     TILE_CLIP_PREAMBLE
     RENDER_CLIPPED_TILE(WRITE_4PIXELS16_ADD, WRITE_4PIXELS16_FLIPPED_ADD, 4)
+
+    FINISH_PROFILE_TILE_FUNC (DrawClippedTile16Add);
 }
 
 void DrawTile16Add1_2 (uint32 Tile, uint32 Offset, uint32 StartLine,
 		       uint32 LineCount)
 {
+    START_PROFILE_TILE_FUNC (DrawTile1Add1_2);
+    
     TILE_PREAMBLE
     register uint8 *bp;
 
     RENDER_TILE(WRITE_4PIXELS16_ADD1_2, WRITE_4PIXELS16_FLIPPED_ADD1_2, 4)
+
+    FINISH_PROFILE_TILE_FUNC (DrawTile16Add1_2);
 }
 
 void DrawClippedTile16Add1_2 (uint32 Tile, uint32 Offset,
@@ -1243,6 +1221,8 @@ void DrawLargePixel (uint32 Tile, uint32 Offset,
 		     uint32 StartPixel, uint32 Pixels,
 		     uint32 StartLine, uint32 LineCount)
 {
+    START_PROFILE_TILE_FUNC (DrawLargePixel);
+
     TILE_PREAMBLE
 
     register uint8 *sp = GFX.S + Offset;
@@ -1251,12 +1231,16 @@ void DrawLargePixel (uint32 Tile, uint32 Offset,
 #define PLOT_PIXEL(screen, pixel) (pixel)
 
     RENDER_TILE_LARGE (((uint8) GFX.ScreenColors [pixel]), PLOT_PIXEL)
+
+    FINISH_PROFILE_TILE_FUNC (DrawLargePixel);
 }
 
 void DrawLargePixel16 (uint32 Tile, uint32 Offset,
 		       uint32 StartPixel, uint32 Pixels,
 		       uint32 StartLine, uint32 LineCount)
 {
+    START_PROFILE_TILE_FUNC (DrawLargePixel16);
+    
     TILE_PREAMBLE
 
     register uint16 *sp = (uint16 *) GFX.S + Offset;
@@ -1264,6 +1248,8 @@ void DrawLargePixel16 (uint32 Tile, uint32 Offset,
     uint16 pixel;
 
     RENDER_TILE_LARGE (GFX.ScreenColors [pixel], PLOT_PIXEL)
+
+    FINISH_PROFILE_TILE_FUNC (DrawLargePixel16);
 }
 
 void DrawLargePixel16Add (uint32 Tile, uint32 Offset,

@@ -146,7 +146,11 @@ struct InternalPPU {
     uint32 Green [256];
     uint32 Blue [256];
     uint8  *XB;
+#ifdef PSP
+    uint16 __attribute__((aligned (16))) ScreenColors [256];
+#else
     uint16 ScreenColors [256];
+#endif
     int	   PreviousLine;
     int	   CurrentLine;
 #ifdef OPTI
@@ -225,9 +229,7 @@ struct SPPU {
     short  CentreX;
     short  CentreY;
     uint8  Joypad1ButtonReadPos;
-#ifndef OPTI
     uint8  Joypad2ButtonReadPos;
-#endif // OPTI
 
     uint8  CGADD;
     uint8  FixedColourRed;
@@ -236,9 +238,7 @@ struct SPPU {
     uint16 SavedOAMAddr;
     uint16 ScreenHeight;
     uint32 WRAM;
-#ifndef OPTI
     uint8  BG_Forced;
-#endif // OPTI
     bool8  ForcedBlanking;
     bool8  OBJThroughMain;
     bool8  OBJThroughSub;
@@ -269,10 +269,8 @@ struct SPPU {
     uint8  CGFLIPRead;
     uint16 OBJNameSelect;
     bool8  Need16x8Mulitply;
-#ifndef OPTI
     uint8  Joypad3ButtonReadPos;
     uint8  MouseSpeed[2];
-#endif // OPTI
 
     // XXX Do these need to be added to snapshot.cpp?
     uint16 OAMWriteRegister;
