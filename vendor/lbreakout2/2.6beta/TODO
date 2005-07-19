@@ -1,0 +1,8 @@
+- i18n
+- allow themes to have several 'between level' screens
+- udp flooding after game finished
+- allow additional weapon graphic/animation planted on top
+  of the paddle
+- improve pre-calculation of networked ball movement (dummy reflect)
+- joystick as input
+- shadow surface for zoom
