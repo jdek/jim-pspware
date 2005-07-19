@@ -18,55 +18,57 @@ int nfiles;
 
 void menu_frame(const unsigned char *msg0, const unsigned char *msg1)
 {
-//	if(bBitmap)
-//		pgBitBlt(0,0,480,272,1,bgBitmap);
-//	else
-	pgFillvram(0x9063);
-	mh_print(286, 0, (unsigned char *)" ¡ uo_Snes9x for PSP Ver0.02pd2 ¡", RGB(85,85,95));
-
         long BatteryVolt_ret        = scePowerGetBatteryVolt        (); // Voltage: 5000 = 5.000 Volts
 	long BatteryCharging_ret    = scePowerIsBatteryCharging     (); // 
 	int  BatteryLifePercent_ret = scePowerGetBatteryLifePercent (); // 
-	int  BatteryLifeTime_ret = scePowerGetBatteryLifeTime        (); // 
-
+	int  BatteryLifeTime_ret    = scePowerGetBatteryLifeTime    (); // Estimated number of minutes the battery will last
 	
-	BatteryLifeTime_ret = scePowerGetBatteryLifeTime    ();
-	char message[256];
-	char BatteryVolt_ret_text[16];
-	char BatteryCharge_percent[16];
+	char message               [256];
+	char BatteryVolt_ret_text  [16];
+	char BatteryCharge_percent [16];
+	
 	bool8 BatteryFull = FALSE;
-	if ( ( BatteryVolt_ret > 999 ) && ( BatteryVolt_ret < 9999 )) {
+
+	pgFillvram (0x9063);
+	mh_print   (286, 0, (unsigned char *)" ¡ uo_Snes9x for PSP Ver0.02pd2 ¡", RGB (85,85,95));
+	
+	if ((BatteryVolt_ret > 999) && (BatteryVolt_ret < 9999)) {
 		sprintf (BatteryVolt_ret_text, "(%1.3fV)", (float)BatteryVolt_ret / 1000);
-	}else {
-		strcpy( BatteryVolt_ret_text, "(No Battery or Bad Voltage)" );
+	} else {
+		strcpy (BatteryVolt_ret_text, "(No Battery or Bad Voltage)");
 	}
+	
 	if (BatteryLifePercent_ret < 100) {
 		sprintf (BatteryCharge_percent, "%d%%", BatteryLifePercent_ret);
 	} else {
 		BatteryFull = TRUE;
 		strcpy (BatteryCharge_percent, "Full");
 	}
+	
 	// Running on AC power...
 	if (BatteryCharging_ret <  0) {
 		mh_print (0, 0, (unsigned char*)"[Running on AC Power]", RGB(0,255,0));
 	}
+	
 	// Battery is being used...
-	else if ( BatteryCharging_ret == 0 ) {
+	else if (BatteryCharging_ret == 0) {
 		sprintf  (message, "[Battery: %s %s -:- %01d:%02d]", BatteryCharge_percent, BatteryVolt_ret_text,
-		BatteryLifeTime_ret / 60, BatteryLifeTime_ret % 60);
+		                                                     BatteryLifeTime_ret / 60, BatteryLifeTime_ret % 60);
 		mh_print (0, 0, (unsigned char*)message, BatteryFull ? RGB (0,0,255) :
 		                                                       RGB (255,0,0));
 	}
+	
 	// Battery is being charged...
 	else {
-		long BatteryTemp_ret = scePowerGetBatteryTemp();
+		long BatteryTemp_ret = scePowerGetBatteryTemp ();
 		// If the battery temp. is > 38C (100F), display the temp.
 		if ((BatteryTemp_ret > 38) && (BatteryTemp_ret < 100)) {
-			sprintf (message, "[Charging: %s %s - %d° F]", BatteryCharge_percent, BatteryVolt_ret_text, (int)((9.0f/5.0f) * (float)BatteryTemp_ret) + 32);
-			mh_print(0, 0, (unsigned char*)message, RGB(255,0,0));
+			sprintf (message, "[Charging: %s %s - %d° F]", BatteryCharge_percent, BatteryVolt_ret_text,
+					                               (int)((9.0f/5.0f) * (float)BatteryTemp_ret) + 32);
+			mh_print (0, 0, (unsigned char*)message, RGB (255,0,0));
 		} else {
-			sprintf( message, "[Charging: %s %s]", BatteryCharge_percent, BatteryVolt_ret_text );
-			mh_print(0, 0, (unsigned char*)message, RGB(0,0,255));
+			sprintf  (message, "[Charging: %s %s]", BatteryCharge_percent, BatteryVolt_ret_text);
+			mh_print (0, 0, (unsigned char*)message, RGB (0,0,255));
 		}
 	}
 
@@ -249,12 +251,10 @@ int getFilePath(char *out)
 			sel-=10;
 		}else if(new_pad & PSP_CTRL_RIGHT){
 			sel+=10;
-// add by a
 		}else if(new_pad & PSP_CTRL_LTRIGGER){
 			sel-=20;
  		}else if(new_pad & PSP_CTRL_RTRIGGER){
 			sel+=20;
-// add by J
 		// ROMíœ(ƒƒ{ƒ^ƒ“‚ÅROMíœ)
 		}else if( new_pad & PSP_CTRL_SQUARE ) {
 			if( files[sel].d_stat.st_attr != FIO_SO_IFDIR) {

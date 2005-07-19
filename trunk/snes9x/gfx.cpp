@@ -492,9 +492,9 @@ inline void DrawTile16_OBJ_inline (uint32 Tile, uint32 Offset, uint32 StartLine,
 		inc = 8;
 	}
 
-    register uint16* 	__attribute__ ((aligned (16))) Screen  = (uint16 *) GFX.S + Offset;
-    register uint16* 	__attribute__ ((aligned (16))) Colors  = GFX.ScreenColors;
-    register uint8*  	__attribute__ ((aligned (16))) Depth   = GFX.DB + Offset;
+    register uint16* 	Screen  = (uint16 *) GFX.S + Offset;
+    register uint16* 	Colors  = GFX.ScreenColors;
+    register uint8*  	Depth   = GFX.DB + Offset;
     const int     	GFX_PPL = GFX.PPL;
     const int     	GFX_Z1  = GFX.Z1;
     const int     	GFX_Z2  = GFX.Z2;
@@ -581,9 +581,9 @@ inline void DrawTile16_inline (uint32 Tile, uint32 Offset, uint32 StartLine, uin
 		inc = 8;
 	}
 
-    register uint16*	__attribute__((aligned (16))) Screen = (uint16 *) GFX.S + Offset;
-    register uint16*	__attribute__((aligned (16))) Colors =  GFX.ScreenColors;
-    register uint8*	__attribute__((aligned (16))) Depth  =  GFX.DB + Offset;
+    register uint16*	Screen = (uint16 *) GFX.S + Offset;
+    register uint16*	Colors =  GFX.ScreenColors;
+    register uint8*	Depth  =  GFX.DB + Offset;
 	const int	GFX_PPL = GFX.PPL;
 	const int	GFX_Z1  = GFX.Z1;
 //	int		GFX_Z2  = GFX.Z2;

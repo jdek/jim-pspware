@@ -377,7 +377,7 @@ void DrawClippedTile (uint32 Tile, uint32 Offset,
     TILE_CLIP_PREAMBLE
     RENDER_CLIPPED_TILE(WRITE_4PIXELS, WRITE_4PIXELS_FLIPPED, 4)
 
-    FINSIH_PROFILE_FUNC (DrawClippedTile);
+    FINISH_PROFILE_TILE_FUNC (DrawClippedTile);
 }
 
 void DrawTilex2 (uint32 Tile, uint32 Offset, uint32 StartLine,
@@ -755,7 +755,7 @@ void DrawTile16 (uint32 Tile, uint32 Offset, uint32 StartLine,
 
     RENDER_TILE(WRITE_4PIXELS16, WRITE_4PIXELS16_FLIPPED, 4)
 
-    FINISH_PROILE_FUNC (DrawTile16);
+    FINISH_PROFILE_TILE_FUNC (DrawTile16);
 }
 #endif // OPTI
 
