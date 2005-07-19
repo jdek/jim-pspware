@@ -29,6 +29,11 @@ int ExitCallback()
 
 void PowerCallback(int unknown, int pwrflags)
 {
+	if(pwrflags & PSP_POWER_CB_HOLD_SWITCH)
+	{
+		extern bool8 g_bShowProfilerIno;
+		g_bShowProfilerInfo = (! g_bShowProfilerInfo);
+	}
 	if(pwrflags & PSP_POWER_CB_POWER_SWITCH){
 // mod by y
 		if (g_bROMLoaded) {
@@ -55,7 +60,6 @@ void PowerCallback(int unknown, int pwrflags)
 	int cbid;
 	cbid = sceKernelCreateCallback("Power Callback", (void *)PowerCallback, NULL);
 	scePowerRegisterCallback(0, cbid);
-
 }
 
 // Thread to create the callbacks and then begin polling

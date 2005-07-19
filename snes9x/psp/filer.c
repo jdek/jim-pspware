@@ -21,8 +21,54 @@ void menu_frame(const unsigned char *msg0, const unsigned char *msg1)
 //	if(bBitmap)
 //		pgBitBlt(0,0,480,272,1,bgBitmap);
 //	else
-		pgFillvram(0x9063);
+	pgFillvram(0x9063);
 	mh_print(286, 0, (unsigned char *)" ■ uo_Snes9x for PSP Ver0.02pd2 ■", RGB(85,85,95));
+
+        long BatteryVolt_ret        = scePowerGetBatteryVolt        (); // Voltage: 5000 = 5.000 Volts
+	long BatteryCharging_ret    = scePowerIsBatteryCharging     (); // 
+	int  BatteryLifePercent_ret = scePowerGetBatteryLifePercent (); // 
+	int  BatteryLifeTime_ret = scePowerGetBatteryLifeTime        (); // 
+
+	
+	BatteryLifeTime_ret = scePowerGetBatteryLifeTime    ();
+	char message[256];
+	char BatteryVolt_ret_text[16];
+	char BatteryCharge_percent[16];
+	bool8 BatteryFull = FALSE;
+	if ( ( BatteryVolt_ret > 999 ) && ( BatteryVolt_ret < 9999 )) {
+		sprintf (BatteryVolt_ret_text, "(%1.3fV)", (float)BatteryVolt_ret / 1000);
+	}else {
+		strcpy( BatteryVolt_ret_text, "(No Battery or Bad Voltage)" );
+	}
+	if (BatteryLifePercent_ret < 100) {
+		sprintf (BatteryCharge_percent, "%d%%", BatteryLifePercent_ret);
+	} else {
+		BatteryFull = TRUE;
+		strcpy (BatteryCharge_percent, "Full");
+	}
+	// Running on AC power...
+	if (BatteryCharging_ret <  0) {
+		mh_print (0, 0, (unsigned char*)"[Running on AC Power]", RGB(0,255,0));
+	}
+	// Battery is being used...
+	else if ( BatteryCharging_ret == 0 ) {
+		sprintf  (message, "[Battery: %s %s -:- %01d:%02d]", BatteryCharge_percent, BatteryVolt_ret_text,
+		BatteryLifeTime_ret / 60, BatteryLifeTime_ret % 60);
+		mh_print (0, 0, (unsigned char*)message, BatteryFull ? RGB (0,0,255) :
+		                                                       RGB (255,0,0));
+	}
+	// Battery is being charged...
+	else {
+		long BatteryTemp_ret = scePowerGetBatteryTemp();
+		// If the battery temp. is > 38C (100F), display the temp.
+		if ((BatteryTemp_ret > 38) && (BatteryTemp_ret < 100)) {
+			sprintf (message, "[Charging: %s %s - %dｰ F]", BatteryCharge_percent, BatteryVolt_ret_text, (int)((9.0f/5.0f) * (float)BatteryTemp_ret) + 32);
+			mh_print(0, 0, (unsigned char*)message, RGB(255,0,0));
+		} else {
+			sprintf( message, "[Charging: %s %s]", BatteryCharge_percent, BatteryVolt_ret_text );
+			mh_print(0, 0, (unsigned char*)message, RGB(0,0,255));
+		}
+	}
 
 	// メッセージなど
 	if(msg0!=0) mh_print(17, 14, msg0, RGB(105,105,115));
@@ -58,7 +104,7 @@ int cmpFile(struct SceIoDirent *a, struct SceIoDirent *b)
 	unsigned char ca, cb;
 	int i, n, ret;
 
-	if(a->d_stat.st_mode==b->d_stat.st_mode){
+	if(a->d_stat.st_attr==b->d_stat.st_attr){
 		SJISCopy(a, (unsigned char *)file1);
 		SJISCopy(b, (unsigned char *)file2);
 		n=strlen(file1);
@@ -70,7 +116,7 @@ int cmpFile(struct SceIoDirent *a, struct SceIoDirent *b)
 		return 0;
 	}
 	
-	if(a->d_stat.st_mode & FIO_SO_IFDIR)	return -1;
+	if(a->d_stat.st_attr & FIO_SO_IFDIR)	return -1;
 	else					return 1;
 }
 
@@ -129,7 +175,7 @@ void getDir(const char *path) {
 	
 	if(strcmp(path,"ms0:/")){
 		strcpy(files[nfiles].d_name,"..");
-		files[nfiles].d_stat.st_mode = FIO_SO_IFDIR;
+		files[nfiles].d_stat.st_attr = FIO_SO_IFDIR;
 		nfiles++;
 		b=1;
 	}
@@ -138,7 +184,7 @@ void getDir(const char *path) {
 	while(nfiles<MAX_ENTRY){
 		if(sceIoDread(fd, &files[nfiles])<=0) break;
 		if(files[nfiles].d_name[0] == '.') continue;
-		if(files[nfiles].d_stat.st_mode == FIO_SO_IFDIR){
+		if(files[nfiles].d_stat.st_attr == FIO_SO_IFDIR){
 			strcat(files[nfiles].d_name, "/");
 			nfiles++;
 			continue;
@@ -177,7 +223,7 @@ int getFilePath(char *out)
 		if(new_pad)
 			bMsg=0;
 		if(new_pad & PSP_CTRL_CIRCLE){
-			if(files[sel].d_stat.st_mode == FIO_SO_IFDIR){
+			if(files[sel].d_stat.st_attr == FIO_SO_IFDIR){
 				if(!strcmp(files[sel].d_name,"..")){
 					up=1;
 				}else{
@@ -211,7 +257,7 @@ int getFilePath(char *out)
 // add by J
 		// ROM削除(ロボタンでROM削除)
 		}else if( new_pad & PSP_CTRL_SQUARE ) {
-			if( files[sel].d_stat.st_mode != FIO_SO_IFDIR) {
+			if( files[sel].d_stat.st_attr != FIO_SO_IFDIR) {
 				if( strcmp( files[sel].d_name , ".." ) ) {
 					//   ループカウント
 					int  loop_cnt;
@@ -328,7 +374,6 @@ void draw_load_rom_progress(unsigned long ulExtractSize, unsigned long ulCurrent
 	}
 	nOldPer = nPer;
 	pgFillvram(0x9063);
-	// プログレス
 	pgDrawFrame(88,121,392,141,RGB(85,85,95));
 	pgFillBox(90,123, 90+nPer*3, 139,RGB(85,85,195));
 	// ％

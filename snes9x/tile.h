@@ -148,7 +148,7 @@ extern uint32 TileBlank;
 	BG.Buffered[TileNumber] = ConvertTile (pCache, TileAddr); \
 \
     if (BG.Buffered [TileNumber] == BLANK_TILE){ \
-		TileBlank = Tile & 0xFFFFFFFE; \
+		TileBlank = Tile & 0xFFFFFFFF; \
 		return; \
 	} \
 \
@@ -298,38 +298,6 @@ extern uint32 TileBlank;
 
 
 #ifdef OPTI
-/*
-#define RENDER_CLIPPED_TILE(NORMAL, FLIPPED, N) \
-    if (!(Tile & (V_FLIP | H_FLIP))){ \
-V:0 H:0
-		bp = pCache + StartLine; \
-		for (l = LineCount; l != 0; l--, bp += 8, Offset += GFX.PPL){ \
-		    if ((dd = (*(uint32 *) bp) & d1)) \
-			NORMAL (Offset, (uint8 *) &dd); \
-		} \
-    } else if (!(Tile & V_FLIP)){ \
-V:0 H:1
-		bp = pCache + StartLine; \
-		for (l = LineCount; l != 0; l--, bp += 8, Offset += GFX.PPL){ \
-		    if ((dd = *(uint32 *) (bp + 4) & d1)) \
-			FLIPPED (Offset, (uint8 *) &dd); \
-		} \
-    } else if (Tile & H_FLIP){ \
-V:1 H:1
-		bp = pCache + 56 - StartLine; \
-		for (l = LineCount; l != 0; l--, bp -= 8, Offset += GFX.PPL){ \
-		    if ((dd = *(uint32 *) (bp + 4) & d1)) \
-			FLIPPED (Offset, (uint8 *) &dd); \
-		} \
-    } else { \
-V:1 H:0
-		bp = pCache + 56 - StartLine; \
-		for (l = LineCount; l != 0; l--, bp -= 8, Offset += GFX.PPL){ \
-		    if ((dd = (*(uint32 *) bp) & d1)) \
-			NORMAL (Offset, (uint8 *) &dd); \
-		} \
-    }
-*/
 
 #define RENDER_CLIPPED_TILE(NORMAL, FLIPPED, N) \
 	register int	inc; \

@@ -250,6 +250,7 @@ void S9xDeinterleaveType1(int TotalFileSize, uint8 * base)
 		blocks [i * 2 + 1] = i;
 	}
 #ifdef PSP
+	memset(malloc_tmp1, 0, sizeof(malloc_tmp1));
 	uint8 *tmp = (uint8 *) malloc_tmp1;
 #else
 	uint8 *tmp = (uint8 *) malloc (0x8000);
@@ -290,6 +291,7 @@ void S9xDeinterleaveGD24(int TotalFileSize, uint8 * base)
 	}
 
 #ifdef PSP
+	memset(malloc_tmp2, 0, sizeof(malloc_tmp2));
 	uint8 *tmp = (uint8 *) malloc_tmp2;
 #else
 	uint8 *tmp = (uint8 *) malloc (0x80000);
@@ -473,6 +475,13 @@ bool8 CMemory::Init ()
 	FillRAM = NULL;
 
 #ifdef PSP
+    memset(IPPU_TileCache_TILE_2BIT, 0, sizeof(IPPU_TileCache_TILE_2BIT));
+    memset(IPPU_TileCache_TILE_4BIT, 0, sizeof(IPPU_TileCache_TILE_4BIT));
+    memset(IPPU_TileCache_TILE_8BIT, 0, sizeof(IPPU_TileCache_TILE_8BIT));
+    memset(IPPU_TileCached_TILE_2BIT, 0, sizeof(IPPU_TileCached_TILE_2BIT));
+    memset(IPPU_TileCached_TILE_4BIT, 0, sizeof(IPPU_TileCached_TILE_4BIT));
+    memset(IPPU_TileCached_TILE_8BIT, 0, sizeof(IPPU_TileCached_TILE_8BIT));
+    
     IPPU.TileCache [TILE_2BIT] = (uint8 *) IPPU_TileCache_TILE_2BIT;
     IPPU.TileCache [TILE_4BIT] = (uint8 *) IPPU_TileCache_TILE_4BIT;
     IPPU.TileCache [TILE_8BIT] = (uint8 *) IPPU_TileCache_TILE_8BIT;
@@ -974,14 +983,14 @@ uint32 CMemory::FileLoader (uint8* buffer, const char* filename, int32 maxsize)
 			// 読み込み失敗！ - このコードでは、UZEXR_CANCELもここに来て
 			// しまうがコールバックでキャンセルしてないので無視
 			TotalFileSize = 0;
-		 	S9xMessage (S9X_ERROR, S9X_ROM_INFO, "Invalid Zip Archive.");
+			S9xMessage (S9X_ERROR, S9X_ROM_INFO, "Invalid Zip Archive.");
 			return (0);
 		}
 		HeaderCount=0;
 		FileSize = stRomInfo.rom_size;
 		if (FileSize == 0) {
 			TotalFileSize = 0;
-		 	S9xMessage (S9X_ERROR, S9X_ROM_INFO, "No ROM File found in Zip Archive.");
+			S9xMessage (S9X_ERROR, S9X_ROM_INFO, "No ROM File found in Zip Archive.");
 			return (0);
 		}
 		strcpy (ROMFilename, fname);
@@ -996,6 +1005,7 @@ uint32 CMemory::FileLoader (uint8* buffer, const char* filename, int32 maxsize)
 			}
 		TotalFileSize = FileSize;
 #else
+
 #ifdef UNZIP_SUPPORT
 
 		file = unzOpen(fname);
@@ -1024,6 +1034,7 @@ uint32 CMemory::FileLoader (uint8* buffer, const char* filename, int32 maxsize)
 		S9xMessage (S9X_ERROR, S9X_ROM_INFO, "This binary was not created with Zip support.");
 		return (0);
 #endif
+
 #endif // PSP
 		break;
 	}
@@ -1072,7 +1083,7 @@ uint32 CMemory::FileLoader (uint8* buffer, const char* filename, int32 maxsize)
 
 		if ((ROMFile = OPEN_STREAM (fname, "rb")) == NULL)
 			return (0);
-			
+		
 		strcpy (ROMFilename, fname);
 		
 		HeaderCount = 0;
@@ -1328,6 +1339,7 @@ void S9xDeinterleaveType2 (bool8 reset)
     }
 	
 #ifdef PSP
+    memset(malloc_tmp3, 0, sizeof(malloc_tmp3));
     uint8 *tmp = (uint8 *) malloc_tmp3;
 #else
     uint8 *tmp = (uint8 *) malloc (0x10000);

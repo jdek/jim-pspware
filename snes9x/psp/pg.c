@@ -89,18 +89,18 @@ void pgInit(void)
 //		sceDisplayWaitVblankStart();
 //		sceGuDisplay(1);
 
-		pg_vramtop = (char *) (sceGeEdramGetAddr() | 0x04000000);
+		pg_vramtop = (char *) (0x40000000 | sceGeEdramGetAddr());
 		sceDisplaySetFrameBuf(pg_vramtop,LINESIZE,1,1);
 	} else {
 //		sceGuDisplay(0);
 		sceGuTerm ();
 	}
 	
-//	sceDisplaySetMode(0,SCREEN_WIDTH,SCREEN_HEIGHT);
+	sceDisplaySetMode(0,SCREEN_WIDTH,SCREEN_HEIGHT);
 	pgScreenFrame(0,0);
 
 	if (! PSP_Settings.bUseGUBlit || bGUIMode)
-		pg_vramtop = (char *)0x04000000;
+		pg_vramtop = (char *)0x4000000;
 
 }
 
@@ -518,7 +518,7 @@ struct Vertex
 
 
 
-void pgRenderTex(char *tex, int width, int height, int x, int y, int xscale, int yscale)
+void pgRenderTex(char *tex, int width, int height, int x, int y, int xscale, int yscale, int xres, int yres)
 {
 	unsigned int j;
 	
@@ -537,6 +537,8 @@ void pgRenderTex(char *tex, int width, int height, int x, int y, int xscale, int
 	sceGuTexScale(1,1);
 	sceGuTexOffset(0,0);
 	sceGuAmbientColor(0xffffffff);
+
+	sceGuScissor(x,y,xres,yres);
 
 	// do a striped blit (takes the page-cache into account)
 
@@ -850,7 +852,7 @@ void pgiInit()
 
 void pgMain(void)
 {
-//	sceDisplaySetMode(0,SCREEN_WIDTH,SCREEN_HEIGHT);
+	sceDisplaySetMode(0,SCREEN_WIDTH,SCREEN_HEIGHT);
 
 	pgScreenFrame(0,1);
 	pgcLocate(0,0);
@@ -865,8 +867,8 @@ void pgMain(void)
 
 	pgiInit();
 
-//	if (PSP_Settings.bUseGUBlit)
-//		sceDisplaySetMode(1,SCREEN_WIDTH,SCREEN_HEIGHT);
+	if (PSP_Settings.bUseGUBlit || bGUIMode)
+		sceDisplaySetMode(1,SCREEN_WIDTH,SCREEN_HEIGHT);
 }
 
 // add by J

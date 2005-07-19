@@ -186,7 +186,9 @@ void ComputeClipWindows ()
 							continue;
 				}
 			}
+#ifndef OPTI
 			if (!Settings.DisableGraphicWindows)
+#endif // OPTI
 			{
 				if (w == 5 || pClip->Count [5] ||
 					(Memory.FillRAM [0x212c + c] & 

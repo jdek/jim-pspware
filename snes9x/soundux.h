@@ -120,9 +120,11 @@ enum { MODE_NONE = SOUND_SILENT, MODE_ADSR, MODE_RELEASE = SOUND_RELEASE,
 typedef struct {
     int sound_fd;
 #ifndef OPTI
-    int playback_rate;
     int sound_switch;
 #endif // OPTI
+#ifndef PSP
+    int playback_rate;
+#endif // PSP
     int buffer_size;
     int noise_gen;
     bool8 mute_sound;
@@ -218,10 +220,14 @@ void S9xSetSoundHertz (int channel, int hertz);
 void S9xSetSoundType (int channel, int type_of_sound);
 void S9xSetMasterVolume (short master_volume_left, short master_volume_right);
 void S9xSetEchoVolume (short echo_volume_left, short echo_volume_right);
-#ifdef OPTI
+#ifndef OPTI
 void S9xSetSoundControl (int sound_switch);
 #endif // OPTI
+#ifdef OPTI
+#define S9xSetSoundMute(mute)		so.mute_sound = (mute);
+#else
 bool8 S9xSetSoundMute (bool8 mute);
+#endif // OPTI
 void S9xSetEnvelopeHeight (int channel, int height);
 void S9xSetSoundADSR (int channel, int attack, int decay, int sustain,
 		      int sustain_level, int release);

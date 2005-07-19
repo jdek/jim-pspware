@@ -160,7 +160,12 @@ extern int NoiseFreq [32];
 #define FIXED_POINT_SHIFT 16
 
 #define VOL_DIV8  0x8000
+#ifdef PSP
 #define VOL_DIV16 0x0080
+#define VOL_RSHIFT16 7
+#else
+#define VOL_DIV16 0x0080
+#endif // PSP
 #define ENVX_SHIFT 24
 
 extern "C" void DecodeBlockAsm (int8 *, int16 *, int32 *, int32 *);
@@ -284,16 +289,14 @@ void S9xSetMasterVolume (short volume_left, short volume_right)
     }
     else
     {
-#ifndef OPTI
+#ifdef OPTI
+		SoundData.master_volume_left = SoundData.master_volume [0] = volume_left;
+		SoundData.master_volume_right = SoundData.master_volume [1] = volume_right;
+#else
 		if (!so.stereo)
 			volume_left = (ABS (volume_right) + ABS (volume_left)) / 2;
-#endif // OPTI
 		SoundData.master_volume_left = volume_left;
 		SoundData.master_volume_right = volume_right;
-#ifdef OPTI
-		SoundData.master_volume [0] = volume_left;
-		SoundData.master_volume [1] = volume_right;
-#else
 		SoundData.master_volume [Settings.ReverseStereo] = volume_left;
 		SoundData.master_volume [1 ^ Settings.ReverseStereo] = volume_right;
 #endif // OPTI
@@ -302,16 +305,14 @@ void S9xSetMasterVolume (short volume_left, short volume_right)
 
 void S9xSetEchoVolume (short volume_left, short volume_right)
 {
-#ifndef OPTI
+#ifdef OPTI
+    SoundData.echo_volume_left = SoundData.echo_volume [0] = volume_left;
+    SoundData.echo_volume_right = SoundData.echo_volume [1] = volume_right;
+#else
     if (!so.stereo)
 		volume_left = (ABS (volume_right) + ABS (volume_left)) / 2;
-#endif // OPTI
     SoundData.echo_volume_left = volume_left;
     SoundData.echo_volume_right = volume_right;
-#ifdef OPTI
-    SoundData.echo_volume [0] = volume_left;
-    SoundData.echo_volume [1] = volume_right;
-#else
     SoundData.echo_volume [Settings.ReverseStereo] = volume_left;
     SoundData.echo_volume [1 ^ Settings.ReverseStereo] = volume_right;
 #endif // OPTI
@@ -347,16 +348,20 @@ void S9xSetEchoFeedback (int feedback)
 void S9xSetEchoDelay (int delay)
 {
 #ifdef PSP
-//    SoundData.echo_buffer_size = (((delay << 9 )* PSP_PLAYBACK_RATE) >> 15) ;
-    SoundData.echo_buffer_size = ((512 * delay * PSP_PLAYBACK_RATE) / 32000) ;
-	SoundData.echo_buffer_size >>= s_iSoundMulRate;
+#ifdef OPTI
+    SoundData.echo_buffer_size = (delay * PSP_PLAYBACK_RATE) >> (5 + s_iSoundMulRate);
+#else
+    SoundData.echo_buffer_size = ((((delay << 9) * PSP_PLAYBACK_RATE) / 32000) >> s_iSoundMulRate);
+    if (so.stereo)
+		SoundData.echo_buffer_size <<= 1;
+#endif // OPTI
 #else
     SoundData.echo_buffer_size = (512 * delay * so.playback_rate) / 32000;
-#endif // PSP
 #ifndef OPTI
     if (so.stereo)
 #endif // OPTI
 		SoundData.echo_buffer_size <<= 1;
+#endif // PSP
     if (SoundData.echo_buffer_size)
 		SoundData.echo_ptr %= SoundData.echo_buffer_size;
     else
@@ -505,8 +510,9 @@ int S9xGetEnvelopeHeight (int channel)
 }
 
 #if 1
-void S9xSetSoundSample (int, uint16) 
+void S9xSetSoundSample (int, uint16)
 {
+	
 }
 #else
 void S9xSetSoundSample (int channel, uint16 sample_number)
@@ -536,19 +542,7 @@ void S9xSetSoundFrequency (int channel, int hertz)
 #ifdef PSP
 	if (SoundData.channels[channel].type == SOUND_NOISE)
 		hertz = NoiseFreq [APU.DSP [APU_FLG] & 0x1f];
-	SoundData.channels[channel].frequency = (int)
-		((((int) hertz * (FIXED_POINT / 1000)) << s_iSoundMulRate ) / ((PSP_PLAYBACK_RATE / 980)));
-/*
-	SoundData.channels[channel].frequency = (int)
-		(((int64) hertz * FIXED_POINT) / PSP_PLAYBACK_RATE);
-*/
-/*
-	if (Settings.FixFrequency)
-	{
-		SoundData.channels[channel].frequency = 
-			(unsigned long) ((double)  SoundData.channels[channel].frequency * 0.980);
-	}
-*/
+	SoundData.channels[channel].frequency = (int)((((int)hertz * (FIXED_POINT / 1000)) << s_iSoundMulRate) / (PSP_PLAYBACK_RATE / 980));
 #else
     if (so.playback_rate)
     {
@@ -576,12 +570,14 @@ void S9xSetSoundType (int channel, int type_of_sound)
     SoundData.channels[channel].type = type_of_sound;
 }
 
+#ifndef OPTI
 bool8 S9xSetSoundMute (bool8 mute)
 {
     bool8 old = so.mute_sound;
     so.mute_sound = mute;
     return (old);
 }
+#endif // OPTI
 
 void AltDecodeBlock (Channel *ch)
 {
@@ -957,12 +953,6 @@ void DecodeBlock (Channel *ch)
 
 
 #ifdef OPTI
-// 89248
-// 89232
-// 90268
-// 88860
-// 88240
-// 87888
 inline void MixStereo (int sample_count)
 {
     static int wave[SOUND_BUFFER_SIZE];
@@ -1084,7 +1074,7 @@ inline void MixStereo (int sample_count)
 					    } else {
 							ch->erate = (unsigned long)
 #ifdef PSP
-								((((int) FIXED_POINT * 619) << s_iSoundMulRate ) / (rate * (PSP_PLAYBACK_RATE / 1000)));
+								((((int) FIXED_POINT * steps [SOUND_SUSTAIN]) << s_iSoundMulRate ) / (rate * (PSP_PLAYBACK_RATE / 1000)));
 #else
 								(((int) FIXED_POINT * steps [SOUND_SUSTAIN]) / (rate * (PSP_PLAYBACK_RATE / 1000)));
 #endif // PSP
@@ -1218,7 +1208,7 @@ _SOUND_GAIN:
 					S9xAPUSetEndOfSample (J, ch);
 					goto stereo_exit;
 				}
-		    	uint8 *dir = &IAPU.RAM[(uint32)((((APU.DSP[APU_DIR] << 8) + (ch->sample_number << 2)) & 0xffff))];
+				uint8 *dir = &IAPU.RAM[(uint32)((((APU.DSP[APU_DIR] << 8) + (ch->sample_number << 2)) & 0xffff))];
 				do
 				{
 					ch->sample_pointer -= SOUND_DECODE_LENGTH;
@@ -1311,13 +1301,11 @@ void MixStereo (int sample_count)
 				ch->sample_pointer = SOUND_DECODE_LENGTH - 1;
 
 			ch->next_sample=ch->block[ch->sample_pointer];
-#ifndef OPTI
 			ch->interpolate = 0;
 			  
 			if (Settings.InterpolatedSound && freq0 < FIXED_POINT && !mod)
 			   ch->interpolate = ((ch->next_sample - ch->sample) * 
 			   (long) freq0) / (long) FIXED_POINT;
-#endif // OPTI
 		}
 		//VL = (ch->sample * ch-> left_vol_level) / 128;
 		//VR = (ch->sample * ch->right_vol_level) / 128;
@@ -1536,7 +1524,6 @@ void MixStereo (int sample_count)
 			
 			if (ch->type == SOUND_SAMPLE)
 			{
-#ifndef OPTI
 				if (Settings.InterpolatedSound && freq < FIXED_POINT && !mod)
 				{
 					ch->interpolate = ((ch->next_sample - ch->sample) * 
@@ -1546,7 +1533,6 @@ void MixStereo (int sample_count)
 				}		  
 				else
 					ch->interpolate = 0;
-#endif // OPTI
 			}
 			else
 			{
@@ -1554,9 +1540,7 @@ void MixStereo (int sample_count)
 					if ((so.noise_gen <<= 1) & 0x80000000L)
 						so.noise_gen ^= 0x0040001L;
 					ch->sample = (so.noise_gen << 17) >> 17;
-#ifndef OPTI
 					ch->interpolate = 0;
-#endif // OPTI
 			}
 			
 			//VL = (ch->sample * ch-> left_vol_level) / 128;
@@ -1566,7 +1550,6 @@ void MixStereo (int sample_count)
 		}
 		else
 		{
-#ifndef OPTI
 			if (ch->interpolate)
 			{
 				int32 s = (int32) ch->sample + ch->interpolate;
@@ -1576,24 +1559,16 @@ void MixStereo (int sample_count)
 				VL = (ch->sample * ch-> left_vol_level) / 128;
 				VR = (ch->sample * ch->right_vol_level) / 128;
 			}
-#endif // OPTI
 		}
 		
 		if (pitch_mod & (1 << (J + 1)))
 			//wave [I / 2] = ch->sample * ch->envx;
 			wave [I >> 1] = ch->sample * ch->envx;
 		
-#ifdef OPTI
-		MixBuffer [I    ] += VL;
-		MixBuffer [I + 1] += VR;
-		ch->echo_buf_ptr [I    ] += VL;
-		ch->echo_buf_ptr [I + 1] += VR;
-#else
 		MixBuffer [I      ^ Settings.ReverseStereo] += VL;
 		MixBuffer [I + (1 ^ Settings.ReverseStereo)] += VR;
 		ch->echo_buf_ptr [I      ^ Settings.ReverseStereo] += VL;
 		ch->echo_buf_ptr [I + (1 ^ Settings.ReverseStereo)] += VR;
-#endif // OPTI
         }
 stereo_exit: ;
     }
@@ -1634,13 +1609,11 @@ void MixMono (int sample_count)
 			if (ch->sample_pointer > SOUND_DECODE_LENGTH)
 				ch->sample_pointer = SOUND_DECODE_LENGTH - 1;
 			ch->next_sample = ch->block[ch->sample_pointer];
-#ifndef OPTI
 			ch->interpolate = 0;
 			
 			if (Settings.InterpolatedSound && freq0 < FIXED_POINT && !mod)
 				ch->interpolate = ((ch->next_sample - ch->sample) * 
 				(long) freq0) / (long) FIXED_POINT;
-#endif // OPTI
 		}
 		//int32 V = (ch->sample * ch->left_vol_level) / 128;
 		int32 V = ((ch->sample * ch->left_vol_level) >> 7);
@@ -1852,7 +1825,6 @@ void MixMono (int sample_count)
 			
 			if (ch->type == SOUND_SAMPLE)
 			{
-#ifndef OPTI
 				if (Settings.InterpolatedSound && freq < FIXED_POINT && !mod)
 				{
 					ch->interpolate = ((ch->next_sample - ch->sample) * 
@@ -1862,7 +1834,6 @@ void MixMono (int sample_count)
 				}		  
 				else
 					ch->interpolate = 0;
-#endif // OPTI
 			}
 			else
 			{
@@ -1877,7 +1848,6 @@ void MixMono (int sample_count)
 		}
 		else
 		{
-#ifndef OPTI
 			if (ch->interpolate)
 			{
 				int32 s = (int32) ch->sample + ch->interpolate;
@@ -1887,7 +1857,6 @@ void MixMono (int sample_count)
 				//V = (ch->sample * ch-> left_vol_level) / 128;
 				V = ((ch->sample * ch-> left_vol_level) >> 7);
 			}
-#endif // OPTI
 		}
 		
 		MixBuffer [I] += V;
@@ -1929,18 +1898,14 @@ void S9xMixSamples (uint8 *buffer, int sample_count)
 	
     if (!so.mute_sound)
     {
-#ifdef OPTI
+#ifdef PSP
+		sample_count >>= s_iSoundMulRate;
+#endif // PSP
 		memset (MixBuffer, 0, sample_count * sizeof (MixBuffer [0]));
-#else
-		memset (MixBuffer, 0, sample_count * sizeof (MixBuffer [0]));
-#endif // OPTI
 		if (SoundData.echo_enable)
 			memset (EchoBuffer, 0, sample_count * sizeof (EchoBuffer [0]));
 		
 #ifdef OPTI
-#ifdef PSP
-		sample_count >>= s_iSoundMulRate;
-#endif // PSP
 		MixStereo (sample_count);
 #else
 		if (so.stereo)
@@ -1986,18 +1951,16 @@ void S9xMixSamples (uint8 *buffer, int sample_count)
 							if ((SoundData.echo_ptr += 1) >= SoundData.echo_buffer_size)
 								SoundData.echo_ptr = 0;
 							
-							//I = (MixBuffer [J] * 
-							//	SoundData.master_volume [J & 1] +
-							//	E * SoundData.echo_volume [J & 1]) / VOL_DIV16;
-							I = (MixBuffer [J] * 
-								SoundData.master_volume [J & 1] +
-								E * SoundData.echo_volume [J & 1]) >> 7;
-														
-							CLIP16(I);
 #ifdef PSP
-							if (s_iSoundMulRate==0) {
+							I = (MixBuffer [J] * SoundData.master_volume [J & 1] +
+								E * SoundData.echo_volume [J & 1]) >> VOL_RSHIFT16;
+							CLIP16(I);
+							switch (s_iSoundMulRate) {
+							default:
+							case 0:
 								((signed short *) buffer)[J] = I;
-							} else if (s_iSoundMulRate==1) {
+								break;
+							case 1:
 								Jmul = J << 1;
 								if ( J & 1 ) {
 									((signed short *) buffer)[Jmul - 1] = I;
@@ -2006,7 +1969,8 @@ void S9xMixSamples (uint8 *buffer, int sample_count)
 									((signed short *) buffer)[Jmul    ] = I;
 									((signed short *) buffer)[Jmul + 2] = I;
 								}
-							} else if (s_iSoundMulRate==2) {
+								break;
+							case 2:
 								Jmul = J << 2;
 								if ( J & 1 ) {
 									((signed short *) buffer)[Jmul - 3] = I;
@@ -2019,8 +1983,14 @@ void S9xMixSamples (uint8 *buffer, int sample_count)
 									((signed short *) buffer)[Jmul + 4] = I;
 									((signed short *) buffer)[Jmul + 6] = I;
 								}
+								break;
 							}
 #else
+							I = (MixBuffer [J] * 
+								SoundData.master_volume [J & 1] +
+								E * SoundData.echo_volume [J & 1]) / VOL_DIV16;
+							
+							CLIP16(I);
 							((signed short *) buffer)[J] = I;
 #endif // PSP
 						}
@@ -2052,18 +2022,16 @@ void S9xMixSamples (uint8 *buffer, int sample_count)
 							if ((SoundData.echo_ptr += 1) >= SoundData.echo_buffer_size)
 								SoundData.echo_ptr = 0;
 							
-							//I = (MixBuffer [J] * 
-							//	SoundData.master_volume [J & 1] +
-							//	E * SoundData.echo_volume [J & 1]) / VOL_DIV16;
-							I = (MixBuffer [J] * 
-								SoundData.master_volume [J & 1] +
-								E * SoundData.echo_volume [J & 1])  >> 7;
-							
-							CLIP16(I);
 #ifdef PSP
-							if (s_iSoundMulRate==0) {
+							I = (MixBuffer [J] * SoundData.master_volume [J & 1] +
+								E * SoundData.echo_volume [J & 1]) >> VOL_RSHIFT16;
+							CLIP16(I);
+							switch (s_iSoundMulRate) {
+							default:
+							case 0:
 								((signed short *) buffer)[J] = I;
-							} else if (s_iSoundMulRate==1) {
+								break;
+							case 1:
 								Jmul = J << 1;
 								if ( J & 1 ) {
 									((signed short *) buffer)[Jmul - 1] = I;
@@ -2072,7 +2040,8 @@ void S9xMixSamples (uint8 *buffer, int sample_count)
 									((signed short *) buffer)[Jmul    ] = I;
 									((signed short *) buffer)[Jmul + 2] = I;
 								}
-							} else if (s_iSoundMulRate==2) {
+								break;
+							case 2:
 								Jmul = J << 2;
 								if ( J & 1 ) {
 									((signed short *) buffer)[Jmul - 3] = I;
@@ -2085,8 +2054,14 @@ void S9xMixSamples (uint8 *buffer, int sample_count)
 									((signed short *) buffer)[Jmul + 4] = I;
 									((signed short *) buffer)[Jmul + 6] = I;
 								}
+								break;
 							}
 #else
+							I = (MixBuffer [J] * 
+								SoundData.master_volume [J & 1] +
+								E * SoundData.echo_volume [J & 1]) / VOL_DIV16;
+							
+							CLIP16(I);
 							((signed short *) buffer)[J] = I;
 #endif // PSP
 						}
@@ -2155,16 +2130,16 @@ void S9xMixSamples (uint8 *buffer, int sample_count)
 				// 16-bit mono or stereo sound, no echo
 				for (J = 0; J < sample_count; J++)
 				{
-					//I = (MixBuffer [J] * 
-					//	SoundData.master_volume [J & 1]) / VOL_DIV16;
-					I = (MixBuffer [J] * 
-						SoundData.master_volume [J & 1]) >> 7;
-					
-					CLIP16(I);
 #ifdef PSP
-					if (s_iSoundMulRate==0) {
+					I = (MixBuffer [J] * 
+						SoundData.master_volume [J & 1]) >> VOL_RSHIFT16;
+					CLIP16(I);
+					switch (s_iSoundMulRate) {
+					default:
+					case 0:
 						((signed short *) buffer)[J] = I;
-					} else if (s_iSoundMulRate==1) {
+						break;
+					case 1:
 						Jmul = J << 1;
 						if ( J & 1 ) {
 							((signed short *) buffer)[Jmul - 1] = I;
@@ -2173,7 +2148,8 @@ void S9xMixSamples (uint8 *buffer, int sample_count)
 							((signed short *) buffer)[Jmul    ] = I;
 							((signed short *) buffer)[Jmul + 2] = I;
 						}
-					} else if (s_iSoundMulRate==2) {
+						break;
+					case 2:
 						Jmul = J << 2;
 						if ( J & 1 ) {
 							((signed short *) buffer)[Jmul - 3] = I;
@@ -2186,8 +2162,12 @@ void S9xMixSamples (uint8 *buffer, int sample_count)
 							((signed short *) buffer)[Jmul + 4] = I;
 							((signed short *) buffer)[Jmul + 6] = I;
 						}
+						break;
 					}
 #else
+					I = (MixBuffer [J] * 
+						SoundData.master_volume [J & 1]) / VOL_DIV16;
+					CLIP16(I);
 					((signed short *) buffer)[J] = I;
 #endif // PSP
 				}
@@ -2208,8 +2188,7 @@ void S9xMixSamples (uint8 *buffer, int sample_count)
 			{
 				for (J = 0; J < sample_count; J++)
 				{
-					//I = (MixBuffer [J] * SoundData.master_volume_left) / VOL_DIV16;
-					I = (MixBuffer [J] * SoundData.master_volume_left) >> 7;
+					I = (MixBuffer [J] * SoundData.master_volume_left) / VOL_DIV16;
 					CLIP16(I);
 					buffer[J] = int2ulaw (I);
 				}
@@ -2473,9 +2452,11 @@ bool8 S9xInitSound (int mode, bool8 stereo, int buffer_size)
     so.sound_switch = 255;
 #endif // OPTI
 	
+#ifndef PSP
+    so.playback_rate = 0;
+#endif // PSP
     so.buffer_size = 0;
 #ifndef OPTI
-    so.playback_rate = 0;
     so.stereo = stereo;
     so.sixteen_bit = Settings.SixteenBitSound;
 #endif // OPTI

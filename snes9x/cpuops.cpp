@@ -2504,6 +2504,11 @@ static void Op0CM0 (void)
 
 /* Branch Instructions *********************************************************************** */
 #ifndef SA1_OPCODES
+#ifdef OPTI
+#define BranchCheck0()
+#define BranchCheck1()
+#define BranchCheck2()
+#else
 #define BranchCheck0()\
     if( CPU.BranchSkip)\
     {\
@@ -2546,6 +2551,7 @@ static void Op0CM0 (void)
 	    else\
 		CPU.PC = CPU.PCBase + OpAddress;\
     }
+#endif // OPTI
 #else
 #define BranchCheck0()
 #define BranchCheck1()

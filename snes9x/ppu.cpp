@@ -1116,9 +1116,9 @@ uint8 S9xGetPPU (uint16 Address)
 	case 0x2111:
 	case 0x2112:
 	case 0x2113:
-#ifndef OPTI
+//#ifndef OPTI
 			missing.bg_offset_read = 1;
-#endif // OPTI
+//#endif // OPTI
 			return OpenBus;
 
 	case 0x2114:
@@ -1571,10 +1571,8 @@ void S9xSetCPU (uint8 byte, uint16 Address)
 			if ((byte & 1) && !(Memory.FillRAM [Address] & 1))
 			{
 				PPU.Joypad1ButtonReadPos = 0;
-#ifndef OPTI
 				PPU.Joypad2ButtonReadPos = 0;
 				PPU.Joypad3ButtonReadPos = 0;
-#endif // OPTI
 			}
 			break;
 		  case 0x4017:
@@ -2514,19 +2512,15 @@ void S9xResetPPU ()
 	PPU.MatrixA = PPU.MatrixB = PPU.MatrixC = PPU.MatrixD = 0;
 	PPU.CentreX = PPU.CentreY = 0;
 	PPU.Joypad1ButtonReadPos = 0;
-#ifndef OPTI
 	PPU.Joypad2ButtonReadPos = 0;
 	PPU.Joypad3ButtonReadPos = 0;
-#endif // OPTI
 
 	PPU.CGADD = 0;
 	PPU.FixedColourRed = PPU.FixedColourGreen = PPU.FixedColourBlue = 0;
 	PPU.SavedOAMAddr = 0;
 	PPU.ScreenHeight = SNES_HEIGHT;
 	PPU.WRAM = 0;
-#ifndef OPTI
 	PPU.BG_Forced = 0;
-#endif // OPTI
 	PPU.ForcedBlanking = TRUE;
 	PPU.OBJThroughMain = FALSE;
 	PPU.OBJThroughSub = FALSE;
@@ -2554,9 +2548,7 @@ void S9xResetPPU ()
 	PPU.RecomputeClipWindows = TRUE;
 	PPU.CGFLIPRead = 0;
 	PPU.Need16x8Mulitply = FALSE;
-#ifndef OPTI
 	PPU.MouseSpeed[0] = PPU.MouseSpeed[1] = 0;
-#endif // OPTI
 
 	IPPU.ColorsChanged = TRUE;
 	IPPU.HDMA = 0;
@@ -2731,9 +2723,7 @@ void S9xSoftResetPPU ()
 	PPU.SavedOAMAddr = 0;
 	PPU.ScreenHeight = SNES_HEIGHT;
 	PPU.WRAM = 0;
-#ifndef OPTI
 	PPU.BG_Forced = 0;
-#endif // OPTI
 	PPU.ForcedBlanking = TRUE;
 	PPU.OBJThroughMain = FALSE;
 	PPU.OBJThroughSub = FALSE;
@@ -2761,9 +2751,7 @@ void S9xSoftResetPPU ()
 	PPU.RecomputeClipWindows = TRUE;
 	PPU.CGFLIPRead = 0;
 	PPU.Need16x8Mulitply = FALSE;
-#ifndef OPTI
 	PPU.MouseSpeed[0] = PPU.MouseSpeed[1] = 0;
-#endif // OPTI
 
 	IPPU.ColorsChanged = TRUE;
 	IPPU.HDMA = 0;

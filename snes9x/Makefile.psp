@@ -20,6 +20,7 @@ SDD1_DECOMP=1
 PSP=1
 OPTI=1
 OPTITEST=1
+#USE_PROFILER=1
 
 #Fairly good and special-char-safe descriptor of the os being built on.
 OS=`uname -s -r -m|sed \"s/ /-/g\"|tr \"[A-Z]\" \"[a-z]\"|tr \"/()\" \"___\"`
@@ -216,17 +217,22 @@ DEFS      = -DPSP -DPSP_NOTUSE
 ifdef OPTI
 DEFS     += -DOPTI
 endif
-CPUFLAGS = -mno-check-zero-division
+CPUFLAGS = -march=allegrex -mgp32 -msingle-float -mabi=eabi -mno-fp-exceptions -mno-check-zero-division -mtune=r4000
 #CPUFLAGS = -march=allegrex -mgp32 -mlong32 -msingle-float -mabi=eabi -mhard-float -mtune=allegrex -mlong-calls -mno-check-zero-division -mno-fp-exceptions #-mfix-r4000
 # http://www.cqpub.co.jp/interface/column/freesoft/2002/200208/08-4.htm
 #OPTIMISE=-O4 -ffreestanding -ffast-math -fschedule-insns2 -fomit-frame-pointer -fno-inline-functions -fno-defer-pop -fforce-addr -fstrict-aliasing -funroll-loops -fdelete-null-pointer-checks -fno-exceptions
 #OPTIMISE=-O2 -G8 -fstrict-aliasing -ffast-math -fsingle-precision-constant
 OPTIMISE=-O4 -ffast-math -fforce-addr \
-	 -fsingle-precision-constant -funroll-loops -fpeel-loops -funswitch-loops \
+	 -fsingle-precision-constant -funroll-loops -fpeel-loops \
 	 -fbranch-target-load-optimize2 \
 	 -fvariable-expansion-in-unroller -ftracer -ftree-vectorize -fivopts -ftree-loop-im -ftree-loop-linear \
 	 -floop-optimize2 -freorder-blocks-and-partition \
-	 -fsched-spec-load-dangerous -ftree-loop-ivcanon
+	 -fsched-spec-load-dangerous -ftree-loop-ivcanon \
+	 -fmove-loop-invariants -fbtr-bb-exclusive
+ifndef DEBUG
+OPTIMISE += -frename-registers
+endif
+	 
 OPTIMISE_C=-ffreestanding $(OPTIMISE)
 OPTIMISE_CXX=-fno-exceptions -fno-rtti $(OPTIMISE)
 
@@ -279,6 +285,11 @@ $(JOYDEFINES) \
 CFLAGS = $(OPTIMISE_C) $(CPUFLAGS) $(INCLUDES) $(DEFS)
 CXXFLAGS = $(OPTIMISE_CXX) $(CPUFLAGS) $(INCLUDES) $(DEFS)
 
+ifdef USE_PROFILER
+DEFS += -DUSE_PROFILER -DPROFILE_TILES -DPROFILE_GFX
+#DEFS += -DUSE_PROFILER -DPROFILE_HW
+endif
+
 .SUFFIXES: .o .cpp .c .cc .h .m .i .S .asm .obj .O .CPP .C .ASM
 #FIXME: Why is this set statically?
 #LDLIBS = -L/usr/X11R6/lib
@@ -286,6 +297,10 @@ CXXFLAGS = $(OPTIMISE_CXX) $(CPUFLAGS) $(INCLUDES) $(DEFS)
 LDLIBS =  psp/unziplib.a -L`psp-config -p`/lib \
 	  -lpspaudio -lpspctrl -lpsppower -lpspdebug -lpspgu -lpspge -lpspdisplay \
 	  -lpsplibc -lpspglue -lpspuser -lpspkernel -lm
+
+ifdef PROFILE
+#LDLIBS += -lgcov
+endif
 
 ifdef GLIDE
 SNES9XBIN=gsnes9x
@@ -396,7 +411,7 @@ unix/moc_snes9x_gui.cpp: unix/snes9x_gui.h
 	$(MOC) unix/snes9x_gui.h -o $@
 
 clean:
-	-rm -f $(OBJECTS) $(CPU)/offsets.h offsets.o unix/svga.o unix/aido.o unix/x11.o unix/ggi.o unix/xf86.o unix/glide.o $(UNZIP_OBJECTS)
+	-rm -f $(SNES9XBIN) EBOOT.PBP PARAM.SFO $(OBJECTS) $(CPU)/offsets.h offsets.o unix/svga.o unix/aido.o unix/x11.o unix/ggi.o unix/xf86.o unix/glide.o $(UNZIP_OBJECTS)
 
 #release: CFLAGS += -DNO_DEBUGGER
 

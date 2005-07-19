@@ -431,7 +431,7 @@ uint8 S9xGetSA1 (uint32 address)
 	return (byte);
     }
     default:	
-	printf ("R: %04x\n", address);
+	//printf ("R: %04x\n", address);
 	break;
     }
     return (Memory.FillRAM [address]);
@@ -603,19 +603,19 @@ void S9xSetSA1 (uint8 byte, uint32 address)
 #endif
 	break;
     case 0x2211:
-	printf ("Timer reset\n");
+//	printf ("Timer reset\n");
 	break;
     case 0x2212:
-	printf ("H-Timer %04x\n", byte | (Memory.FillRAM [0x2213] << 8));
+//	printf ("H-Timer %04x\n", byte | (Memory.FillRAM [0x2213] << 8));
 	break;
     case 0x2213:
-	printf ("H-Timer %04x\n", (byte << 8) | Memory.FillRAM [0x2212]);
+//	printf ("H-Timer %04x\n", (byte << 8) | Memory.FillRAM [0x2212]);
 	break;
     case 0x2214:
-	printf ("V-Timer %04x\n", byte | (Memory.FillRAM [0x2215] << 8));
+//	printf ("V-Timer %04x\n", byte | (Memory.FillRAM [0x2215] << 8));
 	break;
     case 0x2215:
-	printf ("V-Timer %04x\n", (byte << 8) | Memory.FillRAM [0x2214]);
+//	printf ("V-Timer %04x\n", (byte << 8) | Memory.FillRAM [0x2214]);
 	break;
     case 0x2220:
     case 0x2221:
