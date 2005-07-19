@@ -61,6 +61,16 @@ AC_PROG_RANLIB
 AC_PATH_PROG(NASM, nasm)
 
 dnl Checks for libraries.
+if test "x$enable_sdl" = xyes || test "x$enable_gtk" = xyes; then
+  SDL_VERSION=1.2.2
+  AM_PATH_SDL($SDL_VERSION,[
+  ],[
+  AC_MSG_ERROR([*** Couldn't find SDL library (version >= $SDL_VERSION).])
+  ])
+fi
+CFLAGS="$CFLAGS $SDL_CFLAGS"
+LIBS="$LIBS $SDL_LIBS"
+
 AC_CHECK_LIB(z, gzopen,
   , AC_MSG_ERROR([*** Cannot compile without zlib.]))
 AC_CHECK_LIB(png, png_create_write_struct,
@@ -119,14 +129,6 @@ if test "x$with_mmx" = xyes; then
   CXXFLAGS="$CXXFLAGS -DMMX"
   VBA_SRC_EXTRA="$VBA_SRC_EXTRA i386"
   VBA_LIBS="$VBA_LIBS ../i386/lib386.a"
-fi
-
-if test "x$enable_sdl" = xyes || test "x$enable_gtk" = xyes; then
-  SDL_VERSION=1.2.2
-  AM_PATH_SDL($SDL_VERSION,[
-  ],[
-  AC_MSG_ERROR([*** Couldn't find SDL library (version >= $SDL_VERSION).])
-  ])
 fi
 
 if test "x$enable_sdl" = xyes; then
