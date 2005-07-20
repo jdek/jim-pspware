@@ -24,6 +24,12 @@
 #include "Port.h"
 #include "RTC.h"
 
+#ifdef PSP
+/* Inlining.  The PSP doesn't have ginormous caches, it has a 16KB D-cache and
+   a 16KB I-cache.  All of the excessive inlining VBA does is of no use to us. */
+#define inline static
+#endif
+
 extern bool cpuSramEnabled;
 extern bool cpuFlashEnabled;
 extern bool cpuEEPROMEnabled;
@@ -416,5 +422,9 @@ inline void CPUWriteMemory(u32 address, u32 value)
     break;
   }
 }
+
+#ifdef PSP
+#undef inline
+#endif
 
 #endif //VBA_GBAinline_H

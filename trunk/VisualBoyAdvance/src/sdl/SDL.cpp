@@ -110,6 +110,8 @@ extern void debuggerOutput(char *, u32);
 
 extern void CPUUpdateRenderBuffers(bool);
 
+extern bool gbUpdateSizes();
+
 struct EmulatedSystem emulator = {
   NULL,
   NULL,
@@ -2214,7 +2216,6 @@ int main(int argc, char **argv)
           int size = gbRomSize;
           utilApplyIPS(ipsname, &gbRom, &size);
           if(size != gbRomSize) {
-            extern bool gbUpdateSizes();
             gbUpdateSizes();
             gbReset();
           }
