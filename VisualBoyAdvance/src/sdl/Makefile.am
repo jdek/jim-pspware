@@ -75,7 +75,7 @@ VisualBoyAdvance_SOURCES = \
 	../unzip.cpp		\
 	../unzip.h
 
-VisualBoyAdvance_LDADD = @VBA_LIBS@ @SDL_LIBS@
+VisualBoyAdvance_LDADD = @VBA_LIBS@ $(LIBS)
 
 VisualBoyAdvance_DEPENDENCIES = @VBA_LIBS@
 
