@@ -49,7 +49,12 @@
 
 #include <stdlib.h>
 #include <stdio.h>
+#ifdef HAVE_MEMORY_H
 #include <memory.h>
+#endif
+#ifdef HAVE_STRING_H
+#include <string.h>
+#endif
 
 #include "gmon.h"
 #include "gmon_out.h"

@@ -16,7 +16,9 @@
 
 namespace std {  
 #include <stdio.h>
+#ifdef HAVE_MEMORY_H
 #include <memory.h>
+#endif
 #include <stdlib.h>
 #include <string.h>
 }

@@ -16,6 +16,7 @@
 // along with this program; if not, write to the Free Software Foundation,
 // Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.
 
+#ifndef PSP
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
@@ -696,3 +697,15 @@ void remoteCleanUp()
   if(remoteCleanUpFnc)
     remoteCleanUpFnc();
 }
+#else /* PSP */
+#include "GBA.h"
+
+/* Stub out all the remote debugging functions. */
+void remoteSetPort(int port) { }
+void remoteSetProtocol(int p) { }
+void remoteInit(void) { }
+void remoteOutput(char *s, u32 addr) { }
+void remoteStubMain() { }
+void remoteStubSignal(int sig, int number) { }
+void remoteCleanUp() { }
+#endif /* ! defined(PSP) */

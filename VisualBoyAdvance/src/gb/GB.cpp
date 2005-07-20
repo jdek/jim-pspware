@@ -19,7 +19,9 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#ifdef HAVE_MEMORY_H
 #include <memory.h>
+#endif
 
 #include "../System.h"
 #include "../NLS.h"
