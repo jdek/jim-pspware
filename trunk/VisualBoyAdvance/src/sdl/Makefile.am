@@ -147,7 +147,7 @@ TestEmu_SOURCES = \
 	../unzip.cpp		\
 	../unzip.h
 
-TestEmu_LDADD = @VBA_LIBS@ @SDL_LIBS@
+TestEmu_LDADD = @VBA_LIBS@ $(LIBS)
 
 TestEmu_DEPENDENCIES = @VBA_LIBS@
 
@@ -156,4 +156,4 @@ AM_CPPFLAGS = \
 	-DSDL				\
 	-DSYSCONFDIR=\"$(sysconfdir)\"
 
-AM_CXXFLAGS = -fno-exceptions @SDL_CFLAGS@
+AM_CXXFLAGS = -fno-exceptions $(CFLAGS)

@@ -19,3 +19,5 @@ libgb_a_SOURCES = \
 	gbSGB.h		\
 	gbSound.cpp	\
 	gbSound.h
+
+AM_CXXFLAGS = -fno-exceptions $(CFLAGS)

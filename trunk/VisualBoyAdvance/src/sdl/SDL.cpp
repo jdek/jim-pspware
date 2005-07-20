@@ -1934,6 +1934,9 @@ Long options only:\n\
 ");
 }
 
+#ifdef PSP
+extern "C"
+#endif
 int main(int argc, char **argv)
 {
   fprintf(stderr, "VisualBoyAdvance version %s [SDL]\n", VERSION);
