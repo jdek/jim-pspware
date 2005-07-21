@@ -48,24 +48,6 @@ static bool parseOption(const char *arg, const char *longCmd, const char **opt) 
 	return ret;
 }
 
-#ifdef PSP
-/* Use the path to EBOOT.PBP to determine the current directory. */
-char * psp_getcwd(char *eboot_path)
-{
-	static char psp_full_path[1024 + 1];
-	char *psp_eboot_path;
-
-	strncpy(psp_full_path, eboot_path, sizeof(psp_full_path) - 1);
-	psp_full_path[sizeof(psp_full_path) - 1] = '\0';
-	psp_eboot_path = strrchr(psp_full_path, '/');
-	if (psp_eboot_path != NULL) {
-		*psp_eboot_path = '\0';
-	}
-
-	return psp_full_path;
-}
-#endif
-
 #ifndef PSP
 #undef main
 #else
@@ -77,18 +59,8 @@ int main(int argc, char *argv[]) {
 	const char *dataPath = ".";
 	const char *savePath = ".";
 #else
-	char _dataPath[1024 + 1];
-	char _savePath[1024 + 1];
-
-	strncpy(_dataPath, psp_getcwd(argv[0]), sizeof(_dataPath) - 1);
-	strncat(_dataPath, "/data", sizeof(_dataPath) - 1);
-	_dataPath[sizeof(_dataPath) - 1] = '\0';
-	strncpy(_savePath, psp_getcwd(argv[0]), sizeof(_savePath) - 1);
-	strncat(_savePath, "/data", sizeof(_savePath) - 1);
-	_savePath[sizeof(_savePath) - 1] = '\0';
-
-	const char *dataPath = (const char *) _dataPath;
-	const char *savePath = (const char *) _savePath;
+	const char *dataPath = "data";
+	const char *savePath = "save";
 #endif
 	const char *version = 0;
 	Version ver = VER_US;
