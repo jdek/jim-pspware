@@ -1898,23 +1898,6 @@ void setup(int argc, char * argv[])
   int i;
   SDL_Surface * tmp;
 
-#ifdef PSP
-  /* Used for building a path to data files. */
-  char psp_filename[1024 + 1];
-  /* Get the full path to EBOOT.PBP. */
-  char psp_full_path[1024 + 1];
-  char *psp_eboot_path;
-
-  strncpy(psp_full_path, argv[0], sizeof(psp_full_path) - 1);
-  psp_full_path[sizeof(psp_full_path) - 1] = '\0';
-
-  psp_eboot_path = strrchr(psp_full_path, '/');
-  if (psp_eboot_path != NULL)
-    {
-      *psp_eboot_path = '\0';
-    }
-#endif
-
 
   /* Options: */
 
@@ -1924,6 +1907,7 @@ void setup(int argc, char * argv[])
 #ifdef PSP
   fullscreen = TRUE;
 #endif
+  
   
   /* Check command-line options: */
   
@@ -2133,12 +2117,7 @@ void setup(int argc, char * argv[])
   /* Load background image: */
 
 #ifndef EMBEDDED
-#ifdef PSP
-  snprintf(psp_filename, sizeof(psp_filename), "%s/%s", psp_full_path, DATA_PREFIX "images/redspot.jpg");
-  tmp = IMG_Load(psp_filename);
-#else
   tmp = IMG_Load(DATA_PREFIX "images/redspot.jpg");
-#endif
 
   if (tmp == NULL)
     {
@@ -2215,12 +2194,7 @@ void setup(int argc, char * argv[])
     {
       for (i = 0; i < NUM_SOUNDS; i++)
 	{
-#ifdef PSP
-	  snprintf(psp_filename, sizeof(psp_filename), "%s/%s", psp_full_path, sound_names[i]);
-	  sounds[i] = Mix_LoadWAV(psp_filename);
-#else
 	  sounds[i] = Mix_LoadWAV(sound_names[i]);
-#endif
           if (sounds[i] == NULL)
             {
               fprintf(stderr,
@@ -2233,12 +2207,7 @@ void setup(int argc, char * argv[])
 	}
       
        
-#ifdef PSP
-      snprintf(psp_filename, sizeof(psp_filename), "%s/%s", psp_full_path, mus_game_name);
-      game_music = Mix_LoadMUS(psp_filename);
-#else
       game_music = Mix_LoadMUS(mus_game_name);
-#endif
       if (game_music == NULL)
 	{
 	  fprintf(stderr,
