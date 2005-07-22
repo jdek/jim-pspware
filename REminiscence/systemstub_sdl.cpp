@@ -326,7 +326,7 @@ void SystemStub_SDL::processEvents() {
 			case 4:		/* Left Trigger */
 				_pi.save = true;
 				break;
-			case 5:		/* Left Trigger */
+			case 5:		/* Right Trigger */
 				_pi.load = true;
 				break;
 			case 11:	/* Start button. */
