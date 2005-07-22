@@ -90,11 +90,10 @@ void SystemStub_SDL::init(const char *title, uint16 w, uint16 h) {
 		error("SystemStub_SDL::init() Unable to allocate offscreen buffer");
 	}
 	memset(_offscreen, 0, size_offscreen);
-#ifndef PSP
 	_fullscreen = false;
+#ifndef PSP
 	_scaler = 2;
 #else
-	_fullscreen = true;
 	_scaler = 0;
 #endif
 	memset(_pal, 0, sizeof(_pal));
@@ -323,12 +322,6 @@ void SystemStub_SDL::processEvents() {
 			    _pi.backspace = true;
 			    break;
 #ifdef PSP
-			case 4:		/* Left Trigger */
-				_pi.save = true;
-				break;
-			case 5:		/* Right Trigger */
-				_pi.load = true;
-				break;
 			case 11:	/* Start button. */
 			    _pi.escape = true;
 			    break;
@@ -343,6 +336,29 @@ void SystemStub_SDL::processEvents() {
 			    break;
 			case 9:		/* D-pad right. */
 			    _pi.dirMask |= PlayerInput::DIR_RIGHT;
+			    break;
+			case 10:	/* Select button. */
+			    _pi.select = true;
+			    break;
+			case 4:		/* Left trigger. */
+			    if (_pi.select) {
+				int8 s = _scaler - 1;
+				if (_scaler > 0) {
+					switchGfxMode(_fullscreen, s);
+				}
+			    } else {
+				_pi.save = true;
+			    }
+			    break;
+			case 5:		/* Right trigger. */
+			    if (_pi.select) { 
+				uint8 s = _scaler + 1;
+				if (s < NUM_SCALERS) {
+					switchGfxMode(_fullscreen, s);
+				}
+			    } else {
+				_pi.load = true;
+			    }
 			    break;
 #endif /* PSP */
 			}
@@ -384,6 +400,9 @@ void SystemStub_SDL::processEvents() {
 			    break;
 			case 9:		/* D-pad right. */
 			    _pi.dirMask &= ~PlayerInput::DIR_RIGHT;
+			    break;
+			case 10:	/* Select button. */
+			    _pi.select = false;
 			    break;
 #endif
 			}

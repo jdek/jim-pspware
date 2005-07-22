@@ -37,13 +37,17 @@ To install:
 
 Controls:
 
-   D-Pad    - Move left, right, up, or down
-   Analog   - Disabled; see "Known issues" below.
-   Cross    - Enter (Use object)
-   Circle   - Backspace (Inventory / exit from a cinematic scene)
-   Triangle - Space (Take out / put back gun)
-   Square   - Shift (Operate / run / take)
-   Start    - Esc (Game options)
+   D-Pad     - Move left, right, up, or down
+   Analog    - Disabled; see "Known issues" below.
+   Cross     - Enter (Use object)
+   Circle    - Backspace (Inventory / exit from a cinematic scene)
+   Triangle  - Space (Take out / put back gun)
+   Square    - Shift (Operate / run / take)
+   Start     - Esc (Game options)
+   L1        - Save
+   R1        - Load
+   Select+L1 - Decrease resolution (not yet implemented)
+   Select+R1 - Increase resolution (not yet implemented)
 
 Known issues:
 
@@ -51,5 +55,6 @@ Known issues:
    If you have .mod versions of the music, they will play but may cut off too
    early.
    There could be other issues with sound.
+   Any attempt to increase or decrease the resolution will crash the game.
 
 Enjoy!
