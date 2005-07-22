@@ -123,6 +123,49 @@ void S9xOpenGLDeinit ();
 
 #endif
 
+#if defined(USE_SCEGU)
+#include "port.h"
+
+#include <psptypes.h>
+#include <pspgu.h>
+
+typedef struct
+{
+    // Framebuffer format
+    int          pixel_format;
+
+    // Texture format
+    int          texture_format;
+
+    // Various Registers
+    uint32       ct;
+    uint32       tt;
+    uint32       mt;
+    uint32       dm;
+
+    int          max_texture_size; // 512
+    int          texture_size;
+    int          num_textures;   // 1 for now - sceGu limitation (07/20/05)
+
+//  SceGUTexture textures [2];   // No support for texture objects, must use
+                                 // a display list instead. (See comment above)
+
+    uint32       list [262144] __attribute__((aligned(16)));
+} SceGUData;
+
+extern SceGUData SceGU;
+
+START_EXTERN_C
+
+  bool8 S9xSceGUInit     (void);
+  bool8 S9xSceGUInit2    (void);
+  void  S9xSceGUPutImage (int width, int height);
+  void  S9xSceGUDeinit   (void);
+
+END_EXTERN_C
+
+#endif // USE_SCEGU
+
 #ifdef USE_GLIDE
 #include <glide.h>
 

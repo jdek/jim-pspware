@@ -18,7 +18,7 @@ int nfiles;
 
 void menu_frame(const unsigned char *msg0, const unsigned char *msg1)
 {
-        long BatteryVolt_ret        = scePowerGetBatteryVolt        (); // Voltage: 5000 = 5.000 Volts
+	long BatteryVolt_ret        = scePowerGetBatteryVolt        (); // Voltage: 5000 = 5.000 Volts
 	long BatteryCharging_ret    = scePowerIsBatteryCharging     (); // 
 	int  BatteryLifePercent_ret = scePowerGetBatteryLifePercent (); // 
 	int  BatteryLifeTime_ret    = scePowerGetBatteryLifeTime    (); // Estimated number of minutes the battery will last
@@ -30,7 +30,7 @@ void menu_frame(const unsigned char *msg0, const unsigned char *msg1)
 	bool8 BatteryFull = FALSE;
 
 	pgFillvram (0x9063);
-	mh_print   (286, 0, (unsigned char *)" ■ uo_Snes9x for PSP Ver0.02pd2 ■", RGB (85,85,95));
+	mh_print   (289, 0, (unsigned char *)" ■ uo_Snes9x for PSP Ver0.02pd2 ■", RGB (85,85,95));
 	
 	if ((BatteryVolt_ret > 999) && (BatteryVolt_ret < 9999)) {
 		sprintf (BatteryVolt_ret_text, "(%1.3fV)", (float)BatteryVolt_ret / 1000);
@@ -52,10 +52,14 @@ void menu_frame(const unsigned char *msg0, const unsigned char *msg1)
 	
 	// Battery is being used...
 	else if (BatteryCharging_ret == 0) {
-		sprintf  (message, "[Battery: %s %s -:- %01d:%02d]", BatteryCharge_percent, BatteryVolt_ret_text,
-		                                                     BatteryLifeTime_ret / 60, BatteryLifeTime_ret % 60);
+		if (BatteryLifeTime_ret > 0 && BatteryLifeTime_ret < 330 /* 5:30 */) {
+			sprintf (message, "[Battery: %s %s -:- %01d:%02d]", BatteryCharge_percent, BatteryVolt_ret_text,
+		                                                            BatteryLifeTime_ret / 60, BatteryLifeTime_ret % 60);
+		} else {
+			sprintf (message, "[Battery: %s %s]", BatteryCharge_percent, BatteryVolt_ret_text);
+		}
 		mh_print (0, 0, (unsigned char*)message, BatteryFull ? RGB (0,0,255) :
-		                                                       RGB (255,0,0));
+		                                                        RGB (255,0,0));
 	}
 	
 	// Battery is being charged...
@@ -144,32 +148,59 @@ void sort(struct SceIoDirent *a, int left, int right) {
 	}
 }
 
-// 拡張子管理用
+// Map for extension strings and bitmasks
 const struct {
 	char *szExt;
 	int   nExtId;
-} stExtentions [] = {
+} stExtensions [] = {
 	{ "sfc", EXT_SFC     },
 	{ "smc", EXT_SMC     },
 	{ "zip", EXT_ZIP     },
+	{ "cfg", EXT_CFG     },
+	{ "sv0", EXT_STATE   }, { "sv1", EXT_STATE }, { "sv2", EXT_STATE },
+	{ "sv3", EXT_STATE   }, { "sv4", EXT_STATE }, { "sv5", EXT_STATE },
+	{ "sv6", EXT_STATE   }, { "sv7", EXT_STATE },
+	{ "tn0", EXT_THUMB   }, { "tn1", EXT_THUMB }, { "tn2", EXT_THUMB },
+	{ "tn3", EXT_THUMB   }, { "tn4", EXT_THUMB }, { "tn5", EXT_THUMB },
+	{ "tn6", EXT_THUMB   }, { "tn7", EXT_THUMB },
+	{ "srm", EXT_SRAM    },
 	{   0,   EXT_UNKNOWN }
 };
 
-int getExtId(const char *szFilePath) {
+int getExtId (const char *szFilePath)
+{
 	char *pszExt;
-	int i;
-	if((pszExt = (char *)strrchr(szFilePath, '.'))) {
+	int   i;
+	
+	// .. is a special case. It's a directory, but it doesn't have a trailing /
+	if (! strcmp (szFilePath, ".."))
+		return EXT_DIR;
+	
+	if ((pszExt = (char *)strrchr (szFilePath, '.'))) {
 		pszExt++;
-		for (i = 0; stExtentions[i].nExtId != EXT_UNKNOWN; i++) {
-			if (!stricmp(stExtentions[i].szExt,pszExt)) {
-				return stExtentions[i].nExtId;
+		
+		for (i = 0; stExtensions [i].nExtId != EXT_UNKNOWN; i++) {
+			if (! strcasecmp (stExtensions [i].szExt, pszExt)) {
+				return stExtensions [i].nExtId;
 			}
 		}
+	} else {
+		// Missing a dot, this could be either a directory
+		// or a file with no extension.
+
+		// If it has a / it's a directory, and extensions
+		// for directories are undefined.
+		if (strrchr (szFilePath, '/'))
+			return EXT_DIR;
+		
+		// File with no extension
+		return EXT_NONE;
 	}
+	
 	return EXT_UNKNOWN;
 }
 
-void getDir(const char *path) {
+void getDir(const char *path, const int ext_mask) {
 	int fd, b=0;
 	
 	nfiles = 0;
@@ -191,8 +222,11 @@ void getDir(const char *path) {
 			nfiles++;
 			continue;
 		}
-		if(getExtId(files[nfiles].d_name) != EXT_UNKNOWN) nfiles++;
+
+		if (ext_mask & getExtId (files [nfiles].d_name))
+			nfiles++;
 	}
+
 	sceIoDclose(fd);
 	if(b)
 		sort(files+1, 0, nfiles-2);
@@ -200,24 +234,26 @@ void getDir(const char *path) {
 		sort(files, 0, nfiles-1);
 }
 
-char LastPath[_MAX_PATH];
-char FilerMsg[256];
-int getFilePath(char *out)
+char LastPath [_MAX_PATH];
+char FilerMsg [256];
+static int  dialog_y;
+
+int getFilePath(char *out, int ext_mask)
 {
+	int original_ext_mask = ext_mask;
+	
 	unsigned long color;
 	static int sel=0;
 	int top, rows=21, x, y, h, i, bMsg=0, up=0;
 	char path[_MAX_PATH], oldDir[_MAX_PATH], *p;
-// add by J
-	int  dialog_y = 0;
-	
+
 	top = sel-3;
 	
 	strcpy(path, LastPath);
 	if(FilerMsg[0])
 		bMsg=1;
-	
-	getDir(path);
+
+	getDir (path, ext_mask);
 
 	for(;;){
 		readpad ();
@@ -230,14 +266,18 @@ int getFilePath(char *out)
 					up=1;
 				}else{
 					strcat(path,files[sel].d_name);
-					getDir(path);
+					getDir(path, ext_mask);
 					sel=0;
 				}
 			}else{
-				strcpy(out, path);
-				strcat(out, files[sel].d_name);
-				strcpy(LastPath,path);
-				return 1;
+				if (original_ext_mask != 0xffffffff) {
+					strcpy(out, path);
+					strcat(out, files[sel].d_name);
+					strcpy(LastPath,path);
+					return 1;
+				} else {
+					return 1;
+				}
 			}
 		}else if(new_pad & PSP_CTRL_CROSS){
 			return 0;
@@ -252,54 +292,44 @@ int getFilePath(char *out)
 		}else if(new_pad & PSP_CTRL_RIGHT){
 			sel+=10;
 		}else if(new_pad & PSP_CTRL_LTRIGGER){
-			sel-=20;
+				sel-=20;
+//			sel-=21;
+//			top=sel-20;
  		}else if(new_pad & PSP_CTRL_RTRIGGER){
-			sel+=20;
-		// ROM削除(ロボタンでROM削除)
-		}else if( new_pad & PSP_CTRL_SQUARE ) {
-			if( files[sel].d_stat.st_attr != FIO_SO_IFDIR) {
-				if( strcmp( files[sel].d_name , ".." ) ) {
-					//   ループカウント
-					int  loop_cnt;
-					//   ROM削除用パス
-					char delete_path[ _MAX_PATH ];
-					//   タイトル文字列
-					char title_string[ D_text_MAX ];
-					//   ダイアログテキストの保存用変数
-					char dialog_text_all[ D_text_all_MAX ];
-					// ダイアログタイトル文字列作成
-					strcpy( title_string,    " 　【　　ROM Delete　　】　 \0" );
-					// メッセージ作成
-					strcpy( dialog_text_all, files[sel].d_name                );
-					strcat( dialog_text_all, "\n\n\0"                         ); // 改行x2
-					strcat( dialog_text_all, "     ROMを削除します。\n\0"     );
-					strcat( dialog_text_all, "     よろしいですか？\n\0"      );
-					strcat( dialog_text_all, "\n\0"                           ); // 改行
-					strcat( dialog_text_all, "   はい ○ ／ いいえ ×\n\0"    );
-					strcat( dialog_text_all, "\n\0"                           ); // 改行
-					// ダイアログ表示
-					dialog_y += 12;
-					// 表示位置が下すぎたら上に表示
-					if ( dialog_y > 185 ) dialog_y -= 100;
-					message_dialog( 30, dialog_y, title_string, dialog_text_all );
-					// 無限ループ気持ち悪い
-					while( 1 ){
-						readpad();
-						// ×ボタン押した
-						if ( new_pad & PSP_CTRL_CROSS ) {
-							break;
-						// ○ボタン押す(ROM削除)
-						} else if ( new_pad & PSP_CTRL_CIRCLE ){
-							strcpy( delete_path, path);
-							strcat( delete_path, files[ sel ].d_name );
-							sceIoRemove( delete_path );
-							getDir(path);
-							break;
-						}
-					}
+				sel+=20;
+//			sel+=21;
+//			top=sel;
+		}
+
+		else if (new_pad & PSP_CTRL_START) {
+			if (original_ext_mask == 0xffffffff) {
+				switch (ext_mask) {
+					case EXT_MASK_ROM:
+						ext_mask = EXT_MASK_STATE_SAVE;
+						break;
+					case EXT_MASK_STATE_SAVE:
+						ext_mask = EXT_MASK_RESOURCES;
+						break;
+					case EXT_MASK_RESOURCES:
+						ext_mask = 0xffffffff;
+						break;
+					default:
+						ext_mask = EXT_MASK_ROM;
+						break;
+				}
+
+				getDir (path, ext_mask);
+			}
+		}
+
+		// Delete the selected file (confirm first)
+		else if (new_pad & PSP_CTRL_SQUARE) {
+			if (files [sel].d_stat.st_attr != FIO_SO_IFDIR) {
+				if (strcmp (files [sel].d_name, ".." )) {
+					if (delete_file_confirm (path, files [sel].d_name))
+						getDir (path, ext_mask);
 				}
 			}
-
 		}
 		
 		if(up){
@@ -311,7 +341,7 @@ int getFilePath(char *out)
 				strcpy(oldDir,p);
 				strcat(oldDir,"/");
 				*p=0;
-				getDir(path);
+				getDir(path, ext_mask);
 				sel=0;
 				for(i=0; i<nfiles; i++) {
 					if(!strcmp(oldDir, files[i].d_name)) {
@@ -331,10 +361,33 @@ int getFilePath(char *out)
 		if(sel >= top+rows)		top=sel-rows+1;
 		if(sel < top)			top=sel;
 		
-		if(bMsg)
-			menu_frame((unsigned char *)FilerMsg,(unsigned char *)"○：OK　×：CANCEL　△：UP　□：DELETE");
+		const  unsigned char* frame_top;
+		static unsigned char  frame_bottom [128];
+		
+		if (bMsg)
+			frame_top = (unsigned char *)FilerMsg;
 		else
-			menu_frame((unsigned char *)path,(unsigned char *)"○：OK　×：CANCEL　△：UP　□：DELETE");
+			frame_top = (unsigned char *)path;
+
+		// Operations that apply no matter what type of entry is selected
+		if (original_ext_mask == 0xffffffff) {
+			// 0xffffffff indicates this is file manager mode, no loading is possible
+			strcpy ((char *)frame_bottom, "○ ／ ×：CLOSE　△：UP");
+		} else {
+			strcpy ((char *)frame_bottom, "○：OK　×：CANCEL　△：UP");
+		}
+
+		// If the selected entry is a file, add DELETE and COPY/MOVE
+		if ((! (files [sel].d_stat.st_attr & FIO_SO_IFDIR)) &&
+		    (strcmp (files [sel].d_name, ".."))) {
+			strcat ((char *)frame_bottom, "　□：DELETE　SELECT：COPY/MOVE");
+		}
+
+		menu_frame (frame_top,frame_bottom);
+
+		int total_size  = 0;
+		int total_files = 0; // This is the number of files that match
+		                     // the current filter (extension mask).
 		
 		// スクロールバー
 		if(nfiles > rows){
@@ -343,23 +396,121 @@ int getFilePath(char *out)
 			pgFillBox(448, h*top/nfiles + 27,
 				460, h*(top+rows)/nfiles + 27,RGB(85,85,95));
 		}
-		
+
+		// Calculate the total file size and number of files (minus directories)
+		for (i=0; i<nfiles; i++) {
+			if (ext_mask & getExtId (files [i].d_name)) {
+				total_size += files [i].d_stat.st_size;
+				total_files ++;
+			}
+		}
+
 		x=28; y=32;
 		for(i=0; i<rows; i++){
-			if(top+i >= nfiles) break;
-// mod by J
-// 赤に変えました
-//			if(top+i == sel) color = RGB(105,105,115);
+			if(top+i >= nfiles)
+				break;
+
+			// Shorthand
+			const SceIoDirent* file = &files [top + i];
+
 			if(top+i == sel) {
 				color = RGB( 255,  0,   0 );
 				dialog_y = y;
 			}else {
 				color = 0xffff;
 			}
-			mh_print(x, y, (unsigned char *)files[top+i].d_name, color);
-			y+=10;
+
+			// TODO: Cache this stuff
+			const int filename_len = strlen (file->d_name);
+			char*     szName       = file->d_name;
+
+			// Truncate long filenames so that they don't overlap the file size.
+			if (filename_len > 74) {
+				static char szTruncatedName [128];
+				strncpy (szTruncatedName, file->d_name, 74);
+
+				// Add ... to denote truncation...
+				strcpy ((szTruncatedName + 70), "...");
+
+				szName = szTruncatedName;
+			}
+
+			mh_print (x, y, (unsigned char *)szName, color);
+
+			// Dim the filesize info so that it's not painful to look at.
+			if ((top + i) == sel)
+							color = RGB (192, 0, 0);
+			else
+							color = RGB (192, 192, 192);
+
+			// For non-directory entires, list the file size.
+			if (! (file->d_stat.st_attr & FIO_SO_IFDIR)) {
+				static char szSize [32];
+				const  int  iSize = file->d_stat.st_size;
+
+				if (iSize >= (1 << 20)) {
+					sprintf (szSize, "%4.2f Mb",
+						(float)((float)file->d_stat.st_size /
+										(1024.0f * 1024.0f)));
+				} else if (iSize >= (1 << 10)) {
+					sprintf (szSize, "%#4i Kb",
+						file->d_stat.st_size / 1024);
+				} else {
+					sprintf (szSize, "%#4i  b", file->d_stat.st_size);
+				}
+
+				// mh_print's coordinates are in pixels, not logical character coords.
+				mh_print (402, y, (unsigned char *)szSize, color);
+			}
+
+			y += 10;
 		}
-		
+
+		static char szTotalSize [32];
+		if (total_size >= (1 << 20) || total_size == 0) {
+			sprintf (szTotalSize, "Total Size: %6.2f Mb",
+				(float)((float)total_size /
+					(1024.0f * 1024.0f)));
+		} else if (total_size >= (1 << 10)) {
+			sprintf (szTotalSize, "Total Size: %#6i Kb",
+				total_size / 1024);
+		} else if (total_size > 0) {
+			sprintf (szTotalSize, "Total Size: %#6i  b", total_size);
+		}
+
+		static char szTotalFiles [32];
+		sprintf (szTotalFiles, "     Files: %#6i", total_files);
+
+		mh_print (332, 252, (unsigned char *)szTotalSize,  RGB (85,85,95));
+		mh_print (332, 262, (unsigned char *)szTotalFiles, RGB (85,85,95));
+
+		if (original_ext_mask == 0xffffffff) {
+			static char szFilterName [64];
+
+			strcpy (szFilterName, "File Filter: ");
+			
+			switch (ext_mask) {
+				case EXT_MASK_ROM:
+					strcat (szFilterName, "      ROM Images");
+					break;
+				case EXT_MASK_STATE_SAVE:
+					strcat (szFilterName, "     State Saves");
+					break;
+				case EXT_MASK_RESOURCES:
+					strcat (szFilterName, "Snes9x Resources");
+					break;
+				case 0xffffffff:
+					strcat (szFilterName, "       All Files");
+					break;
+				default:
+					strcat (szFilterName, "         Unknown");
+					break;
+			}
+			mh_print (300, 14, (unsigned char *)szFilterName, RGB (155,155,165));
+
+			mh_print (17, 262, (unsigned char *)"Press START to change the File Filter", RGB (155,155,165));
+		}
+
 		pgScreenFlipV ();
 	}
 }
@@ -593,8 +744,60 @@ void save_thumb(const char *path)
 	sceIoRemove(path);
 }
 
-void delete_file(const char *path)
+bool8 delete_file_confirm (const char *path, const char *name)
 {
-	sceIoRemove(path);
+	//   ループカウント
+	int  loop_cnt;
+	//   ROM削除用パス
+	char delete_path     [_MAX_PATH];
+	//   タイトル文字列
+	char title_string    [D_text_MAX];
+	//   ダイアログテキストの保存用変数
+	char dialog_text_all [D_text_all_MAX];
+	
+	// ダイアログタイトル文字列作成
+	strcpy (title_string,    "       　【　　File Delete　　】　  \0");
+	
+	// メッセージ作成
+	strcpy (dialog_text_all, name                                            );
+	strcat (dialog_text_all, "\n\n"                                          );
+	strcat (dialog_text_all, " Are you sure you want to delete this file? \n");
+	strcat (dialog_text_all, "\n"                                            );
+	strcat (dialog_text_all, "             Yes ○ ／ No ×\n"            );
+	strcat (dialog_text_all, "\n"                                            );
+	
+	// ダイアログ表示
+	dialog_y += 12;
+	
+	// 表示位置が下すぎたら上に表示
+	if (dialog_y > 185) dialog_y -= 100;
+	message_dialog (30, dialog_y, title_string, dialog_text_all);
+	
+	// 無限ループ気持ち悪い
+	while (1) {
+		readpad ();
+		
+		// The user has chosen to abort the delete
+		if (new_pad & PSP_CTRL_CROSS) {
+			return FALSE;
+		}
+		
+		// The user as confirmed the file delete
+		else if (new_pad & PSP_CTRL_CIRCLE){
+			strcpy      (delete_path, path);
+			strcat      (delete_path, name);
+			delete_file (delete_path);
+			return TRUE;
+		}
+	}
 }
 
+void delete_file (const char *path)
+{
+	sceIoRemove (path);
+}
+
+bool8 copy_file (const char *file)
+{
+	
+}

@@ -21,6 +21,7 @@ PSP=1
 OPTI=1
 OPTITEST=1
 #USE_PROFILER=1
+#UBER_OPTIMIZE=1
 
 #Fairly good and special-char-safe descriptor of the os being built on.
 OS=`uname -s -r -m|sed \"s/ /-/g\"|tr \"[A-Z]\" \"[a-z]\"|tr \"/()\" \"___\"`
@@ -213,7 +214,7 @@ CC   = psp-gcc
 NASM = fail
 GASM = fail
 INCLUDES += -I$(srcdir)/psp  -I`psp-config -p`/include
-DEFS      = -DPSP -DPSP_NOTUSE
+DEFS      = -DPSP -DPSP_NOTUSE -DUSE_SCEGU
 ifdef OPTI
 DEFS     += -DOPTI
 endif
@@ -228,9 +229,21 @@ OPTIMISE=-O4 -ffast-math -fforce-addr \
 	 -fvariable-expansion-in-unroller -ftracer -ftree-vectorize -fivopts -ftree-loop-im -ftree-loop-linear \
 	 -floop-optimize2 -freorder-blocks-and-partition \
 	 -fsched-spec-load-dangerous -ftree-loop-ivcanon \
-	 -fmove-loop-invariants -fbtr-bb-exclusive
+	 -fmove-loop-invariants
 ifndef DEBUG
-OPTIMISE += -frename-registers
+OPTIMISE += -frename-registers -fomit-frame-pointer -fmerge-all-constants
+endif
+
+# This will make compile times go up, without a lot of performance gain...
+ifdef UBER_OPTIMIZE
+OPTIMISE += --param max-reload-search-insns=100000 --param max-inline-insns-auto=110 \
+            --param max-crossjump-edges=100000 --param max-delay-slot-insn-search=100000 \
+	    --param max-gcse-passes=5 --param max-sched-region-blocks=30 \
+	    --param max-sched-region-insns=10000 --param max-aliased-vops=50000 \
+	    --param max-cse-path-length=10000 --param tracer-max-code-growth=1500 \
+	    --param tracer-min-branch-ratio=50 --param large-function-growth=2000 \
+	    --param max-delay-slot-live-search=10000
+OPTIMISE += -Wdisabled-optimization -Wextra -Wstrict-aliasing=2 #-Wcast-align
 endif
 	 
 OPTIMISE_C=-ffreestanding $(OPTIMISE)
@@ -243,7 +256,7 @@ else
 PSP_OBJECTS=$(OBJECTS) $(UNZIP_OBJECTS)
 endif
 
-PLATFORMOBJ   = psp/psp.o psp/config.o psp/pg.o psp/filer.o psp/config.o
+PLATFORMOBJ   = psp/psp.o psp/config.o psp/pg.o psp/filer.o psp/scegu.o
 SNAPOBJ       = snapshot.o
 SCREENSHOTOBJ =
 MOVIEOBJ      =
@@ -253,7 +266,6 @@ DEFS     += -DDETECT_NASTY_FX_INTERLEAVE
 endif
 
 DEFS += \
--DVAR_CYCLES \
 -DCPU_SHUTDOWN \
 -DSPC700_SHUTDOWN \
 $(FXDEFINES) \
@@ -269,7 +281,8 @@ $(AIDODEFINES) \
 $(KREEDDEFINES) \
 $(SDD1DEFINES) \
 $(JOYDEFINES) \
--DNO_INLINE_SET_GET  -DNOASM '-DACCEPT_SIZE_T=socklen_t'
+-DNO_INLINE_SET_GET -DNOASM
+#-DNO_INLINE_SET_GET  -DNOASM '-DACCEPT_SIZE_T=socklen_t'
 #-DNO_INLINE_SET_GET  -DNOASM '-DACCEPT_SIZE_T=socklen_t' -DNOSOUND
 
 #-DNO_INLINE_SET_GET  -DNOASM -DHAVE_STRINGS_H '-DACCEPT_SIZE_T=socklen_t' -DNOSOUND
@@ -285,6 +298,7 @@ $(JOYDEFINES) \
 CFLAGS = $(OPTIMISE_C) $(CPUFLAGS) $(INCLUDES) $(DEFS)
 CXXFLAGS = $(OPTIMISE_CXX) $(CPUFLAGS) $(INCLUDES) $(DEFS)
 
+
 ifdef USE_PROFILER
 DEFS += -DUSE_PROFILER -DPROFILE_TILES -DPROFILE_GFX
 #DEFS += -DUSE_PROFILER -DPROFILE_HW
@@ -296,7 +310,8 @@ endif
 # -L../zlib
 LDLIBS =  psp/unziplib.a -L`psp-config -p`/lib \
 	  -lpspaudio -lpspctrl -lpsppower -lpspdebug -lpspgu -lpspge -lpspdisplay \
-	  -lpsplibc -lpspglue -lpspuser -lpspkernel -lm
+	  -lpsplibc -lpspglue -lpspuser -lpspkernel -lm #-lz
+	  
 
 ifdef PROFILE
 #LDLIBS += -lgcov
@@ -364,7 +379,7 @@ osnes9x: $(OBJECTS) unix/x11.o $(OPENGLOBJS)
 	$(CCC) $(INCLUDES) -o $@ $(OBJECTS) unix/x11.o $(OPENGLOBJS) $(LDLIBS) $(OPENGLLIBS)   -lXext -lX11 $(EXTRALIBS) -lm
 
 s9xserver: $(SERVER_OBJECTS)
-	$(CCC) $(INCLUDES) -o $@ $(SERVER_OBJECTS) 
+	$(CCC) $(INCLUDES) -o $@ $(SERVER_OBJECTS)
 
 .cpp.o:
 	$(CCC) $(INCLUDES) -c $(CXXFLAGS) $(srcdir)/$*.cpp -o $@
@@ -482,7 +497,7 @@ dependencies:
 	  >dependencies
 
 #NOTE: Not VPATH safe
-TAGS: *.c *.h unix/*.c unix/*.h unzip/*.c unzip/*.h jma/*.cpp jma/*.h 
-	-etags *.c *.h unix/*.c unix/*.h unzip/*.c unzip/*.h  jma/*.cpp jma/*.h
+TAGS: *.c *.h psp/*.c psp/*.h psp/*.cpp unzip/*.c unzip/*.h 
+	-etags *.c *.h psp/*.c psp/*.h psp/*.cpp unzip/*.c unzip/*.h
 
-include dependencies
+-include dependencies

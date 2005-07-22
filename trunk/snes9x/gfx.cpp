@@ -455,7 +455,7 @@ void DrawLargePixel16Sub1_2 (uint32 Tile, uint32 Offset,
 			     uint32 StartPixel, uint32 Pixels,
 			     uint32 StartLine, uint32 LineCount);
 
-inline void DrawTile16_OBJ_inline (uint32 Tile, uint32 Offset, uint32 StartLine, uint32 LineCount)
+inline void DrawTile16_OBJ_inline (const uint32& Tile, const uint32& Offset, const uint32& StartLine, uint32 LineCount)
 {
 //	TILE_PREAMBLE
 
@@ -482,22 +482,29 @@ inline void DrawTile16_OBJ_inline (uint32 Tile, uint32 Offset, uint32 StartLine,
 	GFX.ScreenColors = &IPPU.ScreenColors [(((Tile >> 10) & 7) << 4) + 128];
 
     register uint8*	bp;
-	register int	inc;
+    register int	inc;
+
+    register uint32*	dp;
+    register int	inc4;
 
     if (Tile & V_FLIP){
-		bp  = pCache + 56 - StartLine;
-		inc = -8;
+		bp   = (uint8 *) (pCache + 56 - StartLine);
+		dp   = (uint32 *)(pCache + 56 - StartLine);
+		inc  = -8;
+		inc4 = -2;
 	} else {
-		bp  = pCache + StartLine;
-		inc = 8;
+		bp   = (uint8 *) (pCache + StartLine);
+		dp   = (uint32 *)(pCache + StartLine);
+		inc  = 8;
+		inc4 = 2;
 	}
 
-    register uint16* 	Screen  = (uint16 *) GFX.S + Offset;
-    register uint16* 	Colors  = GFX.ScreenColors;
-    register uint8*  	Depth   = GFX.DB + Offset;
-    const int     	GFX_PPL = GFX.PPL;
-    const int     	GFX_Z1  = GFX.Z1;
-    const int     	GFX_Z2  = GFX.Z2;
+    uint16*  	Screen  = (uint16 *) GFX.S + Offset;
+    uint16*  	Colors  = GFX.ScreenColors;
+    uint8*   	Depth   = GFX.DB + Offset;
+    const int	GFX_PPL = GFX.PPL;
+    const int	GFX_Z1  = GFX.Z1;
+    const int	GFX_Z2  = GFX.Z2;
 
     if (!(Tile & H_FLIP)){
 #define FN(N) \
@@ -505,15 +512,16 @@ inline void DrawTile16_OBJ_inline (uint32 Tile, uint32 Offset, uint32 StartLine,
 		Screen[N] = Colors[bp[N]]; \
 		Depth[N]  = GFX_Z2; \
 	}
-		while ( LineCount-- ){
-		    if ( *(uint32*)bp ){
-				FN(0); FN(1); FN(2); FN(3);
+		while (LineCount-- && LineCount < 256){
+		    if (*dp){
+				FN(0); FN(2); FN(1); FN(3);
 			}
 
-		    if ( *(uint32 *)(bp + 4) ){
-				FN(4); FN(5); FN(6); FN(7);
+		    if (*(dp + 1)){
+				FN(4); FN(6); FN(5); FN(7);
 			}
 			bp += inc;
+			dp += inc4;
 			Screen += GFX_PPL;
 			Depth  += GFX_PPL;
 		}
@@ -524,15 +532,16 @@ inline void DrawTile16_OBJ_inline (uint32 Tile, uint32 Offset, uint32 StartLine,
 		Screen[N] = Colors[bp[B]]; \
 		Depth[N]  = GFX_Z2; \
     }
-		while ( LineCount-- ){
-		    if ( *(uint32 *)(bp + 4) ){
+		while (LineCount-- && LineCount < 256){
+		    if (*(dp + 1)){
 				FN(0, 7); FN(1, 6); FN(2, 5); FN(3, 4);
 			}
 
-		    if ( *(uint32*)bp ){
+		    if (*dp){
 				FN(4, 3); FN(5, 2); FN(6, 1); FN(7, 0);
 			}
 		    bp += inc;
+		    dp += inc4;
 		    Screen += GFX_PPL;
 		    Depth  += GFX_PPL;
 		}
@@ -540,7 +549,7 @@ inline void DrawTile16_OBJ_inline (uint32 Tile, uint32 Offset, uint32 StartLine,
 	}
 }
 
-inline void DrawTile16_inline (uint32 Tile, uint32 Offset, uint32 StartLine, uint32 LineCount)
+inline void DrawTile16_inline (const uint32& Tile, const uint32& Offset, const uint32& StartLine, uint32 LineCount)
 {
 //	TILE_PREAMBLE
 
@@ -571,22 +580,29 @@ inline void DrawTile16_inline (uint32 Tile, uint32 Offset, uint32 StartLine, uin
 	}
 
     register uint8*	bp;
-	register int	inc;
+    register int	inc;
+
+    register uint32*	dp;
+    register int	inc4;
 
     if (Tile & V_FLIP){
-		bp  = pCache + 56 - StartLine;
-		inc = -8;
+		bp   = (uint8 *) (pCache + 56 - StartLine);
+		dp   = (uint32 *)(pCache + 56 - StartLine);
+		inc  = -8;
+		inc4 = -2;
 	} else {
-		bp  = pCache + StartLine;
-		inc = 8;
+	        bp   = (uint8 *) (pCache + StartLine);
+		dp   = (uint32 *)(pCache + StartLine);
+		inc  = 8;
+		inc4 = 2;
 	}
 
-    register uint16*	Screen = (uint16 *) GFX.S + Offset;
-    register uint16*	Colors =  GFX.ScreenColors;
-    register uint8*	Depth  =  GFX.DB + Offset;
-	const int	GFX_PPL = GFX.PPL;
-	const int	GFX_Z1  = GFX.Z1;
-//	int		GFX_Z2  = GFX.Z2;
+        uint16*  	Screen  = (uint16 *) GFX.S + Offset;
+        uint16*  	Colors  = GFX.ScreenColors;
+        uint8*   	Depth   = GFX.DB + Offset;
+        const int	GFX_PPL = GFX.PPL;
+        const int	GFX_Z1  = GFX.Z1;
+//      int      	GFX_Z2  = GFX.Z2;
 
     if (!(Tile & H_FLIP)){
 #define FN(N) \
@@ -594,15 +610,16 @@ inline void DrawTile16_inline (uint32 Tile, uint32 Offset, uint32 StartLine, uin
 		Screen[N] = Colors[bp[N]]; \
 		Depth[N]  = GFX_Z1; \
 	}
-		while ( LineCount-- ){
-		    if ( *(uint32 *)bp ){
-				FN(0); FN(1); FN(2); FN(3);
+		while (LineCount-- && LineCount < 256) {
+		    if (*dp) {
+				FN(0); FN(2); FN(1); FN(3);
 			}
 
-		    if ( *(uint32 *)(bp + 4) ){
-				FN(4); FN(5); FN(6); FN(7);
+		    if (*(dp + 1)) {
+				FN(4); FN(6); FN(5); FN(7);
 			}
 		    bp += inc;
+		    dp += inc4;
 		    Screen += GFX_PPL;
 		    Depth  += GFX_PPL;
 		}
@@ -613,15 +630,16 @@ inline void DrawTile16_inline (uint32 Tile, uint32 Offset, uint32 StartLine, uin
 		Screen[N] = Colors[bp[B]]; \
 		Depth[N]  = GFX_Z1; \
     }
-		while ( LineCount-- ){
-		    if ( *(uint32 *)(bp + 4) ){
+		while (LineCount-- && LineCount < 256) {
+		    if (*(dp + 1)) {
 				FN(0, 7); FN(1, 6); FN(2, 5); FN(3, 4);
 			}
 
-		    if ( *(uint32*)bp ){
+		    if (*dp){
 				FN(4, 3); FN(5, 2); FN(6, 1); FN(7, 0);
 			}
 			bp += inc;
+			dp += inc4;
 			Screen += GFX_PPL;
 			Depth  += GFX_PPL;
 		}
@@ -629,13 +647,12 @@ inline void DrawTile16_inline (uint32 Tile, uint32 Offset, uint32 StartLine, uin
 	}
 }
 
-
 #define CALL_DRAW_TILE_FUNC(Func,Tile,Offset,StartLine,LineCount) {   \
-      if (Func == DrawTile16_OBJ) {                                   \
+/*      if (Func == DrawTile16_OBJ) {                                   \
         DrawTile16_OBJ_inline (Tile, Offset, StartLine, LineCount);   \
      } else if (Func == DrawTile16) {                                 \
         DrawTile16_inline (Tile, Offset, StartLine, LineCount);       \
-     } else {                                                         \
+     } else */ {                                                         \
         (*DrawTilePtr) (Tile,Offset,StartLine,LineCount);             \
     }                                                                 \
 }
@@ -2883,7 +2900,7 @@ void DrawBackground_16 (uint32 BGMode, uint32 bg, uint8 Z1, uint8 Z2)
 {
     START_PROFILE_GFX_FUNC (DrawBackground_16);
 
-    uint32 Tile;
+    uint32 Tile = 0;
     uint16 *SC0;
     uint16 *SC1;
     uint16 *SC2;

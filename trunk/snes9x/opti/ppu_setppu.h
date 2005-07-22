@@ -1,4 +1,6 @@
-static void SetPPU_2100 (uint8 Byte, uint16 Address)
+#define USE_REGISTER
+
+static inline void SetPPU_2100 (uint8 Byte)
 {
 	// Brightness and screen blank bit
 	if (Byte != Memory.FillRAM [0x2100])
@@ -22,7 +24,7 @@ static void SetPPU_2100 (uint8 Byte, uint16 Address)
 	}
 }
 
-static void SetPPU_2101 (uint8 Byte, uint16 Address)
+static inline void SetPPU_2101 (uint8 Byte)
 {
 	// Sprite (OBJ) tile address
 	if (Byte != Memory.FillRAM [0x2101])
@@ -36,7 +38,7 @@ static void SetPPU_2101 (uint8 Byte, uint16 Address)
 	}
 }
 
-static void SetPPU_2102 (uint8 Byte, uint16 Address)
+static inline void SetPPU_2102 (uint8 Byte)
 {
 	// Sprite write address (low)
 	PPU.OAMAddr = ((Memory.FillRAM[0x2103]&1)<<8) | Byte;
@@ -54,13 +56,13 @@ static void SetPPU_2102 (uint8 Byte, uint16 Address)
 	Memory.FillRAM[0x2102] = Byte;
 }
 
-static void SetPPU_2103 (uint8 Byte, uint16 Address)
+static inline void SetPPU_2103 (uint8 Byte)
 {
 	// Sprite register write address (high), sprite priority rotation
 	// bit.
 	PPU.OAMAddr = ((Byte&1)<<8) | Memory.FillRAM[0x2102];
 
-                PPU.OAMPriorityRotation=(Byte & 0x80)? 1 : 0;
+	PPU.OAMPriorityRotation=(Byte & 0x80)? 1 : 0;
 	if (PPU.OAMPriorityRotation)
 	{
 		if (PPU.FirstSprite != (PPU.OAMAddr >> 1))
@@ -87,14 +89,18 @@ static void SetPPU_2103 (uint8 Byte, uint16 Address)
 	Memory.FillRAM[0x2103] = Byte;
 }
 
-static void SetPPU_2104 (uint8 Byte, uint16 Address)
+#ifdef USE_REGISTER
+#define SetPPU_2104		REGISTER_2104
+#else
+static inline void SetPPU_2104 (uint8 Byte)
 {
 	// Sprite register write
 	REGISTER_2104(Byte);
 	Memory.FillRAM[0x2104] = Byte;
 }
+#endif // USE_REGISTER
 
-static void SetPPU_2105 (uint8 Byte, uint16 Address)
+static inline void SetPPU_2105 (uint8 Byte)
 {
 	// Screen mode (0 - 7), background tile sizes and background 3
 	// priority
@@ -118,7 +124,7 @@ static void SetPPU_2105 (uint8 Byte, uint16 Address)
 	}
 }
 
-static void SetPPU_2106 (uint8 Byte, uint16 Address)
+static inline void SetPPU_2106 (uint8 Byte)
 {
 	// Mosaic pixel size and enable
 	if (Byte != Memory.FillRAM [0x2106])
@@ -137,7 +143,7 @@ static void SetPPU_2106 (uint8 Byte, uint16 Address)
 	}
 }
 
-static void SetPPU_2107 (uint8 Byte, uint16 Address)
+static inline void SetPPU_2107 (uint8 Byte)
 {
 	// [BG0SC]
 	if (Byte != Memory.FillRAM [0x2107])
@@ -149,7 +155,7 @@ static void SetPPU_2107 (uint8 Byte, uint16 Address)
 	}
 }
 
-static void SetPPU_2108 (uint8 Byte, uint16 Address)
+static inline void SetPPU_2108 (uint8 Byte)
 {
 	// [BG1SC]
 	if (Byte != Memory.FillRAM [0x2108])
@@ -161,7 +167,7 @@ static void SetPPU_2108 (uint8 Byte, uint16 Address)
 	}
 }
 
-static void SetPPU_2109 (uint8 Byte, uint16 Address)
+static inline void SetPPU_2109 (uint8 Byte)
 {
 	// [BG2SC]
 	if (Byte != Memory.FillRAM [0x2109])
@@ -173,7 +179,7 @@ static void SetPPU_2109 (uint8 Byte, uint16 Address)
 	}
 }
 
-static void SetPPU_210A (uint8 Byte, uint16 Address)
+static inline void SetPPU_210A (uint8 Byte)
 {
 	// [BG3SC]
 	if (Byte != Memory.FillRAM [0x210a])
@@ -185,7 +191,7 @@ static void SetPPU_210A (uint8 Byte, uint16 Address)
 	}
 }
 
-static void SetPPU_210B (uint8 Byte, uint16 Address)
+static inline void SetPPU_210B (uint8 Byte)
 {
 	// [BG01NBA]
 	if (Byte != Memory.FillRAM [0x210b])
@@ -197,7 +203,7 @@ static void SetPPU_210B (uint8 Byte, uint16 Address)
 	}
 }
 
-static void SetPPU_210C (uint8 Byte, uint16 Address)
+static inline void SetPPU_210C (uint8 Byte)
 {
 	// [BG23NBA]
 	if (Byte != Memory.FillRAM [0x210c])
@@ -212,7 +218,7 @@ static void SetPPU_210C (uint8 Byte, uint16 Address)
 //This is the Theme Park fix - it appears all these registers
 //share a previous byte value for setting them.
 
-static void SetPPU_210D (uint8 Byte, uint16 Address)
+static inline void SetPPU_210D (uint8 Byte)
 {
 	//TEST9        if(last_written != 0x210d) PPU.BGnxOFSbyte = 0;
 	PPU.BG[0].HOffset = (Byte<<8) | PPU.BGnxOFSbyte;
@@ -221,7 +227,7 @@ static void SetPPU_210D (uint8 Byte, uint16 Address)
 	Memory.FillRAM[0x210D] = Byte;
 }
 
-static void SetPPU_210E (uint8 Byte, uint16 Address)
+static inline void SetPPU_210E (uint8 Byte)
 {
 	PPU.BG[0].VOffset = (Byte<<8) | PPU.BGnxOFSbyte;
 	PPU.BGnxOFSbyte = Byte;
@@ -229,7 +235,7 @@ static void SetPPU_210E (uint8 Byte, uint16 Address)
 	Memory.FillRAM[0x210E] = Byte;
 }
 
-static void SetPPU_210F (uint8 Byte, uint16 Address)
+static inline void SetPPU_210F (uint8 Byte)
 {
 	PPU.BG[1].HOffset = (Byte<<8) | PPU.BGnxOFSbyte;
 	PPU.BGnxOFSbyte = Byte;
@@ -237,7 +243,7 @@ static void SetPPU_210F (uint8 Byte, uint16 Address)
 	Memory.FillRAM[0x210F] = Byte;
 }
 
-static void SetPPU_2110 (uint8 Byte, uint16 Address)
+static inline void SetPPU_2110 (uint8 Byte)
 {
 	PPU.BG[1].VOffset = (Byte<<8) | PPU.BGnxOFSbyte;
 	PPU.BGnxOFSbyte = Byte;
@@ -245,7 +251,7 @@ static void SetPPU_2110 (uint8 Byte, uint16 Address)
 	Memory.FillRAM[0x2110] = Byte;
 }
 
-static void SetPPU_2111 (uint8 Byte, uint16 Address)
+static inline void SetPPU_2111 (uint8 Byte)
 {
 	PPU.BG[2].HOffset = (Byte<<8) | PPU.BGnxOFSbyte;
 	PPU.BGnxOFSbyte = Byte;
@@ -253,7 +259,7 @@ static void SetPPU_2111 (uint8 Byte, uint16 Address)
 	Memory.FillRAM[0x2111] = Byte;
 }
 
-static void SetPPU_2112 (uint8 Byte, uint16 Address)
+static inline void SetPPU_2112 (uint8 Byte)
 {
 	PPU.BG[2].VOffset = (Byte<<8) | PPU.BGnxOFSbyte;
 	PPU.BGnxOFSbyte = Byte;
@@ -261,7 +267,7 @@ static void SetPPU_2112 (uint8 Byte, uint16 Address)
 	Memory.FillRAM[0x2112] = Byte;
 }
 
-static void SetPPU_2113 (uint8 Byte, uint16 Address)
+static inline void SetPPU_2113 (uint8 Byte)
 {
 	PPU.BG[3].HOffset = (Byte<<8) | PPU.BGnxOFSbyte;
 	PPU.BGnxOFSbyte = Byte;
@@ -269,7 +275,7 @@ static void SetPPU_2113 (uint8 Byte, uint16 Address)
 	Memory.FillRAM[0x2113] = Byte;
 }
 
-static void SetPPU_2114 (uint8 Byte, uint16 Address)
+static inline void SetPPU_2114 (uint8 Byte)
 {
 	PPU.BG[3].VOffset = (Byte<<8) | PPU.BGnxOFSbyte;
 	PPU.BGnxOFSbyte = Byte;
@@ -280,7 +286,7 @@ static void SetPPU_2114 (uint8 Byte, uint16 Address)
 //end Theme Park
 
 
-static void SetPPU_2115 (uint8 Byte, uint16 Address)
+static inline void SetPPU_2115 (uint8 Byte)
 {
 	// VRAM byte/word access flag and increment
 	PPU.VMA.High = (Byte & 0x80) == 0 ? FALSE : TRUE;
@@ -322,7 +328,7 @@ static void SetPPU_2115 (uint8 Byte, uint16 Address)
 	Memory.FillRAM[0x2115] = Byte;
 }
 
-static void SetPPU_2116 (uint8 Byte, uint16 Address)
+static inline void SetPPU_2116 (uint8 Byte)
 {
 	// VRAM read/write address (low)
 	PPU.VMA.Address &= 0xFF00;
@@ -345,7 +351,7 @@ static void SetPPU_2116 (uint8 Byte, uint16 Address)
 	Memory.FillRAM[0x2116] = Byte;
 }
 
-static void SetPPU_2117 (uint8 Byte, uint16 Address)
+static inline void SetPPU_2117 (uint8 Byte)
 {
 	// VRAM read/write address (high)
 	PPU.VMA.Address &= 0x00FF;
@@ -367,7 +373,11 @@ static void SetPPU_2117 (uint8 Byte, uint16 Address)
 	Memory.FillRAM[0x2117] = Byte;
 }
 
-static void SetPPU_2118 (uint8 Byte, uint16 Address)
+#ifdef USE_REGISTER
+#define SetPPU_2118		REGISTER_2118
+#define SetPPU_2119		REGISTER_2119
+#else
+static inline void SetPPU_2118 (uint8 Byte)
 {
 	// VRAM write data (low)
 #ifndef CORRECT_VRAM_READS
@@ -377,7 +387,7 @@ static void SetPPU_2118 (uint8 Byte, uint16 Address)
 	Memory.FillRAM[0x2118] = Byte;
 }
 
-static void SetPPU_2119 (uint8 Byte, uint16 Address)
+static inline void SetPPU_2119 (uint8 Byte)
 {
 	// VRAM write data (high)
 #ifndef CORRECT_VRAM_READS
@@ -386,8 +396,9 @@ static void SetPPU_2119 (uint8 Byte, uint16 Address)
 	REGISTER_2119(Byte);
 	Memory.FillRAM[0x2119] = Byte;
 }
+#endif // USE_REGISTER
 
-static void SetPPU_211A (uint8 Byte, uint16 Address)
+static inline void SetPPU_211A (uint8 Byte)
 {
 	// Mode 7 outside rotation area display mode and flipping
 	if (Byte != Memory.FillRAM [0x211a])
@@ -402,7 +413,7 @@ static void SetPPU_211A (uint8 Byte, uint16 Address)
 	Memory.FillRAM[0x211A] = Byte;
 }
 
-static void SetPPU_211B (uint8 Byte, uint16 Address)
+static inline void SetPPU_211B (uint8 Byte)
 {
 	// Mode 7 matrix A (low & high)
 	PPU.MatrixA = ((PPU.MatrixA >> 8) & 0xff) | (Byte << 8);
@@ -410,7 +421,7 @@ static void SetPPU_211B (uint8 Byte, uint16 Address)
 	Memory.FillRAM[0x211B] = Byte;
 }
 
-static void SetPPU_211C (uint8 Byte, uint16 Address)
+static inline void SetPPU_211C (uint8 Byte)
 {
 	// Mode 7 matrix B (low & high)
 	PPU.MatrixB = ((PPU.MatrixB >> 8) & 0xff) | (Byte << 8);
@@ -418,35 +429,35 @@ static void SetPPU_211C (uint8 Byte, uint16 Address)
 	Memory.FillRAM[0x211C] = Byte;
 }
 
-static void SetPPU_211D (uint8 Byte, uint16 Address)
+static inline void SetPPU_211D (uint8 Byte)
 {
 	// Mode 7 matrix C (low & high)
 	PPU.MatrixC = ((PPU.MatrixC >> 8) & 0xff) | (Byte << 8);
 	Memory.FillRAM[0x211D] = Byte;
 }
 
-static void SetPPU_211E (uint8 Byte, uint16 Address)
+static inline void SetPPU_211E (uint8 Byte)
 {
 	// Mode 7 matrix D (low & high)
 	PPU.MatrixD = ((PPU.MatrixD >> 8) & 0xff) | (Byte << 8);
 	Memory.FillRAM[0x211E] = Byte;
 }
 
-static void SetPPU_211F (uint8 Byte, uint16 Address)
+static inline void SetPPU_211F (uint8 Byte)
 {
 	// Mode 7 centre of rotation X (low & high)
 	PPU.CentreX = ((PPU.CentreX >> 8) & 0xff) | (Byte << 8);
 	Memory.FillRAM[0x211F] = Byte;
 }
 
-static void SetPPU_2120 (uint8 Byte, uint16 Address)
+static inline void SetPPU_2120 (uint8 Byte)
 {
 	// Mode 7 centre of rotation Y (low & high)
 	PPU.CentreY = ((PPU.CentreY >> 8) & 0xff) | (Byte << 8);
 	Memory.FillRAM[0x2120] = Byte;
 }
 
-static void SetPPU_2121 (uint8 Byte, uint16 Address)
+static inline void SetPPU_2121 (uint8 Byte)
 {
 	// CG-RAM address
 	PPU.CGFLIP = 0;
@@ -455,13 +466,17 @@ static void SetPPU_2121 (uint8 Byte, uint16 Address)
 	Memory.FillRAM[0x2121] = Byte;
 }
 
-static void SetPPU_2122 (uint8 Byte, uint16 Address)
+#ifdef USE_REGISTER
+#define SetPPU_2122		REGISTER_2122
+#else
+static inline void SetPPU_2122 (uint8 Byte)
 {
 	REGISTER_2122(Byte);
 	Memory.FillRAM[0x2122] = Byte;
 }
+#endif // USE_REGISTER
 
-static void SetPPU_2123 (uint8 Byte, uint16 Address)
+static inline void SetPPU_2123 (uint8 Byte)
 {
 	// Window 1 and 2 enable for backgrounds 1 and 2
 	if (Byte != Memory.FillRAM [0x2123])
@@ -490,7 +505,7 @@ static void SetPPU_2123 (uint8 Byte, uint16 Address)
 	}
 }
 
-static void SetPPU_2124 (uint8 Byte, uint16 Address)
+static inline void SetPPU_2124 (uint8 Byte)
 {
 	// Window 1 and 2 enable for backgrounds 3 and 4
 	if (Byte != Memory.FillRAM [0x2124])
@@ -519,7 +534,7 @@ static void SetPPU_2124 (uint8 Byte, uint16 Address)
 	}
 }
 
-static void SetPPU_2125 (uint8 Byte, uint16 Address)
+static inline void SetPPU_2125 (uint8 Byte)
 {
 	// Window 1 and 2 enable for objects and colour window
 	if (Byte != Memory.FillRAM [0x2125])
@@ -548,7 +563,7 @@ static void SetPPU_2125 (uint8 Byte, uint16 Address)
 	}
 }
 
-static void SetPPU_2126 (uint8 Byte, uint16 Address)
+static inline void SetPPU_2126 (uint8 Byte)
 {
 	// Window 1 left position
 	if (Byte != Memory.FillRAM [0x2126])
@@ -560,7 +575,7 @@ static void SetPPU_2126 (uint8 Byte, uint16 Address)
 	}
 }
 
-static void SetPPU_2127 (uint8 Byte, uint16 Address)
+static inline void SetPPU_2127 (uint8 Byte)
 {
 	// Window 1 right position
 	if (Byte != Memory.FillRAM [0x2127])
@@ -572,7 +587,7 @@ static void SetPPU_2127 (uint8 Byte, uint16 Address)
 	}
 }
 
-static void SetPPU_2128 (uint8 Byte, uint16 Address)
+static inline void SetPPU_2128 (uint8 Byte)
 {
 	// Window 2 left position
 	if (Byte != Memory.FillRAM [0x2128])
@@ -584,7 +599,7 @@ static void SetPPU_2128 (uint8 Byte, uint16 Address)
 	}
 }
 
-static void SetPPU_2129 (uint8 Byte, uint16 Address)
+static inline void SetPPU_2129 (uint8 Byte)
 {
 	// Window 2 right position
 	if (Byte != Memory.FillRAM [0x2129])
@@ -596,7 +611,7 @@ static void SetPPU_2129 (uint8 Byte, uint16 Address)
 	}
 }
 
-static void SetPPU_212A (uint8 Byte, uint16 Address)
+static inline void SetPPU_212A (uint8 Byte)
 {
 	// Windows 1 & 2 overlap logic for backgrounds 1 - 4
 	if (Byte != Memory.FillRAM [0x212a])
@@ -611,7 +626,7 @@ static void SetPPU_212A (uint8 Byte, uint16 Address)
 	}
 }
 
-static void SetPPU_212B (uint8 Byte, uint16 Address)
+static inline void SetPPU_212B (uint8 Byte)
 {
 	// Windows 1 & 2 overlap logic for objects and colour window
 	if (Byte != Memory.FillRAM [0x212b])
@@ -624,7 +639,7 @@ static void SetPPU_212B (uint8 Byte, uint16 Address)
 	}
 }
 
-static void SetPPU_212C (uint8 Byte, uint16 Address)
+static inline void SetPPU_212C (uint8 Byte)
 {
 	// Main screen designation (backgrounds 1 - 4 and objects)
 	if (Byte != Memory.FillRAM [0x212c])
@@ -635,7 +650,7 @@ static void SetPPU_212C (uint8 Byte, uint16 Address)
 	}
 }
 
-static void SetPPU_212D (uint8 Byte, uint16 Address)
+static inline void SetPPU_212D (uint8 Byte)
 {
 	// Sub-screen designation (backgrounds 1 - 4 and objects)
 	if (Byte != Memory.FillRAM [0x212d])
@@ -650,7 +665,7 @@ static void SetPPU_212D (uint8 Byte, uint16 Address)
 	}
 }
 
-static void SetPPU_212E (uint8 Byte, uint16 Address)
+static inline void SetPPU_212E (uint8 Byte)
 {
 	// Window mask designation for main screen ?
 	if (Byte != Memory.FillRAM [0x212e])
@@ -661,7 +676,7 @@ static void SetPPU_212E (uint8 Byte, uint16 Address)
 	}
 }
 
-static void SetPPU_212F (uint8 Byte, uint16 Address)
+static inline void SetPPU_212F (uint8 Byte)
 {
 	// Window mask designation for sub-screen ?
 	if (Byte != Memory.FillRAM [0x212f])
@@ -672,7 +687,7 @@ static void SetPPU_212F (uint8 Byte, uint16 Address)
 	}
 }
 
-static void SetPPU_2130 (uint8 Byte, uint16 Address)
+static inline void SetPPU_2130 (uint8 Byte)
 {
 	// Fixed colour addition or screen addition
 	if (Byte != Memory.FillRAM [0x2130])
@@ -687,7 +702,7 @@ static void SetPPU_2130 (uint8 Byte, uint16 Address)
 	}
 }
 
-static void SetPPU_2131 (uint8 Byte, uint16 Address)
+static inline void SetPPU_2131 (uint8 Byte)
 {
 	// Colour addition or subtraction select
 	if (Byte != Memory.FillRAM[0x2131])
@@ -716,7 +731,7 @@ static void SetPPU_2131 (uint8 Byte, uint16 Address)
 	}
 }
 
-static void SetPPU_2132 (uint8 Byte, uint16 Address)
+static inline void SetPPU_2132 (uint8 Byte)
 {
 	if (Byte != Memory.FillRAM [0x2132])
 	{
@@ -728,11 +743,11 @@ static void SetPPU_2132 (uint8 Byte, uint16 Address)
 			PPU.FixedColourGreen = Byte & 0x1f;
 		if (Byte & 0x20)
 			PPU.FixedColourRed = Byte & 0x1f;
+		Memory.FillRAM[0x2132] = Byte;
 	}
-	Memory.FillRAM[0x2132] = Byte;
 }
 
-static void SetPPU_2133 (uint8 Byte, uint16 Address)
+static inline void SetPPU_2133 (uint8 Byte)
 {
 	// Screen settings
 	if (Byte != Memory.FillRAM [0x2133])
@@ -779,7 +794,7 @@ static void SetPPU_2133 (uint8 Byte, uint16 Address)
 	}
 }
 
-static void SetPPU_NOP (uint8 Byte, uint16 Address)
+static inline void SetPPU_NOP (uint8 Byte)
 {
 /*
   case 0x2134:
@@ -814,29 +829,11 @@ static void SetPPU_NOP (uint8 Byte, uint16 Address)
 */
 }
 
-static void SetPPU_APU (uint8 Byte, uint16 Address)
+static inline void SetPPU_2140to217F(uint16 Address, uint8 Byte)
 {
-/*
-  case 0x2140: case 0x2141: case 0x2142: case 0x2143:
-  case 0x2144: case 0x2145: case 0x2146: case 0x2147:
-  case 0x2148: case 0x2149: case 0x214a: case 0x214b:
-  case 0x214c: case 0x214d: case 0x214e: case 0x214f:
-  case 0x2150: case 0x2151: case 0x2152: case 0x2153:
-  case 0x2154: case 0x2155: case 0x2156: case 0x2157:
-  case 0x2158: case 0x2159: case 0x215a: case 0x215b:
-  case 0x215c: case 0x215d: case 0x215e: case 0x215f:
-  case 0x2160: case 0x2161: case 0x2162: case 0x2163:
-  case 0x2164: case 0x2165: case 0x2166: case 0x2167:
-  case 0x2168: case 0x2169: case 0x216a: case 0x216b:
-  case 0x216c: case 0x216d: case 0x216e: case 0x216f:
-  case 0x2170: case 0x2171: case 0x2172: case 0x2173:
-  case 0x2174: case 0x2175: case 0x2176: case 0x2177:
-  case 0x2178: case 0x2179: case 0x217a: case 0x217b:
-  case 0x217c: case 0x217d: case 0x217e: case 0x217f:
-*/
 #ifdef SPCTOOL
 	_SPCInPB (Address & 3, Byte);
-#else	
+#else
 	//	CPU.Flags |= DEBUG_MODE_FLAG;
 	Memory.FillRAM [Address] = Byte;
 	IAPU.RAM [(Address & 3) + 0xf4] = Byte;
@@ -847,28 +844,32 @@ static void SetPPU_APU (uint8 Byte, uint16 Address)
 #endif // SPCTOOL
 }
 
-static void SetPPU_2180 (uint8 Byte, uint16 Address)
+
+#ifdef USE_REGISTER
+#define SetPPU_2180		REGISTER_2180
+#else
+static inline void SetPPU_2180 (uint8 Byte)
 {
 	REGISTER_2180(Byte);
 	Memory.FillRAM[0x2180] = Byte;
 }
+#endif // USE_REGISTER
 
-
-static void SetPPU_2181 (uint8 Byte, uint16 Address)
+static inline void SetPPU_2181 (uint8 Byte)
 {
 	PPU.WRAM &= 0x1FF00;
 	PPU.WRAM |= Byte;
 	Memory.FillRAM[0x2181] = Byte;
 }
 
-static void SetPPU_2182 (uint8 Byte, uint16 Address)
+static inline void SetPPU_2182 (uint8 Byte)
 {
 	PPU.WRAM &= 0x100FF;
 	PPU.WRAM |= Byte << 8;
 	Memory.FillRAM[0x2182] = Byte;
 }
 
-static void SetPPU_2183 (uint8 Byte, uint16 Address)
+static inline void SetPPU_2183 (uint8 Byte)
 {
 	PPU.WRAM &= 0x0FFFF;
 	PPU.WRAM |= Byte << 16;
@@ -876,32 +877,218 @@ static void SetPPU_2183 (uint8 Byte, uint16 Address)
 	Memory.FillRAM[0x2183] = Byte;
 }
 
-static void (*SetPPU[])(uint8 Byte, uint16 Address) = {
-	SetPPU_2100, SetPPU_2101, SetPPU_2102, SetPPU_2103, SetPPU_2104, SetPPU_2105, SetPPU_2106, SetPPU_2107,
-	SetPPU_2108, SetPPU_2109, SetPPU_210A, SetPPU_210B, SetPPU_210C, SetPPU_210D, SetPPU_210E, SetPPU_210F,
-	SetPPU_2110, SetPPU_2111, SetPPU_2112, SetPPU_2113, SetPPU_2114, SetPPU_2115, SetPPU_2116, SetPPU_2117,
-	SetPPU_2118, SetPPU_2119, SetPPU_211A, SetPPU_211B, SetPPU_211C, SetPPU_211D, SetPPU_211E, SetPPU_211F,
-	SetPPU_2120, SetPPU_2121, SetPPU_2122, SetPPU_2123, SetPPU_2124, SetPPU_2125, SetPPU_2126, SetPPU_2127,
-	SetPPU_2128, SetPPU_2129, SetPPU_212A, SetPPU_212B, SetPPU_212C, SetPPU_212D, SetPPU_212E, SetPPU_212F,
-	SetPPU_2130, SetPPU_2131, SetPPU_2132, SetPPU_2133, SetPPU_NOP,  SetPPU_NOP,  SetPPU_NOP,  SetPPU_NOP, 
-	SetPPU_NOP,  SetPPU_NOP,  SetPPU_NOP,  SetPPU_NOP,  SetPPU_NOP,  SetPPU_NOP,  SetPPU_NOP,  SetPPU_NOP, 
-	SetPPU_APU,  SetPPU_APU,  SetPPU_APU,  SetPPU_APU,  SetPPU_APU,  SetPPU_APU,  SetPPU_APU,  SetPPU_APU, 
-	SetPPU_APU,  SetPPU_APU,  SetPPU_APU,  SetPPU_APU,  SetPPU_APU,  SetPPU_APU,  SetPPU_APU,  SetPPU_APU, 
-	SetPPU_APU,  SetPPU_APU,  SetPPU_APU,  SetPPU_APU,  SetPPU_APU,  SetPPU_APU,  SetPPU_APU,  SetPPU_APU, 
-	SetPPU_APU,  SetPPU_APU,  SetPPU_APU,  SetPPU_APU,  SetPPU_APU,  SetPPU_APU,  SetPPU_APU,  SetPPU_APU, 
-	SetPPU_APU,  SetPPU_APU,  SetPPU_APU,  SetPPU_APU,  SetPPU_APU,  SetPPU_APU,  SetPPU_APU,  SetPPU_APU, 
-	SetPPU_APU,  SetPPU_APU,  SetPPU_APU,  SetPPU_APU,  SetPPU_APU,  SetPPU_APU,  SetPPU_APU,  SetPPU_APU, 
-	SetPPU_APU,  SetPPU_APU,  SetPPU_APU,  SetPPU_APU,  SetPPU_APU,  SetPPU_APU,  SetPPU_APU,  SetPPU_APU, 
-	SetPPU_APU,  SetPPU_APU,  SetPPU_APU,  SetPPU_APU,  SetPPU_APU,  SetPPU_APU,  SetPPU_APU,  SetPPU_APU, 
-	SetPPU_2180, SetPPU_2181, SetPPU_2182, SetPPU_2183
-};
-
 void S9xSetPPU (uint8 Byte, uint16 Address)
 {
 //    fprintf(stderr, "%03d: %02x to %04x\n", CPU.V_Counter, Byte, Address);
-	if (Address <= 0x2183)
-	{
-		SetPPU[Address - 0x2100]( Byte, Address );
+	if (Address < 0x2100){
+		Memory.FillRAM[Address] = Byte;
+		return;
+	} else if (Address <= 0x2183){
+#define SETPPU_BEGIN(addr) adr##addr:
+#define SETPPU_END return;
+
+		static void *SetPPU_AddrTbl[] = {
+			      &&adr2100,       &&adr2101,       &&adr2102,       &&adr2103,       &&adr2104,       &&adr2105,       &&adr2106,       &&adr2107,
+			      &&adr2108,       &&adr2109,       &&adr210A,       &&adr210B,       &&adr210C,       &&adr210D,       &&adr210E,       &&adr210F,
+			      &&adr2110,       &&adr2111,       &&adr2112,       &&adr2113,       &&adr2114,       &&adr2115,       &&adr2116,       &&adr2117,
+			      &&adr2118,       &&adr2119,       &&adr211A,       &&adr211B,       &&adr211C,       &&adr211D,       &&adr211E,       &&adr211F,
+			      &&adr2120,       &&adr2121,       &&adr2122,       &&adr2123,       &&adr2124,       &&adr2125,       &&adr2126,       &&adr2127,
+			      &&adr2128,       &&adr2129,       &&adr212A,       &&adr212B,       &&adr212C,       &&adr212D,       &&adr212E,       &&adr212F,
+			      &&adr2130,       &&adr2131,       &&adr2132,       &&adr2133,        &&adrNOP,        &&adrNOP,        &&adrNOP,        &&adrNOP,
+			       &&adrNOP,        &&adrNOP,        &&adrNOP,        &&adrNOP,        &&adrNOP,        &&adrNOP,        &&adrNOP,        &&adrNOP,
+			&&adr2140to217F, &&adr2140to217F, &&adr2140to217F, &&adr2140to217F, &&adr2140to217F, &&adr2140to217F, &&adr2140to217F, &&adr2140to217F,
+			&&adr2140to217F, &&adr2140to217F, &&adr2140to217F, &&adr2140to217F, &&adr2140to217F, &&adr2140to217F, &&adr2140to217F, &&adr2140to217F,
+			&&adr2140to217F, &&adr2140to217F, &&adr2140to217F, &&adr2140to217F, &&adr2140to217F, &&adr2140to217F, &&adr2140to217F, &&adr2140to217F,
+			&&adr2140to217F, &&adr2140to217F, &&adr2140to217F, &&adr2140to217F, &&adr2140to217F, &&adr2140to217F, &&adr2140to217F, &&adr2140to217F,
+			&&adr2140to217F, &&adr2140to217F, &&adr2140to217F, &&adr2140to217F, &&adr2140to217F, &&adr2140to217F, &&adr2140to217F, &&adr2140to217F,
+			&&adr2140to217F, &&adr2140to217F, &&adr2140to217F, &&adr2140to217F, &&adr2140to217F, &&adr2140to217F, &&adr2140to217F, &&adr2140to217F,
+			&&adr2140to217F, &&adr2140to217F, &&adr2140to217F, &&adr2140to217F, &&adr2140to217F, &&adr2140to217F, &&adr2140to217F, &&adr2140to217F,
+			&&adr2140to217F, &&adr2140to217F, &&adr2140to217F, &&adr2140to217F, &&adr2140to217F, &&adr2140to217F, &&adr2140to217F, &&adr2140to217F,
+			&&adr2180, &&adr2181, &&adr2182, &&adr2183
+		};
+
+		goto *SetPPU_AddrTbl[Address - 0x2100];
+
+		SETPPU_BEGIN(2100)
+			SetPPU_2100(Byte);
+			SETPPU_END
+		SETPPU_BEGIN(2101)
+			SetPPU_2101(Byte);
+			SETPPU_END
+		SETPPU_BEGIN(2102)
+			SetPPU_2102(Byte);
+			SETPPU_END
+		SETPPU_BEGIN(2103)
+			SetPPU_2103(Byte);
+			SETPPU_END
+		SETPPU_BEGIN(2104)
+			SetPPU_2104(Byte);
+			SETPPU_END
+		SETPPU_BEGIN(2105)
+			SetPPU_2105(Byte);
+			SETPPU_END
+		SETPPU_BEGIN(2106)
+			SetPPU_2106(Byte);
+			SETPPU_END
+		SETPPU_BEGIN(2107)
+			SetPPU_2107(Byte);
+			SETPPU_END
+		SETPPU_BEGIN(2108)
+			SetPPU_2108(Byte);
+			SETPPU_END
+		SETPPU_BEGIN(2109)
+			SetPPU_2109(Byte);
+			SETPPU_END
+		SETPPU_BEGIN(210A)
+			SetPPU_210A(Byte);
+			SETPPU_END
+		SETPPU_BEGIN(210B)
+			SetPPU_210B(Byte);
+			SETPPU_END
+		SETPPU_BEGIN(210C)
+			SetPPU_210C(Byte);
+			SETPPU_END
+		SETPPU_BEGIN(210D)
+			SetPPU_210D(Byte);
+			SETPPU_END
+		SETPPU_BEGIN(210E)
+			SetPPU_210E(Byte);
+			SETPPU_END
+		SETPPU_BEGIN(210F)
+			SetPPU_210F(Byte);
+			SETPPU_END
+
+		SETPPU_BEGIN(2110)
+			SetPPU_2110(Byte);
+			SETPPU_END
+		SETPPU_BEGIN(2111)
+			SetPPU_2111(Byte);
+			SETPPU_END
+		SETPPU_BEGIN(2112)
+			SetPPU_2112(Byte);
+			SETPPU_END
+		SETPPU_BEGIN(2113)
+			SetPPU_2113(Byte);
+			SETPPU_END
+		SETPPU_BEGIN(2114)
+			SetPPU_2114(Byte);
+			SETPPU_END
+		SETPPU_BEGIN(2115)
+			SetPPU_2115(Byte);
+			SETPPU_END
+		SETPPU_BEGIN(2116)
+			SetPPU_2116(Byte);
+			SETPPU_END
+		SETPPU_BEGIN(2117)
+			SetPPU_2117(Byte);
+			SETPPU_END
+		SETPPU_BEGIN(2118)
+			SetPPU_2118(Byte);
+			SETPPU_END
+		SETPPU_BEGIN(2119)
+			SetPPU_2119(Byte);
+			SETPPU_END
+		SETPPU_BEGIN(211A)
+			SetPPU_211A(Byte);
+			SETPPU_END
+		SETPPU_BEGIN(211B)
+			SetPPU_211B(Byte);
+			SETPPU_END
+		SETPPU_BEGIN(211C)
+			SetPPU_211C(Byte);
+			SETPPU_END
+		SETPPU_BEGIN(211D)
+			SetPPU_211D(Byte);
+			SETPPU_END
+		SETPPU_BEGIN(211E)
+			SetPPU_211E(Byte);
+			SETPPU_END
+		SETPPU_BEGIN(211F)
+			SetPPU_211F(Byte);
+			SETPPU_END
+
+		SETPPU_BEGIN(2120)
+			SetPPU_2120(Byte);
+			SETPPU_END
+		SETPPU_BEGIN(2121)
+			SetPPU_2121(Byte);
+			SETPPU_END
+		SETPPU_BEGIN(2122)
+			SetPPU_2122(Byte);
+			SETPPU_END
+		SETPPU_BEGIN(2123)
+			SetPPU_2123(Byte);
+			SETPPU_END
+		SETPPU_BEGIN(2124)
+			SetPPU_2124(Byte);
+			SETPPU_END
+		SETPPU_BEGIN(2125)
+			SetPPU_2125(Byte);
+			SETPPU_END
+		SETPPU_BEGIN(2126)
+			SetPPU_2126(Byte);
+			SETPPU_END
+		SETPPU_BEGIN(2127)
+			SetPPU_2127(Byte);
+			SETPPU_END
+		SETPPU_BEGIN(2128)
+			SetPPU_2128(Byte);
+			SETPPU_END
+		SETPPU_BEGIN(2129)
+			SetPPU_2129(Byte);
+			SETPPU_END
+		SETPPU_BEGIN(212A)
+			SetPPU_212A(Byte);
+			SETPPU_END
+		SETPPU_BEGIN(212B)
+			SetPPU_212B(Byte);
+			SETPPU_END
+		SETPPU_BEGIN(212C)
+			SetPPU_212C(Byte);
+			SETPPU_END
+		SETPPU_BEGIN(212D)
+			SetPPU_212D(Byte);
+			SETPPU_END
+		SETPPU_BEGIN(212E)
+			SetPPU_212E(Byte);
+			SETPPU_END
+		SETPPU_BEGIN(212F)
+			SetPPU_212F(Byte);
+			SETPPU_END
+
+		SETPPU_BEGIN(2130)
+			SetPPU_2130(Byte);
+			SETPPU_END
+		SETPPU_BEGIN(2131)
+			SetPPU_2131(Byte);
+			SETPPU_END
+		SETPPU_BEGIN(2132)
+			SetPPU_2132(Byte);
+			SETPPU_END
+		SETPPU_BEGIN(2133)
+			SetPPU_2133(Byte);
+			SETPPU_END
+		SETPPU_BEGIN(NOP)
+			SetPPU_NOP(Byte);
+			SETPPU_END
+
+		SETPPU_BEGIN(2140to217F)
+			SetPPU_2140to217F(Address, Byte);
+			SETPPU_END
+
+		SETPPU_BEGIN(2180)
+			SetPPU_2180(Byte);
+			SETPPU_END
+		SETPPU_BEGIN(2181)
+			SetPPU_2181(Byte);
+			SETPPU_END
+		SETPPU_BEGIN(2182)
+			SetPPU_2182(Byte);
+			SETPPU_END
+		SETPPU_BEGIN(2183)
+			SetPPU_2183(Byte);
+			SETPPU_END
+
 		return;
 	}
 	else

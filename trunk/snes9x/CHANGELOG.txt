@@ -1,5 +1,80 @@
+Andon (22/Jul/05)
+-----------------
+ CHANGES
+---------
+ + Translated the Key Config menu to English.
+
+
+ ADDITIONS
+-----------
+ + Added a file manager
+  >> It's designed so you can copy/move ALL
+     files on your Memory Stick and even
+     from one Memory Stick to another.
+
+
+ KNOWN ISSUES
+--------------
+ + On occasion, the framebuffer will refuse
+   to cooperate and expect the wrong pixel
+   format.
+  >> If this happens to you, exit the emu-
+     lator completely and load it again.
+ + Suspending via the power switch is broken.
+ 
+
+
+Andon (20/Jul/05)
+-----------------
+ CHANGES
+---------
+ + The left and right triggers truly scroll
+   down to the next page now.
+ + Translated the ROM Selector's Delete
+   Confirmation dialog to English.
+ + Thoroughly cleaned the SceGU blit backend
+   code and made it conform with the Snes9x
+   standards.
+  >> This was in preperation for the work I'm
+     planning to do in pd3.
+    * The tile drawing code is the biggest
+      bottleneck in the PSP port right now.
+ + Stopped calling SceGU sceGu :)
+  >> It made a couple of functions hard to
+     read, so I decided to follow suit and
+     mimic OpenGL since SceGU seems to.
+
+
+ ADDITIONS
+-----------
+ + Added file size info to the ROM selector.
+ + Added support for zlib compression.
+  >> This is intended to replace the old RLE
+     compression. Support for RLE will remain,
+     however, so you can convert your old save
+     state files.
+
+
+ BUG FIXES
+-----------
+ + Fixed a bug that was causing transparency to
+   be enabled everytime you loaded a ROM, with
+   no regard to your saved preference.
+
+
+
 Andon (19/Jul/05)
 -----------------
+ CHANGES
+---------
+ + Removed VAR_CYCLES from the Makefile, there
+   hasn't been a VAR_CYCLES codepath since the
+   release of Snes9x 1.41.
+ + Removed the socklen stuff from the Makefile.
+  >> That's only used by the server code, and
+     the PSP port doesn't use that.
+   
+   
  ADDITIONS
 -----------
  + Because the PSP toolchain lacks support for
