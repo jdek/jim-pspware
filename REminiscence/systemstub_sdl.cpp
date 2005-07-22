@@ -323,6 +323,12 @@ void SystemStub_SDL::processEvents() {
 			    _pi.backspace = true;
 			    break;
 #ifdef PSP
+			case 4:		/* Left Trigger */
+				_pi.save = true;
+				break;
+			case 5:		/* Left Trigger */
+				_pi.load = true;
+				break;
 			case 11:	/* Start button. */
 			    _pi.escape = true;
 			    break;
