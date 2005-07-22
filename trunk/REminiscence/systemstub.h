@@ -40,6 +40,9 @@ struct PlayerInput {
 	bool shift;
 	bool backspace;
 	bool escape;
+#if PSP
+	bool select;
+#endif
 	
 	char lastChar;
 	
