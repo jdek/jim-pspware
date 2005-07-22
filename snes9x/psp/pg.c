@@ -1,5 +1,6 @@
 // primitive graphics
-// gu blit code from blit.c by chp from ps2dev.org
+
+#include "3d.h"
 
 #include <pspkernel.h>
 #include <pspgu.h>
@@ -13,8 +14,6 @@
 #include "fontNaga10.c"
 
 #include "port.h"
-
-#define SLICE_SIZE 64 // change this to experiment with different page-cache sizes
 
 #ifdef __cplusplus
 extern "C" {
@@ -30,8 +29,6 @@ unsigned long pgc_csr_x[2], pgc_csr_y[2];
 unsigned long pgc_fgcolor[2], pgc_bgcolor[2];
 char pgc_fgdraw[2], pgc_bgdraw[2];
 char pgc_mag[2];
-
-static unsigned int list[262144] __attribute__((aligned(16)));
 
 extern bool8 bGUIMode;
 
@@ -65,41 +62,18 @@ void pgInit(void)
 	if (PSP_Settings.bUseGUBlit && (! bGUIMode)) {
 		sceGuInit();
 
-		// setup
-		sceGuStart(0,list);
-		sceGuDrawBufferList(GE_PSM_5551,(void*)0,512);
-		sceGuDispBuffer(480,272,(void*)0x88000,512);
-		sceGuDepthBuffer((void*)0x110000,512);
-		sceGuOffset(0,0);
-		sceGuViewport(480/2,272/2,480,272);
-		sceGuDepthRange(0xc350,0x2710);
-		sceGuScissor(0,0,480,272);
-		sceGuEnable(GU_STATE_SCISSOR);
-		sceGuDisable(GU_STATE_ATE);
-		sceGuDisable(GU_STATE_ZTE);
-		sceGuEnable(GU_STATE_CULL);
-		sceGuDisable(GU_STATE_ALPHA);
-		sceGuDisable(GU_STATE_LIGHTING);
-		sceGuFrontFace(GE_FACE_CW);
-		sceGuEnable(GU_STATE_TEXTURE);
-		sceGuClear(GE_CLEAR_COLOR|GE_CLEAR_DEPTH);
-		sceGuFinish();
-		sceGuSync(0,0);
-
-//		sceDisplayWaitVblankStart();
-//		sceGuDisplay(1);
+		S9xSceGUInit2 ();
 
 		pg_vramtop = (char *) (0x40000000 | sceGeEdramGetAddr());
 		sceDisplaySetFrameBuf(pg_vramtop,LINESIZE,1,1);
 	} else {
-//		sceGuDisplay(0);
-		sceGuTerm ();
+		S9xSceGUDeinit ();
 	}
 	
 	sceDisplaySetMode(0,SCREEN_WIDTH,SCREEN_HEIGHT);
 	pgScreenFrame(0,0);
 
-	if (! PSP_Settings.bUseGUBlit || bGUIMode)
+	if ((! PSP_Settings.bUseGUBlit) || bGUIMode)
 		pg_vramtop = (char *)0x4000000;
 
 }
@@ -515,50 +489,6 @@ struct Vertex
 	unsigned short color;
 	short x, y, z;
 };
-
-
-
-void pgRenderTex(char *tex, int width, int height, int x, int y, int xscale, int yscale, int xres, int yres)
-{
-	unsigned int j;
-	
-	const int slice_scale = ((float)xscale/(float)width)*(float)SLICE_SIZE;
-	const int tex_filter  = (PSP_Settings.bBilinearFilter ? GE_FILTER_LINEAR :
-	                                                        GE_FILTER_POINT);
-	
-	struct Vertex* vertices;
-
-	sceGuStart(0,list);
-
-	sceGuTexMode(GE_TPSM_5551,0,0,0);
-	sceGuTexImage(0,width,height,width,tex);
-	sceGuTexFunc(GE_TFX_REPLACE,0);
-	sceGuTexFilter(tex_filter,tex_filter);
-	sceGuTexScale(1,1);
-	sceGuTexOffset(0,0);
-	sceGuAmbientColor(0xffffffff);
-
-	sceGuScissor(x,y,xres,yres);
-
-	// do a striped blit (takes the page-cache into account)
-
-	for (j = 0; j < width; j += SLICE_SIZE, x += slice_scale)
-	{
-		vertices = (struct Vertex*)sceGuGetMemory(2 * sizeof(struct Vertex));
-
-		vertices[0].u = j; vertices[0].v = 0;
-		vertices[0].color = 0;
-		vertices[0].x = x; vertices[0].y = y; vertices[0].z = 0;
-		vertices[1].u = j+SLICE_SIZE; vertices[1].v = height;
-		vertices[1].color = 0;
-		vertices[1].x = x+slice_scale; vertices[1].y = y+yscale; vertices[1].z = 0;
-
-		sceGuDrawArray(GU_PRIM_SPRITES,GE_SETREG_VTYPE(GE_TT_16BIT,GE_CT_5551,0,GE_MT_16BIT,0,0,0,0,GE_BM_2D),2,0,vertices);
-	}
-
-	sceGuFinish();
-//	sceGuSync(0,0);
-}
 
 void pgScreenSync(void)
 {

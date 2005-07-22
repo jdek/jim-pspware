@@ -112,19 +112,25 @@
 #include "pg.h"
 #include "filer.h"
 
+#include "3d.h" // SceGU
+
 #include "profiler.h"
 
 #define RELEASE
 
 /* Define the module info section */
-PSP_MODULE_INFO("snes9x", 0x1000, 1, 1); 
+PSP_MODULE_INFO("uo_Snes9x for PSP", 0x1000, 1, 1); 
 PSP_MAIN_THREAD_ATTR(0);
 
 extern "C" {
+#include "zlib.h"
 #include "rle_codec.c"
 
 #define RLE_MAGIC     "RLE!"
 #define RLE_MAGIC_LEN strlen (RLE_MAGIC)
+
+#define GZ_MAGIC     "GZ!"
+#define GZ_MAGIC_LEN strlen (GZ_MAGIC)
 
 // Reserve 360 Kb for freeze buffers, increase if needed...
 #define MAX_FREEZE_SIZE 368640 
@@ -602,9 +608,11 @@ void key_config_init()
 void key_config_disp( int cur_pos )
 {
 	int loop_cnt;
-	char dialog_text_all[ D_text_all_MAX ];
-	char key_con_text[6][64];
-	char key[6][4];
+	static char dialog_text_all[ D_text_all_MAX ];
+	static char key_con_text[7][64];
+	static char key[6][4];
+	
+	*dialog_text_all = '\0';
 
 	for( loop_cnt = 0; loop_cnt < 6; loop_cnt++ ) {
 		switch( PSP_KEY_CONFIG[ loop_cnt ] ) {
@@ -628,28 +636,27 @@ void key_config_disp( int cur_pos )
 			break;
 		}
 	}
-	strcpy( dialog_text_all, "  SELECTボタンで終了します。\n\0" );
-	strcat( dialog_text_all, "\n\0"               ); // 改行
-	strcpy( key_con_text[0], "       ● X --- \0" );
+	strcpy( key_con_text[0], "        ● X --- \0" );
 	strcat( key_con_text[0], key[0] );
 	strcat( key_con_text[0], "\n\0" );
-	strcpy( key_con_text[1], "   Y ● ------- \0" );
+	strcpy( key_con_text[1], "    Y ● ------- \0" );
 	strcat( key_con_text[1], key[1] );
 	strcat( key_con_text[1], "\n\0" );
-	strcpy( key_con_text[2], "         ● A - \0" );
+	strcpy( key_con_text[2], "          ● A - \0" );
 	strcat( key_con_text[2], key[2] );
 	strcat( key_con_text[2], "\n\0" );
-	strcpy( key_con_text[3], "     B ● ----- \0" );
+	strcpy( key_con_text[3], "      B ● ----- \0" );
 	strcat( key_con_text[3], key[3] );
 	strcat( key_con_text[3], "\n\0" );
-	strcpy( key_con_text[4], "   Ｌボタン --- \0" );
+	strcpy( key_con_text[4], "   Ｌ Shoulder - \0" );
 	strcat( key_con_text[4], key[4] );
 	strcat( key_con_text[4], "\n\0" );
-	strcpy( key_con_text[5], "   Ｒボタン --- \0" );
+	strcpy( key_con_text[5], "   Ｒ Shoulder - \0" );
 	strcat( key_con_text[5], key[5] );
-	strcat( key_con_text[5], "\n\0" );
+	strcat( key_con_text[5], "\n\n\0" );
+	strcpy( key_con_text[6], "   Done\n\0");
 	key_con_text[cur_pos][1] = '>';
-	for ( loop_cnt = 0; loop_cnt < 6; loop_cnt++ ) {
+	for ( loop_cnt = 0; loop_cnt < 7; loop_cnt++ ) {
 		strcat( dialog_text_all,key_con_text[loop_cnt] );
 	}
 	strcat( dialog_text_all, "\n\0"               ); // 改行
@@ -661,22 +668,25 @@ void key_config_disp( int cur_pos )
 void key_config()
 {
 	// ダイアログ用メッセージ文字列
-	int sel = 0;
+	static int sel = 0;
 	// 無限ループ気持ち悪い
 	while( 1 ){
 		readpad();
-		// SELECTボタン押した
-		if ( new_pad & PSP_CTRL_SELECT ) {
-			break;
-		}else
 		if ( new_pad & PSP_CTRL_DOWN ) {
 			sel++;
-			if ( sel > 5 ) sel = 0;
+			if ( sel > 6 ) sel = 0;
 		}else
 		if ( new_pad & PSP_CTRL_UP ) {
 			sel--;
-			if ( sel < 0 ) sel = 5;
-		}else
+			if ( sel < 0 ) sel = 6;
+		}
+		
+		// The 6th option is "Done"
+		if (sel == 6) {
+			if (new_pad & PSP_CTRL_CIRCLE) {
+				break;
+			}
+		} else
 		if ( new_pad & PSP_CTRL_SQUARE ) {
 			PSP_KEY_CONFIG[sel] = PSP_CTRL_SQUARE;
 		}else
@@ -916,12 +926,12 @@ void display_config_disp (int cur_pos)
 	                                (PSP_Settings.bShowDebugInfo))
 
 	AddBooleanConfigOption (BLIT_BACKEND,     "Bit Blit Backend ",
-	                            "sceGu (advanced)","pg (original)",
+	                            "SceGU (advanced)","pg (original)",
 	                                (PSP_Settings.bUseGUBlit))
 
 	if (PSP_Settings.bUseGUBlit) {
 		AddConfigValue ("");
-		AddConfigValue ("sceGu Blit Options");
+		AddConfigValue ("SceGU Blit Options");
 		AddConfigValue ("");
 		
 		AddBooleanConfigOption (HIRES,            "HiRes Mode       ",
@@ -1530,6 +1540,9 @@ void S9xShutdown (void)
 	}
 
 	S9xCloseSoundDevice ();
+
+	// Shutdown SceGU
+	S9xSceGUDeinit ();
 }
 
 // S9x may call this if it encounters a fatal error... Don't actually
@@ -1711,57 +1724,23 @@ bool8 S9xInitUpdate (void)
 	return TRUE;
 }
 
-#if 0
-void S9xPutImage( int width, int height )
+void S9xPutImage (int snes_width, int snes_height)
 {
-	uint32*	dest;
-	uint32* pBuffer;
-	int		x;
-
-	pBuffer = (uint32*)GFX.Screen;
-	
-	BEGIN_DEBUG_CODE
-		dest    = (uint32*)pgGetVramAddr( 0, 0 );
-	ELSE_RELEASE_CODE
-		dest    = (uint32*)pgGetVramAddr( (SCREEN_WIDTH - SNES_WIDTH) >> 1, (SCREEN_HEIGHT - height) >> 1 );
-	END_RELEASE_CODE
-
-	while ( height-- ){
-		x = 16;
-		while ( x-- ){
-			*dest++ = *pBuffer++;
-			*dest++ = *pBuffer++;
-			*dest++ = *pBuffer++;
-			*dest++ = *pBuffer++;
-			*dest++ = *pBuffer++;
-			*dest++ = *pBuffer++;
-			*dest++ = *pBuffer++;
-			*dest++ = *pBuffer++;
-		}
-		dest += (512 - SNES_WIDTH) / 2;
+	switch (PSP_Settings.iScreenSize) {
+		default:
+		case SCR_SIZE_X1:
+			break;
+		case SCR_SIZE_FIT:
+			pgBitBltFit ((unsigned short *)GFX.Screen, snes_height);
+			break;
+		case SCR_SIZE_FULL:
+			pgBitBltFull ((unsigned long *)GFX.Screen, snes_height);
+			break;
+		case SCR_SIZE_FULLFIT:
+			pgBitBltFullFit ((unsigned short *)GFX.Screen, snes_height);
+			break;
 	}
 }
-
-void S9xPutImage( int width, int height )
-{
-	int 	x, y;
-	uint16*	src;
-	uint16*	dest;
-
-	src  = (uint16*)GFX.Screen;
-//	dest = (uint16*)(VRAM_ADDR + 0x40000000);
-	dest = (uint16*)pgGetVramAddr( 0, 0 );
-
-//	pspDisplayWaitVblankStart();
-
-	for ( y = 0; y < SNES_HEIGHT_EXTENDED; y++ ){
-		for ( x = 0; x < SNES_WIDTH; x++ ){
-			*dest++ = *src++;
-		}
-		dest += (512 - SNES_WIDTH);
-	}
-}
-#endif
 
 static uint16 __attribute__((aligned(16))) GFX_Screen     [512 * 512];
 static uint16                              GFX_SubScreen  [512 * 512];
@@ -1769,188 +1748,20 @@ static uint16                              GFX_ZBuffer    [512 * 512];
 static uint16                              GFX_SubZBuffer [512 * 512];
 
 
-enum {
-	SCR_X1,
-	SCR_FIT,
-	SCR_FULL,
-	SCR_FULLFIT,
-};
-
 static char FPSbuf[6];
 
 extern int S9xDisplayGetMaxCharsX (void);
 extern void S9xDisplayStringEx (const char *string, int x, int y);
 
+enum {
+  FPS_RASTER_PG,  // Uses pg (has issues with certain SceGU screen modes)
+  FPS_RASTER_S9X, // Uses a modified version of Snes9x's message system.
 
-#ifdef OPTI
-bool8 S9xDeinitUpdate (int Width, int Height)
-#else
-bool8 S9xDeinitUpdate (int Width, int Height, bool8 sixteen_bit)
-#endif // OPTI
+  NUM_FPS_RASTER_METHODS,
+};
+
+inline void draw_fps (int raster_method = FPS_RASTER_PG)
 {
-#ifdef USE_PROFILER
-	if (s_bShowProfilerInfo_old != g_bShowProfilerInfo) {
-	  s_bShowProfilerInfo_old = g_bShowProfilerInfo;
-	  
-	  if (! (!s_bShowProfilerInfo_old)) {
-	    bGUIMode = TRUE;
-
-	    init_pg ();
-
-	    pspDebugScreenInit     ();
-
-#ifdef HW_PROFILER
-	    pspDebugProfilerClear  ();
-	    pspDebugProfilerEnable ();
-#endif
-
-	    bGUIMode = TRUE;
-	  } else {
-	    pspDebugProfilerDisable ();
-	    S9xMarkScreenDirtyEx    ();
-	    
-	    bGUIMode = FALSE;
-
-	    init_pg ();
-	  }
-	}
-
-	if (g_bShowProfilerInfo) {
-	  pspDebugScreenSetXY       (0, 0);
-
-          pspDebugScreenPrintf ("IPPU Rendered Pixel Height: %d\n\n", IPPU.RenderedScreenHeight);
-
-	  #define LOG_PROFILE_FUNC(func,type) \
-	    pspDebugScreenPrintf ("%25s (...) =%u usecs\n", #func, type.time_##func);
-
-#ifdef GFX_PROFILER
-	  pspDebugScreenPrintf ("RenderScreen         (...) = %u usecs\n", gfx_profile.time_RenderScreen);
-	  pspDebugScreenPrintf ("DrawObjs             (...) = %u usecs\n", gfx_profile.time_DrawObjs);
-	  pspDebugScreenPrintf ("SelectTileRenderer   (...) = %u usecs\n", gfx_profile.time_SelectTileRenderer);
-	  pspDebugScreenPrintf ("DrawBackground       (...) = %u usecs\n", gfx_profile.time_DrawBackground);
-	  pspDebugScreenPrintf ("DrawBackground_8     (...) = %u usecs\n", gfx_profile.time_DrawBackground_8);
-	  pspDebugScreenPrintf ("DrawBakground_16     (...) = %u usecs\n", gfx_profile.time_DrawBackground_16);
-	  pspDebugScreenPrintf ("DrawBackgroundMosaic (...) = %u usecs\n", gfx_profile.time_DrawBackgroundMosaic);
-	  pspDebugScreenPrintf ("DrawBackgroundOffset (...) = %u usecs\n", gfx_profile.time_DrawBackgroundOffset);
-	  pspDebugScreenPrintf ("DrawBackgroundMode5  (...) = %u usecs\n", gfx_profile.time_DrawBackgroundMode5);
-#endif
-
-#ifdef TILE_PROFILER
-	  LOG_PROFILE_FUNC (DrawTile, tile_profile)
-	  LOG_PROFILE_FUNC (DrawTilex2, tile_profile)
-	  LOG_PROFILE_FUNC (DrawTilex2x2, tile_profile)
-	  LOG_PROFILE_FUNC (DrawClippedTilex2x2, tile_profile)
-	  LOG_PROFILE_FUNC (DrawTile16, tile_profile)
-	  LOG_PROFILE_FUNC (DrawTile16_OBJ, tile_profile)
-	  LOG_PROFILE_FUNC (DrawClippedTile16, tile_profile)
-/*
-	  LOG_PROFILE_FUNC (DrawTile16x2, tile_profile)
-	  LOG_PROFILE_FUNC (DrawClippedTile16x2, tile_profile)
-	  LOG_PROFILE_FUNC (DrawTile16x2x2, tile_profile)
-	  LOG_PROFILE_FUNC (DrawClippedTile16x2x2, tile_profile)
-	  LOG_PROFILE_FUNC (DrawTile16Add, tile_profile)
-	  LOG_PROFILE_FUNC (DrawClippedTile16Add, tile_profile)
-	  LOG_PROFILE_FUNC (DrawTile16Add1_2, tile_profile)
-	  LOG_PROFILE_FUNC (DrawClippedTile16Add1_2, tile_profile)
-	  LOG_PROFILE_FUNC (DrawTile16Sub, tile_profile)
-	  LOG_PROFILE_FUNC (DrawClippedTile16Sub, tile_profile)
-	  LOG_PROFILE_FUNC (DrawTile16sub1_2, tile_profile)
-	  LOG_PROFILE_FUNC (DrawClippedTile16Sub1_2, tile_profile)
-	  LOG_PROFILE_FUNC (DrawTile16FixedAdd1_2, tile_profile)
-	  LOG_PROFILE_FUNC (DrawClippedTile16FixAdd1_2, tile_profile)
-	  LOG_PROFILE_FUNC (DrawTile16FixedSub1_2, tile_profile)
-	  LOG_PROFILE_FUNC (DrawClippedTile16FixedSub1_2, tile_profile)
-*/
-	  LOG_PROFILE_FUNC (DrawLargePixel, tile_profile)
-	  LOG_PROFILE_FUNC (DrawLargePixel16, tile_profile)
-	  LOG_PROFILE_FUNC (DrawLargePixel16Add, tile_profile)
-	  LOG_PROFILE_FUNC (DrawLargePixel16Add1_2, tile_profile)
-	  LOG_PROFILE_FUNC (DrawLargePixel16Sub, tile_profile)
-	  LOG_PROFILE_FUNC (DrawLargePixel16Sub1_2, tile_profile)
-#endif
-
-#ifdef HW_PROFILER
-	  pspDebugProfilerPrint     ();
-#endif
-	  sceDisplayWaitVblankStart ();
-
-	  return TRUE;
-	}
-#endif /* USE_PROFILER */
-
-//	S9xPutImage( Width, Height );
-// mod by y
-
-	if (PSP_Settings.bUseGUBlit) {
-		// Dirty framebuffer clear for sceGu blit
-		if (s_iFramebufferState > 0) {
-			s_iFramebufferState = 0;
-			clear_framebuffer ();
-		}
-
-		// Special consideration for fullscreen modes and FPS drawing
-		if (PSP_Settings.bShowFPS && PSP_Settings.iScreenSize >= SCR_SIZE_FULL) {
-			Settings.DisplayColor = RGB (255, 255, 255);
-			int max_chars = S9xDisplayGetMaxCharsX ();
-			S9xDisplayStringEx (FPSbuf, max_chars - 5, 0);
-		}
-
-		const int tex_res = (PSP_Settings.bSupportHiRes ? 512 : 256);
-
-		// If you don't call this, Gu will run into cache problems with
-		// reading pixel data...
-		sceKernelDcacheWritebackAll ();
-		
-		switch(PSP_Settings.iScreenSize) {
-			case SCR_FIT:
-			{
-				// Most games run at 224 lines, but some have 239
-				const int y_res   = IPPU.RenderedScreenHeight;
-				// 60 pixels on either side (4:3)...
-				const int x_scale = (PSP_Settings.bSupportHiRes ? 720 : 360);
-				const int y_scale = (PSP_Settings.bSupportHiRes ? (y_res == 239 ? 584 : 624) :
-				                                                  (y_res == 239 ? 292 : 312));
-				pgRenderTex((char *)GFX.Screen,tex_res,tex_res,60,0,x_scale,y_scale,(480 - 120),272);
-			} break;
-			case SCR_FULL:
-			case SCR_FULLFIT:
-			{
-				// Most games run at 224 lines, but some have 239
-				const int y_res   = IPPU.RenderedScreenHeight;
-				const int x_scale = (PSP_Settings.bSupportHiRes ? 960 : 480);
-				const int y_scale = (PSP_Settings.bSupportHiRes ? (y_res == 239 ? 584 : 624) :
-				                                                  (y_res == 239 ? 292 : 312));
-				pgRenderTex((char *)GFX.Screen,tex_res,tex_res,0,0,x_scale,y_scale,480,272);
-			} break;
-			case SCR_X1:
-			default:
-				const int y_res    = IPPU.RenderedScreenHeight;
-				const int x_res    = IPPU.RenderedScreenWidth;
-				const int xy_scale = (PSP_Settings.bSupportHiRes ? 512 : 256);
-				pgRenderTex((char *)GFX.Screen,tex_res,tex_res,(480/2)-(256/2),(272/2)-(y_res/2),xy_scale,xy_scale,x_res,y_res);
-				break;
-		}
-	} else {
-		BEGIN_RELEASE_CODE
-	
-		switch(PSP_Settings.iScreenSize) {
-			default:
-			case SCR_SIZE_X1:
-				break;
-			case SCR_SIZE_FIT:
-				pgBitBltFit((unsigned short *)GFX.Screen, Height);
-				break;
-			case SCR_SIZE_FULL:
-				pgBitBltFull((unsigned long *)GFX.Screen, Height);
-				break;
-			case SCR_SIZE_FULLFIT:
-				pgBitBltFullFit((unsigned short *)GFX.Screen, Height);
-				break;
-		}
-
-		END_RELEASE_CODE
-	}
-
 	if (PSP_Settings.bShowFPS) {
 		struct timeval	now;
 		unsigned int	diff;
@@ -1961,7 +1772,7 @@ bool8 S9xDeinitUpdate (int Width, int Height, bool8 sixteen_bit)
 		diff  = (now.tv_sec - s_tvStart.tv_sec) * 1000000 + now.tv_usec - s_tvStart.tv_usec;
 		diff /= 1000000;
 	
-		if ( diff ){
+		if (diff){
 			FPSbuf [0] = ((s_iFrame / diff) / 10) + '0';
 			FPSbuf [1] = ((s_iFrame / diff) % 10) + '0';
 			FPSbuf [2] = 'F';
@@ -1973,17 +1784,73 @@ bool8 S9xDeinitUpdate (int Width, int Height, bool8 sixteen_bit)
 			s_iFrame  = 0;
 		}
 
+	        if (raster_method == FPS_RASTER_PG) {
+			// Don't use this method of drawing the FPS if the screen mode
+			// is FULL and SceGU blitting is enabled...
+			if ((! PSP_Settings.bUseGUBlit) || PSP_Settings.iScreenSize < SCR_SIZE_FULL)
+				pgPrintBG (CMAX_X - 6, 0, 0xffff, FPSbuf);
+		} else {
+			Settings.DisplayColor = RGB (255, 255, 255);
+
+			  const int max_chars = S9xDisplayGetMaxCharsX ();
+			  S9xDisplayStringEx (FPSbuf, max_chars - 5, 0);
+
+			Settings.DisplayColor = RGB (0,   255,   0);
+		}
+	}
+}
+
+bool draw_profile_screen (void);
+
+#ifdef OPTI
+bool8 S9xDeinitUpdate (int Width, int Height)
+#else
+bool8 S9xDeinitUpdate (int Width, int Height, bool8 sixteen_bit)
+#endif // OPTI
+{
+#ifdef USE_PROFILER
+	if (draw_profile_screen ())
+		return (TRUE);
+#endif
+
+	if (PSP_Settings.bUseGUBlit) {
+		// Dirty framebuffer clear for SceGU blit
+		if (s_iFramebufferState > 0) {
+			s_iFramebufferState = 0; // Not double buffered, so only clear once.
+			clear_framebuffer ();
+			
+//			sceKernelDcacheWritebackAll ();
+		}
+
+		// Special consideration for fullscreen modes and FPS drawing
+		if (PSP_Settings.bShowFPS && PSP_Settings.iScreenSize >= SCR_SIZE_FULL)
+			draw_fps (FPS_RASTER_S9X);
+
+		// If you don't call this, Gu will run into cache problems with
+		// reading pixel data...
+		sceKernelDcacheWritebackAll ();
+
+		S9xSceGUPutImage (Width, Height);
+	} else {
+		BEGIN_RELEASE_CODE
+	
+		  S9xPutImage (Width, Height);
+
+		END_RELEASE_CODE
+	}
+
+	if (PSP_Settings.bShowFPS) {
 		// Don't use this method of drawing the FPS if the screen mode
-		// is FULL and sceGu blitting is enabled...
+		// is FULL and SceGU blitting is enabled...
 		if ((! PSP_Settings.bUseGUBlit) || PSP_Settings.iScreenSize < SCR_SIZE_FULL)
-			pgPrintBG (CMAX_X - 6, 0, 0xffff, FPSbuf);
+			draw_fps (FPS_RASTER_PG);
 	}
 
 	if (PSP_Settings.bVSync) {
 		if (PSP_Settings.bUseGUBlit) {
 			pgWaitV      ();
 			pgScreenSync ();
-		} else {		
+		} else {
 			pgScreenFlipV ();
 		}
 	} else {
@@ -1993,30 +1860,27 @@ bool8 S9xDeinitUpdate (int Width, int Height, bool8 sixteen_bit)
 			pgScreenFlip();
 	}
 
-	if (! PSP_Settings.bUseGUBlit) {
-		BEGIN_RELEASE_CODE
+	// All code beyond this point is for pg blitting only
+	if (PSP_Settings.bUseGUBlit)
+		return (TRUE);
+
+	BEGIN_RELEASE_CODE
 	
-			if (PSP_Settings.iScreenSize == 0)
-				GFX.Screen = (uint8*)pgGetVramAddr( (SCREEN_WIDTH - SNES_WIDTH) >> 1, (SCREEN_HEIGHT - SNES_HEIGHT) >> 1 );
-			else
-				GFX.Screen = (uint8*)GFX_Screen;
+		if (PSP_Settings.iScreenSize == 0)
+			GFX.Screen = (uint8 *)pgGetVramAddr ((SCREEN_WIDTH - SNES_WIDTH) >> 1, (SCREEN_HEIGHT - SNES_HEIGHT) >> 1);
+		else
+			GFX.Screen = (uint8 *)GFX_Screen;
 
-		ELSE_DEBUG_CODE
+	ELSE_DEBUG_CODE
 
-			GFX.Screen = (uint8*)pgGetVramAddr( 0, 0 );
+		GFX.Screen = (uint8 *)pgGetVramAddr (0, 0);
 
-		END_DEBUG_CODE
-		}
-		
-// FPS move --> before Flip
-// analog_menu move --> S9xProcessEvents() by y
+	END_DEBUG_CODE
 
-	// Dirty framebuffer clear for pg
-	if (! PSP_Settings.bUseGUBlit) {
-		if (s_iFramebufferState > 0) {
-			s_iFramebufferState--;
-			clear_framebuffer ();
-		}
+	// Dirty framebuffer clear for the pg blit backend
+	if (s_iFramebufferState > 0) {
+		s_iFramebufferState--;
+		clear_framebuffer ();
 	}
 
 	return TRUE;
@@ -2025,8 +1889,6 @@ bool8 S9xDeinitUpdate (int Width, int Height, bool8 sixteen_bit)
 // mod by y
 void S9xInitDisplay( int argc, char** argv )
 {
-	PSP_Settings.bTrans = true;
-	Settings.Transparency = TRUE;
 #ifndef OPTI
 	Settings.SixteenBit   = TRUE;
 #endif // OPTI
@@ -2036,7 +1898,6 @@ void S9xInitDisplay( int argc, char** argv )
 	memset( GFX_ZBuffer,    0, sizeof(GFX_ZBuffer) );
 	memset( GFX_SubZBuffer, 0, sizeof(GFX_SubZBuffer) );
 
-//	GFX.Pitch      = IMAGE_WIDTH * 2;
 	if (PSP_Settings.bUseGUBlit) {
 		GFX.Pitch             = (PSP_Settings.bSupportHiRes ? 512 : 256) * 2;
 		GFX.Screen            = (uint8*)GFX_Screen;
@@ -2518,8 +2379,8 @@ enum {
 
 	LOAD_ROM,
 	RESET,
-	EXIT_HOME,
-	CONTINUE,
+
+	FILE_MANAGER,
 };
 
 void draw_menu (void)
@@ -2602,8 +2463,10 @@ void draw_menu (void)
 
 	pgPrint(x,y++,0xffff,"  ROM Selector");
 	pgPrint(x,y++,0xffff,"  Reset");
-	pgPrint(x,y++,0xffff,"  Exit to PSP Menu");
-	pgPrint(x,y++,0xffff,"  Continue");
+	
+	y++;
+	
+	pgPrint(x,y++,0xffff,"  File Manager");
 		
 	y = sel + 6;
 	if (sel >= STATE_SLOT) {
@@ -2616,6 +2479,9 @@ void draw_menu (void)
 		y++;
 	}
 	if (sel >= LOAD_ROM){
+		y++;
+	}
+	if (sel >= FILE_MANAGER){
 		y++;
 	}
 		
@@ -2820,6 +2686,35 @@ void open_menu (void)
 
 							// Write the RLE header first
 							WRITE_STREAM (RLE_MAGIC, RLE_MAGIC_LEN, state);
+
+#if 0
+//							char test_filename [_MAX_PATH];
+//							strcpy (test_filename, S9xGetFilename ("sv0"));
+//							strcat (test_filename, ".gz");
+							int fd = sceIoOpen ("ms0:/PSP/Game/Snes9x/test.gz", PSP_O_WRONLY | PSP_O_CREAT | PSP_O_TRUNC, 0777);
+							if (fd >= 0) {
+								unsigned int dest_len_gz = MAX_FREEZE_SIZE;
+								static char  dest_buf_gz [MAX_FREEZE_SIZE];
+
+#if 0
+								if (compress ((Bytef *)dest_buf_gz, (uLongf *)&dest_len_gz,
+								              (Bytef *)state_buf,   (uLong)state_len) != Z_OK) {
+									       // Encountered an error during zlib compression.
+								} else {
+									sceIoWrite (fd, GZ_MAGIC,    GZ_MAGIC_LEN);
+									sceIoWrite (fd, dest_buf_gz, dest_len_gz);
+								}
+#endif
+								sceIoClose (fd);
+#if 0
+								gzFile file = gzopen ("ms0:/PSP/Game/Snes9x/test.gz", "wb9");
+								if (file != NULL) {
+									gzwrite (file, state_buf, state_len);
+									gzclose (file);
+								}
+#endif
+							}
+#endif
 						}
 
 						WRITE_STREAM (dest_buf, dest_len, state);
@@ -2892,7 +2787,7 @@ void open_menu (void)
 
 				msg[0]=0;
 				FilerMsg[0]=0;
-				if (getFilePath(RomPath)){
+				if (getFilePath(RomPath, EXT_MASK_ROM)){
 					save_config();
 					Memory.SaveSRAM( S9xGetFilename("srm") );
 					if ( Memory.LoadROM(RomPath) ){
@@ -2915,11 +2810,8 @@ void open_menu (void)
 				S9xReset();
 				S9xSetInfoString( "Game Reseted." );
 				break;
-			} else if (sel == EXIT_HOME){
-				f_bExit = true;
-				break;
-			} else if (sel == CONTINUE){
-				break;
+			} else if (sel == FILE_MANAGER) {
+				getFilePath (RomPath, 0xffffffff);
 			}
 		} else if (new_pad & PSP_CTRL_CROSS){
 			break;
@@ -2927,10 +2819,10 @@ void open_menu (void)
 			if (sel!=0){
 				sel--;
 			} else {
-				sel=CONTINUE;
+				sel=FILE_MANAGER;
 			}
 		} else if (new_pad & PSP_CTRL_DOWN){
-			if (sel!=CONTINUE){
+			if (sel!=FILE_MANAGER){
 				sel++;
 			} else {
 				sel=0;
@@ -3019,8 +2911,8 @@ void open_menu (void)
 				sel=FRAME_SKIP;
 			} else if (sel<LOAD_ROM){
 				sel=LOAD_ROM;
-			} else if (sel<CONTINUE){
-				sel=CONTINUE;
+			} else if (sel<FILE_MANAGER){
+				sel=FILE_MANAGER;
 			}
 		}
 		
@@ -3118,6 +3010,9 @@ void S9xProcessEvents( bool8 block )
 
 void init_pg (void)
 {
+	if (PSP_Settings.bUseGUBlit)
+		pspDebugScreenInit ();
+
 	pgMain ();
 	pgInit ();
 	
@@ -3126,12 +3021,6 @@ void init_pg (void)
 
 void init_blit_backend (void)
 {
-	if (PSP_Settings.bUseGUBlit) {
-		S9xSetRenderPixelFormat (BGR555);
-	} else {
-		S9xSetRenderPixelFormat (BGR555);
-	}
-
 	init_pg ();
 
 	S9xInitDisplay (0, 0);
@@ -3139,7 +3028,7 @@ void init_blit_backend (void)
 	S9xGraphicsDeinit ();
 	S9xGraphicsInit   ();
 
-	S9xMarkScreenDirty ();
+	S9xMarkScreenDirtyEx ();
 }
 
 int main(int argc, char **argv)
@@ -3279,7 +3168,7 @@ Settings.PSP_APUTimerCycle = SNES_APUTIMER2_CYCLEx10000;
 	strcpy(LastPath,PBPPath);
 	FilerMsg[0]=0;
 	for(;;){
-		while(!getFilePath(RomPath))
+		while(!getFilePath(RomPath, EXT_MASK_ROM))
 			;
 		if ( !Memory.LoadROM(RomPath) ){
 			continue;
@@ -3293,7 +3182,7 @@ Settings.PSP_APUTimerCycle = SNES_APUTIMER2_CYCLEx10000;
 // mod by J
 	load_wall_bmp ();
 
-	S9xMarkScreenDirty ();
+	S9xMarkScreenDirtyEx ();
 	Memory.LoadSRAM( S9xGetFilename( "srm" ) );
 //	S9xLoadCheatFile (S9xGetFilename ("cht"));
 
@@ -3336,7 +3225,7 @@ Settings.PSP_APUTimerCycle = SNES_APUTIMER2_CYCLEx10000;
 	PSP_Settings.bSoundOff = false;
 	load_config();
 
-	S9xMarkScreenDirty ();
+	S9xMarkScreenDirtyEx ();
 
 	S9xSetSoundMute( TRUE );
 
@@ -3372,6 +3261,12 @@ void S9xMarkScreenDirty (void)
 	BEGIN_DEBUG_CODE
 		return;
 	END_DEBUG_CODE
+
+	// Also, don't clean it if SceGU is being used, because it's not needed...
+	//  (All GUI code uses S9xMarkScreenDirtyEx (...), only the core of
+	//   Snes9x uses this.)
+	if (PSP_Settings.bUseGUBlit)
+		return;
 
 	S9xMarkScreenDirtyEx ();
 }
@@ -3730,6 +3625,103 @@ void S9xDisplayStringEx (const char *string, int x, int y)
 #endif // OPTI
     }
 }
+
+
+#ifdef USE_PROFILER
+bool draw_profile_screen (void)
+{
+	if (s_bShowProfilerInfo_old != g_bShowProfilerInfo) {
+	  s_bShowProfilerInfo_old = g_bShowProfilerInfo;
+	
+	  if (! (!s_bShowProfilerInfo_old)) {
+	    bGUIMode = TRUE;
+
+	    init_pg ();
+
+	    pspDebugScreenInit     ();
+
+#ifdef HW_PROFILER
+	    pspDebugProfilerClear  ();
+	    pspDebugProfilerEnable ();
+#endif
+
+	    bGUIMode = TRUE;
+	  } else {
+	    pspDebugProfilerDisable ();
+	    S9xMarkScreenDirtyEx    ();
+	
+	    bGUIMode = FALSE;
+
+	    init_pg ();
+	  }
+	}
+
+	if (g_bShowProfilerInfo) {
+	  pspDebugScreenSetXY       (0, 0);
+
+          pspDebugScreenPrintf ("IPPU Rendered Pixel Height: %d\n\n", IPPU.RenderedScreenHeight);
+
+	  #define LOG_PROFILE_FUNC(func,type) \
+	    pspDebugScreenPrintf ("%25s (...) =%u usecs\n", #func, type.time_##func);
+
+#ifdef GFX_PROFILER
+	  pspDebugScreenPrintf ("RenderScreen         (...) = %u usecs\n", gfx_profile.time_RenderScreen);
+	  pspDebugScreenPrintf ("DrawObjs             (...) = %u usecs\n", gfx_profile.time_DrawObjs);
+	  pspDebugScreenPrintf ("SelectTileRenderer   (...) = %u usecs\n", gfx_profile.time_SelectTileRenderer);
+	  pspDebugScreenPrintf ("DrawBackground       (...) = %u usecs\n", gfx_profile.time_DrawBackground);
+	  pspDebugScreenPrintf ("DrawBackground_8     (...) = %u usecs\n", gfx_profile.time_DrawBackground_8);
+	  pspDebugScreenPrintf ("DrawBakground_16     (...) = %u usecs\n", gfx_profile.time_DrawBackground_16);
+	  pspDebugScreenPrintf ("DrawBackgroundMosaic (...) = %u usecs\n", gfx_profile.time_DrawBackgroundMosaic);
+	  pspDebugScreenPrintf ("DrawBackgroundOffset (...) = %u usecs\n", gfx_profile.time_DrawBackgroundOffset);
+	  pspDebugScreenPrintf ("DrawBackgroundMode5  (...) = %u usecs\n", gfx_profile.time_DrawBackgroundMode5);
+#endif
+
+#ifdef TILE_PROFILER
+	  LOG_PROFILE_FUNC (DrawTile, tile_profile)
+	  LOG_PROFILE_FUNC (DrawTilex2, tile_profile)
+	  LOG_PROFILE_FUNC (DrawTilex2x2, tile_profile)
+	  LOG_PROFILE_FUNC (DrawClippedTilex2x2, tile_profile)
+	  LOG_PROFILE_FUNC (DrawTile16, tile_profile)
+	  LOG_PROFILE_FUNC (DrawTile16_OBJ, tile_profile)
+	  LOG_PROFILE_FUNC (DrawClippedTile16, tile_profile)
+/*
+	  LOG_PROFILE_FUNC (DrawTile16x2, tile_profile)
+	  LOG_PROFILE_FUNC (DrawClippedTile16x2, tile_profile)
+	  LOG_PROFILE_FUNC (DrawTile16x2x2, tile_profile)
+	  LOG_PROFILE_FUNC (DrawClippedTile16x2x2, tile_profile)
+	  LOG_PROFILE_FUNC (DrawTile16Add, tile_profile)
+	  LOG_PROFILE_FUNC (DrawClippedTile16Add, tile_profile)
+	  LOG_PROFILE_FUNC (DrawTile16Add1_2, tile_profile)
+	  LOG_PROFILE_FUNC (DrawClippedTile16Add1_2, tile_profile)
+	  LOG_PROFILE_FUNC (DrawTile16Sub, tile_profile)
+	  LOG_PROFILE_FUNC (DrawClippedTile16Sub, tile_profile)
+	  LOG_PROFILE_FUNC (DrawTile16sub1_2, tile_profile)
+	  LOG_PROFILE_FUNC (DrawClippedTile16Sub1_2, tile_profile)
+	  LOG_PROFILE_FUNC (DrawTile16FixedAdd1_2, tile_profile)
+	  LOG_PROFILE_FUNC (DrawClippedTile16FixAdd1_2, tile_profile)
+	  LOG_PROFILE_FUNC (DrawTile16FixedSub1_2, tile_profile)
+	  LOG_PROFILE_FUNC (DrawClippedTile16FixedSub1_2, tile_profile)
+*/
+	  LOG_PROFILE_FUNC (DrawLargePixel, tile_profile)
+	  LOG_PROFILE_FUNC (DrawLargePixel16, tile_profile)
+	  LOG_PROFILE_FUNC (DrawLargePixel16Add, tile_profile)
+	  LOG_PROFILE_FUNC (DrawLargePixel16Add1_2, tile_profile)
+	  LOG_PROFILE_FUNC (DrawLargePixel16Sub, tile_profile)
+	  LOG_PROFILE_FUNC (DrawLargePixel16Sub1_2, tile_profile)
+#endif
+
+#ifdef HW_PROFILER
+	  pspDebugProfilerPrint     ();
+#endif
+	  sceDisplayWaitVblankStart ();
+
+	  return (TRUE);
+	}
+
+	return (FALSE);
+}
+#endif /* USE_PROFILER */
+
 
 /*
 WIP

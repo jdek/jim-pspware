@@ -1,16 +1,16 @@
 
-static uint8 GetPPU_BUS (uint16 Address)
+static inline uint8 GetPPU_BUS ()
 {
 	return OpenBus;
 }
 
-static uint8 GetPPU_BUS1 (uint16 Address)
+static inline uint8 GetPPU_BUS1 ()
 {
 	return PPU.OpenBus1;
 }
 
 
-static uint8 GetPPU_213x (uint16 Address)
+static inline uint8 GetPPU_2134 ()
 {
     // 16bit x 8bit multiply read result.
     if (PPU.Need16x8Mulitply)
@@ -25,16 +25,52 @@ static uint8 GetPPU_213x (uint16 Address)
 #ifdef DEBUGGER
     missing.matrix_multiply = 1;
 #endif
-	return (PPU.OpenBus1 = Memory.FillRAM[Address]);
+	return (PPU.OpenBus1 = Memory.FillRAM[0x2134]);
 }
 
-static uint8 GetPPU_2137 (uint16 Address)
+static inline uint8 GetPPU_2135 ()
+{
+    // 16bit x 8bit multiply read result.
+    if (PPU.Need16x8Mulitply)
+    {
+	int32 r = (int32) PPU.MatrixA * (int32) (PPU.MatrixB >> 8);
+
+	Memory.FillRAM[0x2134] = (uint8) r;
+	Memory.FillRAM[0x2135] = (uint8)(r >> 8);
+	Memory.FillRAM[0x2136] = (uint8)(r >> 16);
+	PPU.Need16x8Mulitply = FALSE;
+    }
+#ifdef DEBUGGER
+    missing.matrix_multiply = 1;
+#endif
+	return (PPU.OpenBus1 = Memory.FillRAM[0x2135]);
+}
+
+static inline uint8 GetPPU_2136 ()
+{
+    // 16bit x 8bit multiply read result.
+    if (PPU.Need16x8Mulitply)
+    {
+	int32 r = (int32) PPU.MatrixA * (int32) (PPU.MatrixB >> 8);
+
+	Memory.FillRAM[0x2134] = (uint8) r;
+	Memory.FillRAM[0x2135] = (uint8)(r >> 8);
+	Memory.FillRAM[0x2136] = (uint8)(r >> 16);
+	PPU.Need16x8Mulitply = FALSE;
+    }
+#ifdef DEBUGGER
+    missing.matrix_multiply = 1;
+#endif
+	return (PPU.OpenBus1 = Memory.FillRAM[0x2136]);
+}
+
+static inline uint8 GetPPU_2137 ()
 {
 	S9xLatchCounters(0);
 	return OpenBus;
 }
 
-static uint8 GetPPU_2138 (uint16 Address)
+static inline uint8 GetPPU_2138 ()
 {
  	uint8 byte;
 
@@ -83,7 +119,7 @@ static uint8 GetPPU_2138 (uint16 Address)
 	return (PPU.OpenBus1 = byte);
 }
 
-static uint8 GetPPU_2139 (uint16 Address)
+static inline uint8 GetPPU_2139 ()
 {
  	uint8 byte;
 
@@ -122,7 +158,7 @@ static uint8 GetPPU_2139 (uint16 Address)
 		}
 		else
 			byte = Memory.VRAM[((PPU.VMA.Address << 1) - 2) & 0xffff];
-		
+
 	if (!PPU.VMA.High)
 	{
 		PPU.VMA.Address += PPU.VMA.Increment;
@@ -133,7 +169,7 @@ static uint8 GetPPU_2139 (uint16 Address)
     return (byte);
 }
 
-static uint8 GetPPU_213A (uint16 Address)
+static inline uint8 GetPPU_213A ()
 {
  	uint8 byte;
 
@@ -182,7 +218,7 @@ static uint8 GetPPU_213A (uint16 Address)
     return (byte);
 }
 
-static uint8 GetPPU_213B (uint16 Address)
+static inline uint8 GetPPU_213B ()
 {
  	uint8 byte;
 
@@ -198,8 +234,8 @@ static uint8 GetPPU_213B (uint16 Address)
     PPU.CGFLIPRead ^= 1;
     return (PPU.OpenBus2 = byte);
 }
-	    
-static uint8 GetPPU_213C (uint16 Address)
+
+static inline uint8 GetPPU_213C ()
 {
  	uint8 byte;
 
@@ -216,7 +252,7 @@ static uint8 GetPPU_213C (uint16 Address)
     return (byte);
 }
 
-static uint8 GetPPU_213D (uint16 Address)
+static inline uint8 GetPPU_213D ()
 {
  	uint8 byte;
 
@@ -233,7 +269,7 @@ static uint8 GetPPU_213D (uint16 Address)
     return (byte);
 }
 
-static uint8 GetPPU_213E (uint16 Address)
+static inline uint8 GetPPU_213E ()
 {
     // PPU time and range over flags
     FLUSH_REDRAW ();
@@ -242,7 +278,7 @@ static uint8 GetPPU_213E (uint16 Address)
 	return (PPU.OpenBus1 = (Model->_5C77 | PPU.RangeTimeOver));
 }
 
-static uint8 GetPPU_213F (uint16 Address)
+static inline uint8 GetPPU_213F ()
 {
     // NTSC/PAL and which field flags
     PPU.VBeamFlip = PPU.HBeamFlip = 0;
@@ -251,81 +287,7 @@ static uint8 GetPPU_213F (uint16 Address)
     return ((Settings.PAL ? 0x10 : 0) | (Memory.FillRAM[0x213f] & 0xc0)| Model->_5C78) | (~PPU.OpenBus2 & 0x20);
 }
 
-static uint8 GetPPU_APUR (uint16 Address)
-{
-/*
-	case 0x2140: case 0x2141: case 0x2142: case 0x2143:
-	case 0x2144: case 0x2145: case 0x2146: case 0x2147:
-	case 0x2148: case 0x2149: case 0x214a: case 0x214b:
-	case 0x214c: case 0x214d: case 0x214e: case 0x214f:
-	case 0x2150: case 0x2151: case 0x2152: case 0x2153:
-	case 0x2154: case 0x2155: case 0x2156: case 0x2157:
-	case 0x2158: case 0x2159: case 0x215a: case 0x215b:
-	case 0x215c: case 0x215d: case 0x215e: case 0x215f:
-	case 0x2160: case 0x2161: case 0x2162: case 0x2163:
-	case 0x2164: case 0x2165: case 0x2166: case 0x2167:
-	case 0x2168: case 0x2169: case 0x216a: case 0x216b:
-	case 0x216c: case 0x216d: case 0x216e: case 0x216f:
-	case 0x2170: case 0x2171: case 0x2172: case 0x2173:
-	case 0x2174: case 0x2175: case 0x2176: case 0x2177:
-	case 0x2178: case 0x2179: case 0x217a: case 0x217b:
-	case 0x217c: case 0x217d: case 0x217e: case 0x217f:
-*/
-#ifdef SPCTOOL
-    return ((uint8) _SPCOutP [Address & 3]);
-#else
-//	CPU.Flags |= DEBUG_MODE_FLAG;
-#ifdef SPC700_SHUTDOWN	
-    IAPU.APUExecuting = Settings.APUEnabled;
-    IAPU.WaitCounter++;
-#endif
-    if (Settings.APUEnabled)
-    {
-#ifdef CPU_SHUTDOWN
-//		CPU.WaitAddress = CPU.PCAtOpcodeStart;
-#endif	
-		if (SNESGameFixes.APU_OutPorts_ReturnValueFix &&
-		    Address >= 0x2140 && Address <= 0x2143 && !CPU.V_Counter)
-		{
-			return (uint8)((Address & 1) ? ((rand() & 0xff00) >> 8) : (rand() & 0xff));
-		}
-		return (APU.OutPorts [Address & 3]);
-    }
-
-    switch (Settings.SoundSkipMethod)
-    {
-    case 0:
-    case 1:
-		CPU.BranchSkip = TRUE;
-		break;
-    case 2:
-		break;
-    case 3:
-		CPU.BranchSkip = TRUE;
-		break;
-    }
-    if ((Address & 3) < 2)
-    {
-		int r = rand ();
-		if (r & 2)
-		{
-		    if (r & 4)
-			return ((Address & 3) == 1 ? 0xaa : 0xbb);
-		    else
-			return ((r >> 3) & 0xff);
-		}
-    }
-    else
-    {
-		int r = rand ();
-		if (r & 2)
-		    return ((r >> 3) & 0xff);
-    }
-    return (Memory.FillRAM[Address]);
-#endif // SPCTOOL
-}
-
-static uint8 GetPPU_2180 (uint16 Address)
+static inline uint8 GetPPU_2180 ()
 {
  	uint8 byte;
 
@@ -338,27 +300,27 @@ static uint8 GetPPU_2180 (uint16 Address)
     return (byte);
 }
 
-uint8 (*GetPPU[])(uint16 Address) = {
-	GetPPU_BUS,  GetPPU_BUS,  GetPPU_BUS,  GetPPU_BUS,  GetPPU_BUS1, GetPPU_BUS1, GetPPU_BUS1, GetPPU_BUS,
-	GetPPU_BUS1, GetPPU_BUS1, GetPPU_BUS1, GetPPU_BUS,  GetPPU_BUS,  GetPPU_BUS,  GetPPU_BUS,  GetPPU_BUS,
-	GetPPU_BUS,  GetPPU_BUS,  GetPPU_BUS,  GetPPU_BUS,  GetPPU_BUS1, GetPPU_BUS1, GetPPU_BUS1, GetPPU_BUS,
-	GetPPU_BUS1, GetPPU_BUS1, GetPPU_BUS1, GetPPU_BUS,  GetPPU_BUS,  GetPPU_BUS,  GetPPU_BUS,  GetPPU_BUS,
-	GetPPU_BUS,  GetPPU_BUS,  GetPPU_BUS,  GetPPU_BUS,  GetPPU_BUS1, GetPPU_BUS1, GetPPU_BUS1, GetPPU_BUS,
-	GetPPU_BUS1, GetPPU_BUS1, GetPPU_BUS1, GetPPU_BUS,  GetPPU_BUS,  GetPPU_BUS,  GetPPU_BUS,  GetPPU_BUS,
-	GetPPU_BUS,  GetPPU_BUS,  GetPPU_BUS,  GetPPU_BUS,  GetPPU_213x, GetPPU_213x, GetPPU_213x, GetPPU_2137,
-	GetPPU_2138, GetPPU_2139, GetPPU_213A, GetPPU_213B, GetPPU_213C, GetPPU_213D, GetPPU_213E, GetPPU_213F,
-	GetPPU_APUR, GetPPU_APUR, GetPPU_APUR, GetPPU_APUR, GetPPU_APUR, GetPPU_APUR, GetPPU_APUR, GetPPU_APUR,
-	GetPPU_APUR, GetPPU_APUR, GetPPU_APUR, GetPPU_APUR, GetPPU_APUR, GetPPU_APUR, GetPPU_APUR, GetPPU_APUR,
-	GetPPU_APUR, GetPPU_APUR, GetPPU_APUR, GetPPU_APUR, GetPPU_APUR, GetPPU_APUR, GetPPU_APUR, GetPPU_APUR,
-	GetPPU_APUR, GetPPU_APUR, GetPPU_APUR, GetPPU_APUR, GetPPU_APUR, GetPPU_APUR, GetPPU_APUR, GetPPU_APUR,
-	GetPPU_APUR, GetPPU_APUR, GetPPU_APUR, GetPPU_APUR, GetPPU_APUR, GetPPU_APUR, GetPPU_APUR, GetPPU_APUR,
-	GetPPU_APUR, GetPPU_APUR, GetPPU_APUR, GetPPU_APUR, GetPPU_APUR, GetPPU_APUR, GetPPU_APUR, GetPPU_APUR,
-	GetPPU_APUR, GetPPU_APUR, GetPPU_APUR, GetPPU_APUR, GetPPU_APUR, GetPPU_APUR, GetPPU_APUR, GetPPU_APUR,
-	GetPPU_APUR, GetPPU_APUR, GetPPU_APUR, GetPPU_APUR, GetPPU_APUR, GetPPU_APUR, GetPPU_APUR, GetPPU_APUR,
-	GetPPU_2180, GetPPU_BUS,  GetPPU_BUS,  GetPPU_BUS,  GetPPU_BUS,  GetPPU_BUS,  GetPPU_BUS,  GetPPU_BUS,
-	GetPPU_BUS,  GetPPU_BUS,  GetPPU_BUS,  GetPPU_BUS,  GetPPU_BUS,  GetPPU_BUS,  GetPPU_BUS,  GetPPU_BUS,
-	GetPPU_BUS
-};
+static inline uint8 GetPPU_2140to217F (uint16 Address)
+{
+#ifdef SPCTOOL
+    return ((uint8) _SPCOutP [Address & 3]);
+#else
+	//	CPU.Flags |= DEBUG_MODE_FLAG;
+#ifdef SPC700_SHUTDOWN
+    IAPU.APUExecuting = TRUE;
+    IAPU.WaitCounter++;
+#endif
+#ifdef CPU_SHUTDOWN
+	//		CPU.WaitAddress = CPU.PCAtOpcodeStart;
+#endif
+	if (SNESGameFixes.APU_OutPorts_ReturnValueFix &&
+	    Address >= 0x2140 && Address <= 0x2143 && !CPU.V_Counter)
+	{
+		return (uint8)((Address & 1) ? ((rand() & 0xff00) >> 8) : (rand() & 0xff));
+	}
+	return (APU.OutPorts [Address & 3]);
+#endif // SPCTOOL
+}
 
 uint8 S9xGetPPU (uint16 Address)
 {
@@ -367,7 +329,68 @@ uint8 S9xGetPPU (uint16 Address)
 	if(Address<0x2100)//not a real PPU reg
 		return OpenBus; //treat as unmapped memory returning last byte on the bus
     if (Address <= 0x2190){
-		return GetPPU[Address - 0x2100](Address);
+#define GETPPU_BEGIN(addr) adr##addr:
+#define GETPPU_END(func) return (func);
+
+		static void *GetPPU_AddrTbl[] = {
+			       &&adrBUS,        &&adrBUS,        &&adrBUS,        &&adrBUS,       &&adrBUS1,       &&adrBUS1,       &&adrBUS1,        &&adrBUS,
+			      &&adrBUS1,       &&adrBUS1,       &&adrBUS1,        &&adrBUS,        &&adrBUS,        &&adrBUS,        &&adrBUS,        &&adrBUS,
+			       &&adrBUS,        &&adrBUS,        &&adrBUS,        &&adrBUS,       &&adrBUS1,       &&adrBUS1,       &&adrBUS1,        &&adrBUS,
+			      &&adrBUS1,       &&adrBUS1,       &&adrBUS1,        &&adrBUS,        &&adrBUS,        &&adrBUS,        &&adrBUS,        &&adrBUS,
+			       &&adrBUS,        &&adrBUS,        &&adrBUS,        &&adrBUS,       &&adrBUS1,       &&adrBUS1,       &&adrBUS1,        &&adrBUS,
+			      &&adrBUS1,       &&adrBUS1,       &&adrBUS1,        &&adrBUS,        &&adrBUS,        &&adrBUS,        &&adrBUS,        &&adrBUS,
+			       &&adrBUS,        &&adrBUS,        &&adrBUS,        &&adrBUS,       &&adr2134,       &&adr2135,       &&adr2136,       &&adr2137,
+			      &&adr2138,       &&adr2139,       &&adr213A,       &&adr213B,       &&adr213C,       &&adr213D,       &&adr213E,       &&adr213F,
+			&&adr2140to217F, &&adr2140to217F, &&adr2140to217F, &&adr2140to217F, &&adr2140to217F, &&adr2140to217F, &&adr2140to217F, &&adr2140to217F,
+			&&adr2140to217F, &&adr2140to217F, &&adr2140to217F, &&adr2140to217F, &&adr2140to217F, &&adr2140to217F, &&adr2140to217F, &&adr2140to217F,
+			&&adr2140to217F, &&adr2140to217F, &&adr2140to217F, &&adr2140to217F, &&adr2140to217F, &&adr2140to217F, &&adr2140to217F, &&adr2140to217F,
+			&&adr2140to217F, &&adr2140to217F, &&adr2140to217F, &&adr2140to217F, &&adr2140to217F, &&adr2140to217F, &&adr2140to217F, &&adr2140to217F,
+			&&adr2140to217F, &&adr2140to217F, &&adr2140to217F, &&adr2140to217F, &&adr2140to217F, &&adr2140to217F, &&adr2140to217F, &&adr2140to217F,
+			&&adr2140to217F, &&adr2140to217F, &&adr2140to217F, &&adr2140to217F, &&adr2140to217F, &&adr2140to217F, &&adr2140to217F, &&adr2140to217F,
+			&&adr2140to217F, &&adr2140to217F, &&adr2140to217F, &&adr2140to217F, &&adr2140to217F, &&adr2140to217F, &&adr2140to217F, &&adr2140to217F,
+			&&adr2140to217F, &&adr2140to217F, &&adr2140to217F, &&adr2140to217F, &&adr2140to217F, &&adr2140to217F, &&adr2140to217F, &&adr2140to217F,
+			      &&adr2180,        &&adrBUS,        &&adrBUS,        &&adrBUS,        &&adrBUS,        &&adrBUS,        &&adrBUS,        &&adrBUS,
+			       &&adrBUS,        &&adrBUS,        &&adrBUS,        &&adrBUS,        &&adrBUS,        &&adrBUS,        &&adrBUS,        &&adrBUS,
+			       &&adrBUS
+		};
+
+		goto *GetPPU_AddrTbl[Address - 0x2100];
+
+		GETPPU_BEGIN(BUS)
+			GETPPU_END(GetPPU_BUS());
+		GETPPU_BEGIN(BUS1)
+			GETPPU_END(GetPPU_BUS1());
+
+		GETPPU_BEGIN(2134)
+			GETPPU_END(GetPPU_2134());
+		GETPPU_BEGIN(2135)
+			GETPPU_END(GetPPU_2135());
+		GETPPU_BEGIN(2136)
+			GETPPU_END(GetPPU_2136());
+		GETPPU_BEGIN(2137)
+			GETPPU_END(GetPPU_2137());
+		GETPPU_BEGIN(2138)
+			GETPPU_END(GetPPU_2138());
+		GETPPU_BEGIN(2139)
+			GETPPU_END(GetPPU_2139());
+		GETPPU_BEGIN(213A)
+			GETPPU_END(GetPPU_213A());
+		GETPPU_BEGIN(213B)
+			GETPPU_END(GetPPU_213B());
+		GETPPU_BEGIN(213C)
+			GETPPU_END(GetPPU_213C());
+		GETPPU_BEGIN(213D)
+			GETPPU_END(GetPPU_213D());
+		GETPPU_BEGIN(213E)
+			GETPPU_END(GetPPU_213E());
+		GETPPU_BEGIN(213F)
+			GETPPU_END(GetPPU_213F());
+
+		GETPPU_BEGIN(2140to217F)
+			GETPPU_END(GetPPU_2140to217F(Address));
+
+		GETPPU_BEGIN(2180)
+			GETPPU_END(GetPPU_2180());
     } else {
 		if (Settings.SA1)
 		    return (S9xGetSA1 (Address));
@@ -391,7 +414,7 @@ uint8 S9xGetPPU (uint16 Address)
 				if (Settings.SRTC)
 				    return (S9xGetSRTC (Address));
 				/*FALL*/
-				    
+
 		    default:
 #ifdef DEBUGGER
 		        missing.unknownppu_read = Address;
@@ -404,7 +427,7 @@ uint8 S9xGetPPU (uint16 Address)
 				return OpenBus;
 		    }
 		}
-	
+
 		if (!Settings.SuperFX)
 				return OpenBus;
 #ifdef ZSNES_FX
@@ -416,7 +439,7 @@ uint8 S9xGetPPU (uint16 Address)
 #ifdef CPU_SHUTDOWN
 		if (Address == 0x3030)
 		    CPU.WaitAddress = CPU.PCAtOpcodeStart;
-#endif	
+#endif
 		if (Address == 0x3031)
 		    CLEAR_IRQ_SOURCE (GSU_IRQ_SOURCE);
 #else
