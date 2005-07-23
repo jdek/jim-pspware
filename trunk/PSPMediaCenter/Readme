@@ -1,6 +1,11 @@
 PSPMediaCenter by John_K & adresd
 =================================
 
+v0.90 - July 23 2003
+-------------------------------------------------------------
+Added usb mass storage mode.
+from Tune selection use the square button to toggle it.
+
 v0.88 - July 15 2003
 -------------------------------------------------------------
 Disabled surround mode in mikmod, some people complaining about headphone effect.
