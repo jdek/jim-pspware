@@ -534,7 +534,7 @@ int getFilePath(char *out, int ext_mask)
 		}
 
 		else if (original_ext_mask == 0) {
-			mh_print (17, 262, (unsigned char *)"Press SELECT when you're in the desired destination dir", RGB (155,155,165));
+			mh_print (17, 262, (unsigned char *)"Press SELECT when you're in the desired destination directory", RGB (155,155,165));
 		}
 
 		pgScreenFlipV ();
