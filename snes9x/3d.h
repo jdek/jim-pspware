@@ -151,6 +151,8 @@ typedef struct
                                  // a display list instead. (See comment above)
 
     uint32       list [262144] __attribute__((aligned(16)));
+
+    int          line_size;      // 512
 } SceGUData;
 
 extern SceGUData SceGU;

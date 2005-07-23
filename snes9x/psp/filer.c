@@ -767,7 +767,7 @@ bool8 delete_file_confirm (const char *path, const char *name)
 	strcat (dialog_text_all, "\n"                                            );
 	
 	// ダイアログ表示
-	dialog_y += 12;
+	dialog_y += 8;
 	
 	// 表示位置が下すぎたら上に表示
 	if (dialog_y > 185) dialog_y -= 100;

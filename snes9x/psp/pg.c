@@ -60,22 +60,21 @@ unsigned char *pgGetVramAddr(unsigned long x,unsigned long y)
 void pgInit(void)
 {
 	if (PSP_Settings.bUseGUBlit && (! bGUIMode)) {
-		sceGuInit();
-
 		S9xSceGUInit2 ();
 
-		pg_vramtop = (char *) (0x40000000 | sceGeEdramGetAddr());
-		sceDisplaySetFrameBuf(pg_vramtop,LINESIZE,1,1);
+		pg_vramtop = (char *) (0x40000000 | sceGeEdramGetAddr ());
+		
+		sceDisplaySetMode     (0, SCREEN_WIDTH, SCREEN_HEIGHT);
+		sceDisplaySetFrameBuf (pg_vramtop, LINESIZE, 1 ,1);
 	} else {
 		S9xSceGUDeinit ();
-	}
-	
-	sceDisplaySetMode(0,SCREEN_WIDTH,SCREEN_HEIGHT);
-	pgScreenFrame(0,0);
-
-	if ((! PSP_Settings.bUseGUBlit) || bGUIMode)
+		
 		pg_vramtop = (char *)0x4000000;
 
+		sceDisplaySetMode (0, SCREEN_WIDTH, SCREEN_HEIGHT);
+	}
+	
+	pgScreenFrame (0, 0);
 }
 
 
@@ -490,9 +489,10 @@ struct Vertex
 	short x, y, z;
 };
 
+// Deprecated
 void pgScreenSync(void)
 {
-	sceGuSync(0,0);
+	sceGuSync (0,0);
 }
 
 void pgScreenFlip()
@@ -501,9 +501,6 @@ void pgScreenFlip()
 		pg_showframe=(pg_showframe?0:1);
 		pg_drawframe=(pg_drawframe?0:1);
 		sceDisplaySetFrameBuf((char *)pg_vramtop+(pg_showframe?FRAMESIZE:0),LINESIZE,PIXELSIZE,0);
-	} else {
-		sceGuSync(0,0);
-		sceGuSwapBuffers();
 	}
 }
 
@@ -513,10 +510,6 @@ void pgScreenFlipV(void)
 	if ((! PSP_Settings.bUseGUBlit) || bGUIMode) {
 		pgWaitV();
 		pgScreenFlip();
-	} else {
-		sceGuSync(0,0);
-		pgWaitV();
-		sceGuSwapBuffers();
 	}
 }
 

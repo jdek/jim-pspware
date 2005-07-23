@@ -3,6 +3,7 @@ Andon (22/Jul/05)
  CHANGES
 ---------
  + Translated the Key Config menu to English.
+ + Cleaned up the code in psp.cpp
 
 
  ADDITIONS
@@ -20,7 +21,6 @@ Andon (22/Jul/05)
    format.
   >> If this happens to you, exit the emu-
      lator completely and load it again.
- + Suspending via the power switch is broken.
  
 
 
