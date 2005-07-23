@@ -3,6 +3,14 @@
 int ExitCallback (void)
 {
 	S9xSetSoundMute (TRUE);
+
+	if (g_thread !=-1) {
+		Settings.ThreadSound = FALSE;
+		sceKernelWaitThreadEnd (g_thread, NULL);
+		sceKernelDeleteThread  (g_thread);
+	}
+
+	S9xCloseSoundDevice ();
 	
 	g_bLoop  = false;
 	g_bSleep = true;
@@ -13,14 +21,6 @@ int ExitCallback (void)
 		save_config     ();
 		Memory.SaveSRAM (S9xGetFilename ("srm"));
 	}
-
-	if (g_thread !=-1) {
-		Settings.ThreadSound = FALSE;
-		sceKernelWaitThreadEnd (g_thread, NULL);
-		sceKernelDeleteThread  (g_thread);
-	}
-
-	S9xCloseSoundDevice ();
 
 	scePowerSetClockFrequency (222, 222, 111);
 

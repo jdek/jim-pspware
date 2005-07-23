@@ -270,12 +270,21 @@ int getFilePath(char *out, int ext_mask)
 					sel=0;
 				}
 			}else{
+				// 0 == Directory Selection
+				if (original_ext_mask == 0) {
+					continue;
+				}
+
+				// Non-0xFFFFFFFF = File Load
 				if (original_ext_mask != 0xffffffff) {
 					strcpy(out, path);
 					strcat(out, files[sel].d_name);
 					strcpy(LastPath,path);
 					return 1;
-				} else {
+				}
+				
+				// 0xFFFFFFFF = File Manager
+				else {
 					return 1;
 				}
 			}
@@ -299,6 +308,19 @@ int getFilePath(char *out, int ext_mask)
 				sel+=20;
 //			sel+=21;
 //			top=sel;
+		}
+
+		else if (new_pad & PSP_CTRL_SELECT) {
+			// Select = Use This Directory, for directory selection.
+			if (original_ext_mask == 0x00000000) {
+				strcpy (out, path);
+				return 1;
+			}
+			
+			if (ext_mask & getExtId (files [sel].d_name)) {
+				bool8 copy_file (const char *path, const char *name);
+				copy_file (path, files [sel].d_name);
+			}
 		}
 
 		else if (new_pad & PSP_CTRL_START) {
@@ -509,6 +531,10 @@ int getFilePath(char *out, int ext_mask)
 			mh_print (300, 14, (unsigned char *)szFilterName, RGB (155,155,165));
 
 			mh_print (17, 262, (unsigned char *)"Press START to change the File Filter", RGB (155,155,165));
+		}
+
+		else if (original_ext_mask == 0) {
+			mh_print (17, 262, (unsigned char *)"Press SELECT when you're in the desired destination dir", RGB (155,155,165));
 		}
 
 		pgScreenFlipV ();
@@ -767,10 +793,10 @@ bool8 delete_file_confirm (const char *path, const char *name)
 	strcat (dialog_text_all, "\n"                                            );
 	
 	// ダイアログ表示
-	dialog_y += 8;
+	dialog_y += 12;
 	
 	// 表示位置が下すぎたら上に表示
-	if (dialog_y > 185) dialog_y -= 100;
+	if (dialog_y > 185) dialog_y -= 90;
 	message_dialog (30, dialog_y, title_string, dialog_text_all);
 	
 	// 無限ループ気持ち悪い
@@ -797,7 +823,308 @@ void delete_file (const char *path)
 	sceIoRemove (path);
 }
 
-bool8 copy_file (const char *file)
+bool8 copy_file (const char *path, const char *name)
 {
+	char* file_data      = NULL;
+	FILE* file_in        = NULL;
+	FILE* file_out       = NULL;
+	int   file_size      = 0;
+	int   block_size     = 0;
+	int   num_blocks     = 0;
+	int   bytes_copied   = 0;
+	int   bytes_to_write = 0;
+
+	char  tmp_str         [256];
+	int   tmp_ret;
 	
+	int   loop_cnt;
+	
+	char  file_path       [_MAX_PATH];
+	char  file_name       [_MAX_PATH];
+	char  dest_path       [_MAX_PATH];
+	
+	char  title_string    [D_text_MAX];
+	char  dialog_text_all [D_text_all_MAX];
+
+	int   file_op   = 0; // 0 = Copy,  1 = Move,                 2+ = A bug
+	int   file_dest = 0; // 0 = Local, 1 = Another Memory Stick, 2+ = A bug
+
+	strcpy (file_name, name);
+	strcpy (file_path, path);
+	strcat (file_path, file_name);
+
+	*dest_path = '\0';
+	
+	strcpy (title_string,    "            　【　　File Copy 　　】　  ");
+
+#define DIALOG_HEADER()                                                                        \
+	strcpy (dialog_text_all, name                                                       ); \
+	strcat (dialog_text_all, "\n\n"                                                     );
+
+#define DIALOG_EPILOG()                                                                         \
+	strcat (dialog_text_all, "\n"                                                        ); \
+	strcat (dialog_text_all, "  Another Directory □ ／ Another Memory Stick ○  \n"); \
+	strcat (dialog_text_all, "\n"                                                        ); \
+	strcat (dialog_text_all, "   △：Toggle between Move and Copy  ×：Cancel\n\n"   );
+
+	DIALOG_HEADER ();
+
+	strcat (dialog_text_all, "     Where would you like to copy this file to?\n"         );
+
+	DIALOG_EPILOG ();
+
+	dialog_y += 12;
+	
+	if (dialog_y > 175)
+		dialog_y -= 115;
+	
+	message_dialog (30, dialog_y, title_string, dialog_text_all);
+	
+	// 無限ループ気持ち悪い
+	while (1) {
+		readpad ();
+
+		// Toggle between copy/move
+		if (new_pad & PSP_CTRL_TRIANGLE) {
+			file_op = ! file_op;
+			
+			DIALOG_HEADER ();
+			
+			if (file_op == 0) {
+				strcpy (title_string,    "            　【　　File Copy 　　】　  ");
+				strcat (dialog_text_all, "     Where would you like to copy this file to?\n");
+			} else {
+				strcpy (title_string,    "            　【　　File Move 　　】　  ");
+				strcat (dialog_text_all, "     Where would you like to move this file to?\n");
+			}
+
+			DIALOG_EPILOG ();
+
+			message_dialog (30, dialog_y, title_string, dialog_text_all);
+			
+			continue;
+		}
+
+		// The user has chosen to copy/move the file to another memory stick
+		if (new_pad & PSP_CTRL_CIRCLE) {
+			file_dest = 1;
+			break;
+		}
+
+		// The user has chosen to copy/move the file to another directory
+		else if (new_pad & PSP_CTRL_SQUARE) {
+			file_dest = 0;
+			break;
+		}
+
+		// The user has chosen to cancel the copy/move
+		else if (new_pad & PSP_CTRL_CROSS) {
+			return FALSE;
+		}
+	}
+
+
+	// Need to make sure the front and back buffers both say the same thing... 
+	message_dialog (30, dialog_y, title_string, dialog_text_all);
+
+	file_in = fopen (file_path, "rb");
+
+	if (! file_in) // Couldn't open file
+		goto COPY_FILE_BAIL_OUT;
+
+	fseek (file_in, 0, SEEK_END);
+	file_size = ftell (file_in);
+
+	fclose (file_in);
+
+	file_data = (char *) malloc (file_size);
+
+	block_size = file_size;
+
+	if (! file_data) { // Out of Memory
+		// WARNING: This operation will require swapping the Memory
+		//          Sticks multiple times...
+		while (file_data == NULL && block_size > 0) {
+			if (block_size < (1024 * 128)) {
+				block_size = 0;
+				break;
+			}
+
+			block_size -= (1024 * 128); // Try allocating smaller blocks
+			                            // 128 Kb at a time.
+			file_data = (char *) malloc (block_size);
+		}
+
+		// Jeeze, the heap is really screwed up, we couldn't even spare 128-256 Kb
+		if (block_size == 0)
+			goto COPY_FILE_BAIL_OUT;
+
+		num_blocks = (file_size / block_size);
+
+		// If anything remains, add an additional block
+		if (file_size % block_size)
+			num_blocks++;
+
+		// Copy/Move to another Memory Stick
+		if (file_dest == 1) {
+			sprintf (tmp_str, "    Please note, this operation will require %d Memory Stick swaps\n"
+					  " (Forced to read/write in %d Kb blocks due to limited Heap memory)\n"
+					  "\n"
+					  "                Continue □ ／ Abort ○\n\n",
+				num_blocks,
+				  (block_size / 1024));
+
+			message_dialog (50, 125, "       　【　　Multiple Swap Confirmation　　】　  ",
+					          tmp_str);
+
+			// Need the front/back buffers to say the same thing.
+			message_dialog (50, 125, "       　【　　Multiple Swap Confirmation　　】　  ",
+					          tmp_str);
+
+			while (1) {
+				readpad ();
+
+				if (new_pad & PSP_CTRL_SQUARE)
+					break;
+
+				else if (new_pad & PSP_CTRL_CIRCLE) {
+					goto COPY_FILE_BAIL_OUT;
+				}
+			}
+		}
+	}
+	
+	for (bytes_copied = 0; bytes_copied < file_size; bytes_copied += block_size)
+	{
+		// Keep these open so the user can't fsck themself and overwrite
+		// the same file...
+		if (file_in != NULL)
+			fclose (file_in);
+		if (file_out != NULL)
+			fclose (file_out);
+	
+		file_in = fopen (file_path, "rb");
+
+		if (file_in != NULL) {
+			                 fseek  (file_in, bytes_copied, SEEK_SET);
+			bytes_to_write = fread  ((void *)file_data, 1, block_size, file_in);
+		} else {
+			// Unable to read source file... Retry? Cancel?
+			goto COPY_FILE_BAIL_OUT;
+		}
+
+		if (file_dest == 1) {
+			message_dialog (125, 115, "     　【　　Swap Memory Sticks 　　】　  ",
+					          " Please insert the destination Memory Stick \n"
+						  " and press □ to continue.\n\n");
+
+			while (1) {
+				readpad ();
+
+				if (new_pad & PSP_CTRL_SQUARE)
+					break;
+			}
+		}
+
+		// Have the user select the destination directory
+		if (! *dest_path) {
+			tmp_ret = getFilePath (dest_path, 0x00000000);
+
+			if (! tmp_ret) {
+				// User cancelled, bail out. Tell them to insert the original
+				// memory stick if applicable.
+				goto COPY_FILE_BAIL_OUT;
+			}
+
+			strcat (dest_path, file_name);
+		}
+
+		// Write this block
+
+		file_out = fopen (dest_path, "wb");
+
+		if (file_out != NULL) {
+			fseek  (file_out, bytes_copied, SEEK_SET);
+			fwrite ((void *)file_data, bytes_to_write, 1, file_out);
+		} else {
+			message_dialog (125, 115, dest_path,
+					          " Could not write to file... \n"
+						  " Press □ to continue.\n\n");
+			while (1) {
+				readpad ();
+
+				if (new_pad & PSP_CTRL_SQUARE)
+					break;
+			}
+
+			// Unable to write destination file... Retry? Cancel?
+			goto COPY_FILE_BAIL_OUT;
+		}
+
+		if ((block_size != file_size) && ((bytes_copied + block_size) < file_size)) {
+
+			if (file_dest == 1) {
+				message_dialog (125, 115, "     　【　　Swap Memory Sticks 　　】　  ",
+							  " Please insert the source Memory Stick \n"
+							  " and press □ to continue.\n\n");
+
+				while (1) {
+					readpad ();
+
+					if (new_pad & PSP_CTRL_SQUARE)
+						break;
+				}
+			}
+
+			// Continue Loop
+			continue;
+		}
+
+		break;
+	}
+
+	if (file_in != NULL)
+		fclose (file_in);
+	if (file_out != NULL)
+		fclose (file_out);
+
+	if (file_data != NULL)
+		free (file_data);
+
+	// Delete the original file if the selected operation was a move.
+	if (file_op == 1) {
+		// Make sure we're deleting from the ORIGINAL Memory Stick if we moved the file...
+		if (file_dest == 1) {
+			message_dialog (125, 115, "     　【　　Swap Memory Sticks 　　】　  ",
+						  " Please insert the source Memory Stick \n"
+						  " and press □ to continue.\n\n");
+
+			while (1) {
+				readpad ();
+
+				if (new_pad & PSP_CTRL_SQUARE)
+					break;
+			}
+		}
+		
+		delete_file (file_path);
+	}
+
+	return TRUE;
+
+COPY_FILE_BAIL_OUT:
+
+	if (file_in != NULL)
+		fclose (file_in);
+	if (file_out != NULL)
+		fclose (file_out);
+
+	if (file_data != NULL)
+		free (file_data);
+
+	// An error occured while trying to copy / move this file...
+
+	return FALSE;
+#undef DIALOG_HEADER
+#undef DIALOG_EPILOG
 }
