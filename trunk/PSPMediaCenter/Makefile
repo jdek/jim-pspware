@@ -6,7 +6,7 @@ TARGET = pspmc
 # EBOOT.PBP Settings, to save hand editing
 PSP_EBOOT_SFO = media/PARAM.SFO
 PSP_EBOOT_ICON = media/pspdev.png
-PSP_EBOOT_TITLE = "PSP Media Center v0.87"
+PSP_EBOOT_TITLE = "PSP Media Center v0.90"
 PSP_MSDIR = /cygdrive/I/PSP/GAME/PSPMC
 
 # Work thru the codecs, and sort out settings
@@ -17,6 +17,8 @@ OBJS := pspmc.o $(PSP_OBJS)
 LIBS = $(PLAYER_LIBS) -lpspaudiolib  -lpspaudio -lpsplibc -lpsphprm
 # Take cflags and ldflags from codec script and add them in
 CFLAGS  := -G0 $(PSP_CFLAGS) $(CFLAGS)
+CXXFLAGS := $(CFLAGS) -fno-exceptions -fno-rtti
+ASFLAGS := $(CFLAGS)
 LDFLAGS := $(PSP_LDFLAGS) -Lnewlib-fix
 EXTRA_TARGETS := deps header 
 

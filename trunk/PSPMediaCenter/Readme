@@ -1,6 +1,10 @@
 PSPMediaCenter by John_K & adresd
 =================================
 
+v0.88 - July 15 2003
+-------------------------------------------------------------
+Disabled surround mode in mikmod, some people complaining about headphone effect.
+
 v0.87 - July 14 2003
 -------------------------------------------------------------
 Fixed a bug with skip tune, introduced with last version.

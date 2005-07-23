@@ -24,6 +24,8 @@
 /* Define printf, just to make typing easier */
 #define printf  pspDebugScreenPrintf
 
+extern void usb_toggle(void);
+
 // Common externs
 extern unsigned char banner[];
 extern codecStubs stubs[100];
@@ -82,7 +84,7 @@ static void playmedia(char *rootpath, char *modname)
     decoder->play();
 
     pspDebugScreenSetXY(0, 32);
-    printf("X = Pause/Resume.  START = Tune Select.  SELECT = Exit.\n");
+    printf("X = Pause/Resume.  START = Tune Select\n");
     pspDebugScreenSetXY(0, 26);
     printf("Playing\n\n");
 
@@ -124,8 +126,6 @@ static void playmedia(char *rootpath, char *modname)
           decoder->pause();
         if (pad.Buttons & PSP_CTRL_START)
           finished = 1;
-        if (pad.Buttons & PSP_CTRL_SELECT)
-          finished = 2;
         buttonsold = pad.Buttons;
       }
       if (remoteButtons != remoteButtonsOld && !(remoteButtons & PSP_HPRM_HOLD)) {
@@ -159,10 +159,6 @@ static void playmedia(char *rootpath, char *modname)
     }
     decoder->stop();
     decoder->end();
-    if (finished == 2) {
-      pspAudioEnd();
-      sceKernelExitGame();
-    }
   }
 }
 
@@ -291,6 +287,9 @@ static int selectmedia()
 
   pspDebugScreenSetXY(0, 32);
   printf("Up/Down = Move cursor.  X = Select.  SELECT = Exit.\n");
+#ifdef USB_ENABLED
+  printf("SQUARE = Toggle USB.");
+#endif
 
   highlightold = -1;
   while (finished == 0) {	// Draw the menu firstly
@@ -344,6 +343,10 @@ static int selectmedia()
           highlight++;
       if (pad.Buttons & PSP_CTRL_TRIANGLE)
         loopmode = !loopmode;
+#ifdef USB_ENABLED
+      if (pad.Buttons & PSP_CTRL_SQUARE)
+        usb_toggle();
+#endif
       if (pad.Buttons & PSP_CTRL_CROSS)
         return highlight;
       if (pad.Buttons & PSP_CTRL_SELECT)
