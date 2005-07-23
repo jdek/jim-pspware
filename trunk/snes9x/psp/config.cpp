@@ -87,6 +87,7 @@
   Nintendo Co., Limited and its subsidiary companies.
 *******************************************************************************/
 
+#if 0
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
@@ -904,3 +905,4 @@ void* memmove( void* dest, const void* src, size_t n )
 	return dest;
 }
 }
+#endif

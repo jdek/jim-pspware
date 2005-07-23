@@ -107,8 +107,6 @@
 #include "spc700.h"
 #include "spc7110.h"
 
-//#include "font.c"
-// add by y
 #include "pg.h"
 #include "filer.h"
 
@@ -119,8 +117,33 @@
 #define RELEASE
 
 /* Define the module info section */
-PSP_MODULE_INFO("uo_Snes9x for PSP", 0x1000, 1, 1); 
-PSP_MAIN_THREAD_ATTR(0);
+PSP_MODULE_INFO      ("uo_Snes9x for PSP", 0x1000, 1, 1);
+PSP_MAIN_THREAD_ATTR (0);
+
+// Things you should know, by Andon
+// ---
+//
+// + extern "C" does NOT mean the "C Language" as was once commented.
+//  >> It affects the linkage of the function, in short it means that
+//     the function will be usable by code compiled in C. It can also
+//     be used to tell C++ code to link to a specific function looking
+//     for the C variant.
+//
+// + You do NOT need to use extern "C" { SomeFunction } for all declarations.
+//  >> The shorter version extern "C" SomeFunction (...) is fine.
+//
+// + A string declared using "..." always has a NULL terminator added
+//   automatically.
+//  >> There is no need for "...\0" when passing such a string to a
+//     standard string function.
+//
+// + When possible, try to use '\0' when assigning a NULL terminator.
+//  >> It makes it easier to tell the destination is a string.
+//
+// + I recently cleaned up the code so that I could read it faster...
+//  >> If you want to diff this code vs. y's emulator port, I'd strongly
+//     suggest you turn on the option to ignore whitespace.
+//
 
 extern "C" {
 #include "zlib.h"
@@ -146,51 +169,83 @@ bool8 bGUIMode = FALSE;
 static struct timeval	s_tvStart;
 static int				s_iFrame;
 static int				s_iFramebufferState = 0; // 0 = clean, 1 = front/back buffer dirty, 2 = front & back dirty
-// add by y
-char					PBPPath[_MAX_PATH];
-char					RomPath[_MAX_PATH];
+
+char					PBPPath [_MAX_PATH];
+char					RomPath [_MAX_PATH];
 #define ANALOG_NONE		0
 #define ANALOG_LEFT		1
-#define ANALOG_RIGHT	2
+#define ANALOG_RIGHT		2
 #define ANALOG_UP		3
 #define ANALOG_DOWN		4
 static int 				s_iAnalog = ANALOG_NONE;
 
-extern "C" { void save_config(void); };
+extern "C" void save_config (void);
+
 void refresh_state_list (void);
+void clear_execute_bit  (const char* filename);
+
 
 void clear_framebuffer    (void);
 void S9xMarkScreenDirty   (void);
 void S9xMarkScreenDirtyEx (void);
 
 extern "C" void init_blit_backend (void);
-extern "C" void init_pg (void);
+extern "C" void init_pg           (void);
 
-extern "C" void draw_menu (void);
+extern "C" void draw_menu         (void);
 
 PSPSETTINGS PSP_Settings;
+
+#define PSP_CFG_VERSION "uo_Snes9x for PSP Ver.0.02pd1"
+
+typedef struct
+{
+	char		LastPath [_MAX_PATH];
+	PSPSETTINGS	Default;
+} GLOBALSETTINGS;
+
+GLOBALSETTINGS Global_Settings;
+
+
+enum {
+	PSP_CLOCK_222 = 0, // 222 MHz CPU, 111 MHz Bus
+	PSP_CLOCK_266 = 1, // 266 MHz CPU, 133 MHz Bus
+	PSP_CLOCK_333 = 2, // 333 MHz CPU, 166 MHz Bus
+	
+	NUM_PSP_CLOCK_SPEEDS,
+};
+
+extern "C" void set_clock_speed (int speed = PSP_Settings.iPSP_ClockUp);
+
+enum {
+	PSP_SOUND_RATE_11 = 0, // 11 KHz
+	PSP_SOUND_RATE_22 = 1, // 22 KHz
+	PSP_SOUND_RATE_44 = 2, // 44 KHz
+
+	NUM_PSP_SOUND_RATES,
+};
+
+extern "C" void set_playback_rate (int rate = PSP_Settings.iSoundRate);
+
 
 #define UPPER_THRESHOLD		0xcf
 #define LOWER_THRESHOLD		0x2f
 #define PSP_CYCLE_DIV_MAX	30
-volatile bool8			g_bSleep = false;
-volatile bool8			g_bROMLoaded = false;
+volatile bool8			g_bSleep                = false;
+volatile bool8			g_bROMLoaded            = false;
 
 //
-volatile bool8			g_bLoop = true;
-int						g_thread = -1;
-int				g_iMainMenuSel = 0;
-char				g_szMainMenuMsg[256];
-static uint8			SoundBuffer[MAX_BUFFER_SIZE];
-volatile bool8			g_bShowProfilerInfo = false;
+volatile bool8			g_bLoop                 = true;
+int				g_thread                = -1;
+int				g_iMainMenuSel          = 0;
+char				g_szMainMenuMsg [256];
+static uint8			SoundBuffer     [MAX_BUFFER_SIZE];
+volatile bool8			g_bShowProfilerInfo     = false;
 static bool8			s_bShowProfilerInfo_old = false;
 
 
-//#define FRAMESIZE				0x44000			//in byte
-
-#define MAX_SOUND_SAMPLE		128
-#define SOUND_SAMPLE			1024
-//#define SOUND_SAMPLE			2048
+#define SOUND_SAMPLE	1024
+#define MAXVOLUME	0x8000
 
 #define FIXED_POINT				0x10000
 #define FIXED_POINT_SHIFT		16
@@ -221,95 +276,31 @@ static bool8			s_bShowProfilerInfo_old = false;
 #define ELSE_DEBUG_CODE   END_RELEASE_CODE else BEGIN_DEBUG_CODE
 #define ELSE_RELEASE_CODE END_DEBUG_CODE   else BEGIN_RELEASE_CODE
 
-static volatile bool8 block_signal = FALSE;
-static volatile bool8 block_generate_sound = FALSE;
-static volatile bool8 pending_signal = FALSE;
+const char *S9xGetSRAMFilename (void);
 
-void S9xCloseSoundDevice();
+void S9xCloseSoundDevice (void);
 
 #include "psp2.cpp"
 
 extern "C" {
 void *S9xProcessSound (void *);
 
-/*	-->pg by y
-#define	PIXELSIZE	1				//in short
-#define	LINESIZE	512				//in short
-#define CMAX_X 60
-#define CMAX_Y 38
-
-char *pg_vramtop=(char *)0x04000000;
-
-char *pgGetVramAddr(unsigned long x,unsigned long y)
+int format_int (char* buf, int value)
 {
-	return pg_vramtop+x*PIXELSIZE*2+y*LINESIZE*2+0x40000000;
-}
-
-void pgPutChar(unsigned long x,unsigned long y,unsigned long color,unsigned long bgcolor,unsigned char ch,char drawfg,char drawbg,char mag)
-{
-	unsigned char *vptr0;		//pointer to vram
-	unsigned char *vptr;		//pointer to vram
-	const unsigned char *cfont;		//pointer to font
-	unsigned long cx,cy;
-	unsigned long b;
-	char mx,my;
-
-	if (ch>255) return;
-	cfont=font+ch*8;
-	vptr0=(unsigned char*)pgGetVramAddr(x,y);
-	for (cy=0; cy<8; cy++) {
-		for (my=0; my<mag; my++) {
-			vptr=vptr0;
-			b=0x80;
-			for (cx=0; cx<8; cx++) {
-				for (mx=0; mx<mag; mx++) {
-					if ((*cfont&b)!=0) {
-						if (drawfg) *(unsigned short *)vptr=color;
-						if (drawfg) *(unsigned short *)(vptr + FRAMESIZE)=color;
-					} else {
-//						if (drawbg) *(unsigned short *)vptr=bgcolor;
-						*(unsigned short *)vptr=bgcolor;
-						*(unsigned short *)(vptr + FRAMESIZE)=bgcolor;
-					}
-					vptr+=PIXELSIZE*2;
-				}
-				b=b>>1;
-			}
-			vptr0+=LINESIZE*2;
-		}
-		cfont++;
-	}
-}
-
-void pgPrint(unsigned long x,unsigned long y,unsigned long color,const char *str)
-{
-	while (*str!=0 && x<CMAX_X && y<CMAX_Y) {
-		pgPutChar(x*8,y*8,color,0,*str,1,0,1);
-		str++;
-		x++;
-		if (x>=CMAX_X) {
-			x=0;
-			y++;
-		}
-	}
-}
-*/
-
-int format_int( char* buf, int value )
-{
-	char*	org;
-	int		div;
-	int		val;
-	bool	bFirst;
-	int		i;
+	char* org;
+	int   div;
+	int   val;
+	bool  bFirst;
+	int   i;
 
 	org    = buf;
 	bFirst = true;
 	div    = 1000000000;
-	for ( i = 0; i < 10; i++ ){
+	
+	for (i = 0; i < 10; i++) {
 		val = (unsigned)value / div;
 
-		if ( !bFirst || val ){
+		if ((! bFirst) || val ) {
 			*buf++ = val + '0';
 			bFirst = false;
 		}
@@ -318,40 +309,42 @@ int format_int( char* buf, int value )
 		div   /= 10;
 	}
 
-	if ( bFirst ){
+	if (bFirst) {
 		*buf++ = '0';
 	}
+	
 	*buf = 0;
 
-	return strlen( org );
+	return strlen (org);
 }
 
-// mod by y
-void debug_log( const char* message )
+void debug_log (const char* message)
 {
 	BEGIN_DEBUG_CODE
 	static int	sy = 1;
 	
-	if ( sy >= CMAX_Y ) {
-		pgFillBoxWF(256, 0, 479, 271, 0);
+	if (sy >= CMAX_Y) {
+		pgFillBoxWF (256, 0, 479, 271, 0);
 		sy = 1;
 	}
-	pgPrintWF( SNES_WIDTH / 8, sy, 0xffff, message );
+	
+	pgPrintWF (SNES_WIDTH / 8, sy, 0xffff, message);
 	sy++;
 
-	pgPrint( SNES_WIDTH / 8, sy, 0xffff, message );
+	pgPrint(SNES_WIDTH / 8, sy, 0xffff, message);
 	sy++;
 
-	if ( sy >= CMAX_Y ){
+	if (sy >= CMAX_Y){
 		int 	x, y;
 		uint16*	dest;
 
-		dest = (uint16*)pgGetVramAddr( SNES_WIDTH, 0 );
+		dest = (uint16 *)pgGetVramAddr (SNES_WIDTH, 0);
 
-		for ( y = 0; y < SCREEN_HEIGHT; y++ ){
-			for ( x = 0; x < (SCREEN_WIDTH - SNES_WIDTH); x++ ){
+		for (y = 0; y < SCREEN_HEIGHT; y++) {
+			for (x = 0; x < (SCREEN_WIDTH - SNES_WIDTH); x++) {
 				*dest++ = 0;
 			}
+
 			dest += (512 - (SCREEN_WIDTH - SNES_WIDTH));
 		}
 
@@ -361,103 +354,105 @@ void debug_log( const char* message )
 	END_DEBUG_CODE
 }
 
-void debug_int( const char* message, int value )
+void debug_int (const char* message, int value)
 {
 	BEGIN_DEBUG_CODE
 	
-	strcpy( String, message );
-	format_int( &String[strlen( String )], value );
+	strcpy     (String, message);
+	format_int (&String [strlen (String)], value);
 
-	debug_log( String );
+	debug_log  (String);
 
 	END_DEBUG_CODE
 }
 
-void debug_hex( int value )
+void debug_hex (int value)
 {
 	BEGIN_DEBUG_CODE
 	
-	int		shift;
+	int		shift = 28;
 	int		val;
 	int		i;
 
-	shift = 28;
-	for ( i = 0; i < 8; i++ ){
+	for (i = 0; i < 8; i++){
 		val = (value >> shift) & 0x0f;
-		if ( val < 10 ){
-			String[i] = val + '0';
+		
+		if (val < 10){
+			String [i] = val + '0';
 		} else {
-			String[i] = val - 10 + 'A';
+			String [i] = val - 10 + 'A';
 		}
+		
 		shift -= 4;
 	}
-	String[i] = 0;
+	
+	String [i] = 0;
 
-	debug_log( String );
+	debug_log (String);
 
 	END_DEBUG_CODE
 }
 
 static struct timeval s_analyze;
-void StartAnalyze()
+void StartAnalyze (void)
 {
-	gettimeofday( &s_analyze, 0 );
+	gettimeofday (&s_analyze, 0);
 }
 
-void StopAnalyze()
+void StopAnalyze (void)
 {
 	struct timeval now;
-	int		diff;
+	int            diff;
 
-	gettimeofday( &now, 0 );
+	gettimeofday (&now, 0);
 
 	diff  = (now.tv_sec - s_analyze.tv_sec) * 1000000 + now.tv_usec - s_analyze.tv_usec;
 
-	debug_int( "time:", diff );
+	debug_int ("time:", diff);
 }
 };
 
 //
-// C++ Language
+// C++ Linkage
 //
 #ifndef OPTI
-void JustifierButtons(uint32&)
+void JustifierButtons (uint32&)
 {
 }
 
-bool JustifierOffscreen()
+bool JustifierOffscreen (void)
 {
 	return false;
 }
 #endif // OPTI
 
-void S9xInitCheatData()
+void S9xInitCheatData (void)
 {
 }
 
-void S9xApplyCheat( uint32 which1 )
+void S9xApplyCheat (uint32 which1)
 {
 }
 
-void S9xApplyCheats()
+void S9xApplyCheats (void)
 {
 }
 
-bool8 S9xLoadCheatFile( const char *filename )
+bool8 S9xLoadCheatFile (const char *filename)
 {
 	return FALSE;
 }
 
-void S9xAutoSaveSRAM()
+void S9xAutoSaveSRAM (void)
 {
 //	Memory.SaveSRAM (S9xGetFilename("srm"));
 }
 
-bool8 S9xOpenSoundDevice( int mode, bool8 stereo, int buffer_size )
+bool8 S9xOpenSoundDevice (int mode, bool8 stereo, int buffer_size)
 {
 	so.mute_sound  = TRUE;
-	
-	if ( buffer_size <= 0 ){
+
+	if (buffer_size <= 0) {
 		return FALSE;
 	}
 
@@ -471,7 +466,7 @@ bool8 S9xOpenSoundDevice( int mode, bool8 stereo, int buffer_size )
 
 	// Initialize channel and allocate buffer
 	so.sound_fd = sceAudioChReserve (-1, buffer_size, 0);
-	if ( so.sound_fd < 0 ){
+	if (so.sound_fd < 0) {
 		return FALSE;
 	}
 
@@ -485,32 +480,31 @@ bool8 S9xOpenSoundDevice( int mode, bool8 stereo, int buffer_size )
 		so.buffer_size *= 2;
 	}
 #endif // OPTI
-	if ( so.buffer_size > MAX_BUFFER_SIZE ){
+	if (so.buffer_size > MAX_BUFFER_SIZE){
 		so.buffer_size = MAX_BUFFER_SIZE;
 	}
 
-	S9xSetPlaybackRate( 44100 );
+	S9xSetPlaybackRate (44100);
 
 	so.mute_sound  = FALSE;
 
 	return TRUE;
 }
 
-void S9xCloseSoundDevice()
+void S9xCloseSoundDevice (void)
 {
-	if ( so.sound_fd >= 0 ){
-		sceAudioChRelease( so.sound_fd );
+	if (so.sound_fd >= 0){
+		sceAudioChRelease (so.sound_fd);
 		so.sound_fd = -1;
 	}
 }
 
-// add by y
-bool8 S9xOpenSnapshotFile( const char *fname, bool8 read_only, STREAM *file)
+bool8 S9xOpenSnapshotFile (const char *fname, bool8 read_only, STREAM *file)
 {
-    char filename [_MAX_PATH + 1];
-    char drive [_MAX_DRIVE + 1];
-    char dir [_MAX_DIR + 1];
-    char fn [_MAX_FNAME + 1];
+    char filename [_MAX_PATH  + 1];
+    char drive    [_MAX_DRIVE + 1];
+    char dir      [_MAX_DIR   + 1];
+    char fn       [_MAX_FNAME + 1];
     char ext [_MAX_EXT + 1];
 
     _splitpath( fname, drive, dir, fn, ext);
@@ -541,22 +535,22 @@ bool8 S9xOpenSnapshotFile( const char *fname, bool8 read_only, STREAM *file)
     return (FALSE);
 }
 
-void S9xCloseSnapshotFile( STREAM file)
+void S9xCloseSnapshotFile (STREAM file)
 {
     CLOSE_STREAM (file);
 }
 
 //
-// C Language
+// C Linkage (NOT language!)
 //
 extern "C" {
-void S9xMessage( int type, int number, const char* message )
+void S9xMessage (int type, int number, const char* message)
 {
-	debug_log( message );
-	S9xSetInfoString( message );
+	debug_log (message);
+	S9xSetInfoString (message);
 }
 
-void S9xMovieUpdate ()
+void S9xMovieUpdate (void)
 {
 }
 
@@ -715,18 +709,18 @@ void key_config()
 }
 
 #define AddConfigValue(value_string) {                                  \
-  strcat( dialog_text_all, value_string );                              \
-  strcat( dialog_text_all, "\n"         );                              \
+  strcat(dialog_text_all, value_string);                                \
+  strcat(dialog_text_all, "\n"        );                                \
 }
 
 #define AddConfigOption(idx,name) {                                     \
   if (cur_pos == idx)                                                   \
-    strcat( dialog_text_all, selected_line );                           \
+    strcat (dialog_text_all, selected_line);                            \
   else                                                                  \
-    strcat( dialog_text_all, unselected_line );                         \
+    strcat (dialog_text_all, unselected_line);                          \
                                                                         \
-  strcat( dialog_text_all, name );                                      \
-  strcat( dialog_text_all, ":  ");                                      \
+  strcat (dialog_text_all, name);                                       \
+  strcat (dialog_text_all, ":  ");                                      \
 }
 
 #define AddBooleanConfigOption(idx,name,true_string,false_string,val) { \
@@ -740,7 +734,7 @@ void key_config()
 
 void state_config_disp (int cur_pos)
 {
-	char dialog_text_all[ D_text_all_MAX ];
+	char dialog_text_all [ D_text_all_MAX ];
 
 	*dialog_text_all = '\0';
 
@@ -878,7 +872,7 @@ void display_config_disp (int cur_pos)
 {
 	using namespace DisplayOptions;
 	
-	char dialog_text_all[ D_text_all_MAX ];
+	char dialog_text_all [ D_text_all_MAX ];
 
 	*dialog_text_all = '\0';
 
@@ -947,7 +941,7 @@ void display_config_disp (int cur_pos)
 	AddConfigValue ("");
 
 
-	message_dialog( 34, 50, " 　【　　Display Config　　】　 \0", dialog_text_all );
+	message_dialog (34, 50, " 　【　　Display Config　　】　 \0", dialog_text_all);
 }
 
 void display_config (void)
@@ -1175,7 +1169,7 @@ void sound_config_disp (int cur_pos)
 {
 	using namespace SoundOptions;
 
-	char dialog_text_all[ D_text_all_MAX ];
+	char dialog_text_all [D_text_all_MAX];
 
 	*dialog_text_all = '\0';
 
@@ -1226,7 +1220,7 @@ void sound_config_disp (int cur_pos)
 	AddConfigValue ("");
 
 
-	message_dialog( 34, 75, " 　【　　Sound Config　　】　 \0", dialog_text_all );
+	message_dialog (34, 75, " 　【　　Sound Config　　】　 \0", dialog_text_all);
 }
 
 void sound_config (void)
@@ -1268,7 +1262,7 @@ void sound_config (void)
 
 				case SOUND_RATE:
 					PSP_Settings.iSoundRate++;
-					if (PSP_Settings.iSoundRate > 2) {
+					if (PSP_Settings.iSoundRate >= NUM_PSP_SOUND_RATES) {
 						PSP_Settings.iSoundRate = 0;
 					}
 					break;
@@ -1334,8 +1328,8 @@ void sound_config (void)
 
 				case SOUND_RATE:
 					PSP_Settings.iSoundRate++;
-					if (PSP_Settings.iSoundRate > 2) {
-						PSP_Settings.iSoundRate = 2;
+					if (PSP_Settings.iSoundRate >= NUM_PSP_SOUND_RATES) {
+						PSP_Settings.iSoundRate = (NUM_PSP_SOUND_RATES - 1);
 					}
 					break;
 
@@ -1379,12 +1373,7 @@ void sound_config (void)
 			}
 		}
 
-		if (PSP_Settings.iSoundRate == 0)
-			S9xSetPlaybackRate (11025);
-		else if (PSP_Settings.iSoundRate == 1)
-			S9xSetPlaybackRate (22050);
-		else
-			S9xSetPlaybackRate (44100);
+		set_playback_rate ();
 
 		Settings.SoundSync = PSP_Settings.iSoundSync;
 
@@ -1400,12 +1389,12 @@ void sound_config (void)
 }
 
 
-uint32 S9xReadJoypad( int which1 )
+uint32 S9xReadJoypad (int which1)
 {
 	SceCtrlData	ctl;
 	uint32		ret;
 
-	if ( which1 ){
+	if (which1) {
 		return 0;
 	}
 
@@ -1515,18 +1504,16 @@ PSP_RTRIGGER	0x0200
 	return ret | 0x80000000;
 }
 
-void S9xSetPalette()
+void S9xSetPalette (void)
 {
 }
 
-bool8 S9xSPCDump( const char *filename )
+bool8 S9xSPCDump (const char *filename)
 {
 	return FALSE;
 }
 
-#define MAXVOLUME	0x8000
-
-void S9xGenerateSound()
+void S9xGenerateSound (void)
 {
 
 }
@@ -1565,18 +1552,24 @@ void *S9xProcessSound (void *)
 #ifdef OPTI
 		unsigned byte_offset;
 		unsigned bytes_to_write;
+		
 		byte_offset = so.play_position;
+		
 		S9xMixSamples (SoundBuffer + byte_offset, (SOUND_SAMPLE << 1));
-		bytes_to_write = (SOUND_SAMPLE << 2);
+		
+		bytes_to_write   = (SOUND_SAMPLE << 2);
 		so.play_position = (so.play_position + (SOUND_SAMPLE << 2)) & SOUND_BUFFER_SIZE_MASK;
 #else
-		int sample_count;
+		int      sample_count;
 		unsigned byte_offset;
 		unsigned bytes_to_write;
+		
 		sample_count = so.buffer_size >> 1;
-		byte_offset = so.play_position;
+		byte_offset  = so.play_position;
+		
 		S9xMixSamples (SoundBuffer + byte_offset, sample_count);
-		bytes_to_write = so.buffer_size;
+		
+		bytes_to_write   = so.buffer_size;
 		so.play_position = (so.play_position + so.buffer_size) & SOUND_BUFFER_SIZE_MASK;
 #endif // OPTI
 		for(;;) {
@@ -1584,8 +1577,8 @@ void *S9xProcessSound (void *)
 			if (byte_offset + I > SOUND_BUFFER_SIZE) {
 				I = SOUND_BUFFER_SIZE - byte_offset;
 			}
-			if(I == 0) break;
-			sceAudioOutputPannedBlocking(so.sound_fd, MAXVOLUME, MAXVOLUME, (char*)SoundBuffer + byte_offset);
+			if (I == 0) break;
+				sceAudioOutputPannedBlocking (so.sound_fd, MAXVOLUME, MAXVOLUME, (char *)SoundBuffer + byte_offset);
 			if (I > 0) {
 				bytes_to_write -= I;
 				byte_offset += I;
@@ -1597,40 +1590,40 @@ void *S9xProcessSound (void *)
 }
 
 
-void InitTimer()
+void InitTimer (void)
 {
-	debug_log( "Create Thread" );
-	g_thread = sceKernelCreateThread( "sound thread", (SceKernelThreadEntry)S9xProcessSound, 0x8, 0x40000, THREAD_ATTR_USER, 0 );
-	if ( g_thread < 0 ){
-		debug_log( "Thread failed" );
+	debug_log ("Create Thread");
+	g_thread = sceKernelCreateThread ("sound thread", (SceKernelThreadEntry)S9xProcessSound, 0x8, 0x40000, THREAD_ATTR_USER, 0);
+	if (g_thread < 0) {
+		debug_log ("Thread failed");
 		return;
 	}
 
-	sceKernelStartThread( g_thread, 0, 0 );
+	sceKernelStartThread (g_thread, 0, 0);
 
-	debug_log( "Thread ok" );
+	debug_log ("Thread ok");
 }
 
 static struct timeval next1 = {0, 0};
-void S9xSyncSpeed()
+void S9xSyncSpeed (void)
 {
 	BEGIN_DEBUG_CODE
 
-	S9xProcessEvents( FALSE );
+	S9xProcessEvents (FALSE);
 
-	IPPU.FrameSkip = 0;
-	IPPU.SkippedFrames = 0;
+	IPPU.FrameSkip       = 0;
+	IPPU.SkippedFrames   = 0;
 	IPPU.RenderThisFrame = TRUE;
 
 	return;
 
 	ELSE_RELEASE_CODE
-	S9xProcessEvents( FALSE );
+	S9xProcessEvents (FALSE);
 
-	if (!PSP_Settings.bAutoSkip) {
+	if (! PSP_Settings.bAutoSkip) {
 		if (++IPPU.FrameSkip >= Settings.SkipFrames) {
-			IPPU.FrameSkip = 0;
-			IPPU.SkippedFrames = 0;
+			IPPU.FrameSkip       = 0;
+			IPPU.SkippedFrames   = 0;
 			IPPU.RenderThisFrame = TRUE;
 		} else {
 			IPPU.SkippedFrames++;
@@ -1660,14 +1653,15 @@ void S9xSyncSpeed()
 				IPPU.SkippedFrames++;
 				IPPU.RenderThisFrame = FALSE;
 			} else {
-				IPPU.SkippedFrames = 0;
+				IPPU.SkippedFrames   = 0;
 				IPPU.RenderThisFrame = TRUE;
-				next1 = now;
+				next1                = now;
 			}
 		}
 		next1.tv_usec += Settings.FrameTime;
+		
 		if (next1.tv_usec >= 1000000) {
-			next1.tv_sec += next1.tv_usec / 1000000;
+			next1.tv_sec  += next1.tv_usec / 1000000;
 			next1.tv_usec %= 1000000;
 		}
 	}
@@ -1676,38 +1670,38 @@ void S9xSyncSpeed()
 }
 
 
-const char *S9xGetFilename( const char *e )
+const char *S9xGetFilename (const char *e)
 {
-	static char filename [_MAX_PATH + 1];
-	char drive [_MAX_DRIVE + 1];
-	char dir [_MAX_DIR + 1];
-	char fname [_MAX_FNAME + 1];
-	char ext [_MAX_EXT + 1];
+	static char filename [_MAX_PATH  + 1];
+	       char drive    [_MAX_DRIVE + 1];
+	       char dir      [_MAX_DIR   + 1];
+	       char fname    [_MAX_FNAME + 1];
+	       char ext      [_MAX_EXT   + 1];
 
 	_splitpath (Memory.ROMFilename, drive, dir, fname, ext);
-// add by y
+
 	if (strcasecmp (e, "srm") == 0) {
-		strcpy(filename,PBPPath);
-		strcat(filename,"SAVE/");
-		strcat(filename,fname);
-		strcat(filename,".srm");
+		strcpy (filename, PBPPath);
+		strcat (filename, "SAVE/");
+		strcat (filename, fname);
+		strcat (filename, ".srm");
 	} else if (strcasecmp (e, "sv0") == 0) {
-		strcpy(filename,PBPPath);
-		strcat(filename,"SAVE/");
-		strcat(filename,fname);
-		strcat(filename,".sv0");
-		filename[strlen(filename)-1] = PSP_Settings.iSaveSlot + '0';
+		strcpy (filename, PBPPath);
+		strcat (filename, "SAVE/");
+		strcat (filename, fname);
+		strcat (filename, ".sv0");
+		filename [strlen (filename) - 1] = PSP_Settings.iSaveSlot + '0';
 	} else if (strcasecmp (e, "tn0") == 0) {
-		strcpy(filename,PBPPath);
-		strcat(filename,"SAVE/");
-		strcat(filename,fname);
-		strcat(filename,".tn0");
-		filename[strlen(filename)-1] = PSP_Settings.iSaveSlot + '0';
+		strcpy (filename, PBPPath);
+		strcat (filename, "SAVE/");
+		strcat (filename, fname);
+		strcat (filename, ".tn0");
+		filename [strlen (filename) - 1] = PSP_Settings.iSaveSlot + '0';
 	} else if (strcasecmp (e, "cfg") == 0) {
-		strcpy(filename,PBPPath);
-		strcat(filename,"SAVE/");
-		strcat(filename,fname);
-		strcat(filename,"_psp.cfg");
+		strcpy (filename, PBPPath);
+		strcat (filename, "SAVE/");
+		strcat (filename, fname);
+		strcat (filename, "_psp.cfg");
 	} else {
 		_makepath (filename, drive, dir, fname, e);
 	}
@@ -1748,10 +1742,10 @@ static uint16                              GFX_ZBuffer    [512 * 512];
 static uint16                              GFX_SubZBuffer [512 * 512];
 
 
-static char FPSbuf[6];
+static char FPSbuf [7];
 
-extern int S9xDisplayGetMaxCharsX (void);
-extern void S9xDisplayStringEx (const char *string, int x, int y);
+extern int  S9xDisplayGetMaxCharsX (void);
+extern void S9xDisplayStringEx     (const char *string, int x, int y);
 
 enum {
   FPS_RASTER_PG,  // Uses pg (has issues with certain SceGU screen modes)
@@ -1764,22 +1758,32 @@ inline void draw_fps (int raster_method = FPS_RASTER_PG)
 {
 	if (PSP_Settings.bShowFPS) {
 		struct timeval	now;
-		unsigned int	diff;
+		unsigned int	diff, fps;
 	
 		s_iFrame++;
-		gettimeofday (&now, 0);
+		gettimeofday (&now, NULL);
 	
 		diff  = (now.tv_sec - s_tvStart.tv_sec) * 1000000 + now.tv_usec - s_tvStart.tv_usec;
 		diff /= 1000000;
 	
 		if (diff){
-			FPSbuf [0] = ((s_iFrame / diff) / 10) + '0';
-			FPSbuf [1] = ((s_iFrame / diff) % 10) + '0';
-			FPSbuf [2] = 'F';
-			FPSbuf [3] = 'P';
-			FPSbuf [4] = 'S';
-			FPSbuf [5] = '\0';
-	 
+			// Y has a good sense of humor, accounting for 100+ FPS :P
+
+			fps = s_iFrame / diff;
+			if (fps >= 100) {
+				FPSbuf [0] = (fps / 100) + '0';
+				fps -= (fps / 100) * 100;
+			} else {
+				FPSbuf [0] = ' ';
+			}
+			
+			FPSbuf [1] = (fps / 10) + '0';
+			FPSbuf [2] = (fps % 10) + '0';
+			FPSbuf [3] = 'F';
+			FPSbuf [4] = 'P';
+			FPSbuf [5] = 'S';
+			FPSbuf [6] = '\0';
+
 			s_tvStart = now;
 			s_iFrame  = 0;
 		}
@@ -1793,7 +1797,7 @@ inline void draw_fps (int raster_method = FPS_RASTER_PG)
 			Settings.DisplayColor = RGB (255, 255, 255);
 
 			  const int max_chars = S9xDisplayGetMaxCharsX ();
-			  S9xDisplayStringEx (FPSbuf, max_chars - 5, 0);
+			  S9xDisplayStringEx (FPSbuf, max_chars - 6, 0);
 
 			Settings.DisplayColor = RGB (0,   255,   0);
 		}
@@ -1857,7 +1861,7 @@ bool8 S9xDeinitUpdate (int Width, int Height, bool8 sixteen_bit)
 		if (PSP_Settings.bUseGUBlit)
 		  ; // pgScreenSync ();
 		else
-			pgScreenFlip();
+			pgScreenFlip ();
 	}
 
 	// All code beyond this point is for pg blitting only
@@ -1886,44 +1890,41 @@ bool8 S9xDeinitUpdate (int Width, int Height, bool8 sixteen_bit)
 	return TRUE;
 }
 
-// mod by y
-void S9xInitDisplay( int argc, char** argv )
+void S9xInitDisplay (int argc, char** argv)
 {
 #ifndef OPTI
 	Settings.SixteenBit   = TRUE;
 #endif // OPTI
-
-	memset( GFX_Screen,	0, sizeof(GFX_Screen) );
-	memset( GFX_SubScreen,  0, sizeof(GFX_SubScreen) );
-	memset( GFX_ZBuffer,    0, sizeof(GFX_ZBuffer) );
-	memset( GFX_SubZBuffer, 0, sizeof(GFX_SubZBuffer) );
+	memset (GFX_Screen,	0, sizeof (GFX_Screen));
+	memset (GFX_SubScreen,  0, sizeof (GFX_SubScreen));
+	memset (GFX_ZBuffer,    0, sizeof (GFX_ZBuffer));
+	memset (GFX_SubZBuffer, 0, sizeof (GFX_SubZBuffer));
 
 	if (PSP_Settings.bUseGUBlit) {
 		GFX.Pitch             = (PSP_Settings.bSupportHiRes ? 512 : 256) * 2;
-		GFX.Screen            = (uint8*)GFX_Screen;
+		GFX.Screen            = (uint8 *)GFX_Screen;
 		Settings.SupportHiRes = PSP_Settings.bSupportHiRes;
 	} else {
 		GFX.Pitch             = 512 * 2;
 		Settings.SupportHiRes = FALSE;
 
 		BEGIN_RELEASE_CODE
-			GFX.Screen     = (uint8*)pgGetVramAddr( (SCREEN_WIDTH - SNES_WIDTH) >> 1, (SCREEN_HEIGHT - SNES_HEIGHT) >> 1 );
+			GFX.Screen     = (uint8 *)pgGetVramAddr ((SCREEN_WIDTH - SNES_WIDTH) >> 1, (SCREEN_HEIGHT - SNES_HEIGHT) >> 1);
 		ELSE_DEBUG_CODE
-			GFX.Screen     = (uint8*)pgGetVramAddr( 0, 0 );
+			GFX.Screen     = (uint8 *)pgGetVramAddr (0, 0);
 		END_DEBUG_CODE
 	}
 
-	GFX.SubScreen  = (uint8*)GFX_SubScreen;
-	GFX.ZBuffer    = (uint8*)GFX_ZBuffer;
-	GFX.SubZBuffer = (uint8*)GFX_SubZBuffer;
+	GFX.SubScreen  = (uint8 *)GFX_SubScreen;
+	GFX.ZBuffer    = (uint8 *)GFX_ZBuffer;
+	GFX.SubZBuffer = (uint8 *)GFX_SubZBuffer;
 }
 
-void S9xInitInputDevices()
+void S9xInitInputDevices (void)
 {
 }
 
-// add by y
-void fix_H_Max(void)
+void fix_H_Max (void)
 {
 	//CPU timing hacks
 	// A Couple of HDMA related hacks - Lantus
@@ -1953,36 +1954,38 @@ void fix_H_Max(void)
 		Settings.H_Max = (Settings.H_Max * 110) / 100;
 }
 
-void save_config(void)
+void save_config (void)
 {
-	char CFGPath [_MAX_PATH + 1];
-	strcpy(CFGPath, S9xGetFilename("cfg"));
+	char  CFGPath [_MAX_PATH + 1];
 	FILE *fd;
+	
+	strcpy (CFGPath, S9xGetFilename ("cfg"));
+	
 	if ((fd = fopen (CFGPath, "wb"))) {
-		fwrite (&PSP_Settings, sizeof(PSP_Settings), 1, fd);
+		fwrite (&PSP_Settings, sizeof (PSP_Settings), 1, fd);
 		fclose (fd);
 	}
 }
 
-void load_config(void)
+void load_config (void)
 {
-	if (!PSP_Settings.bSoundOff) {
-		S9xSetSoundMute( TRUE );
-		if ( g_thread !=-1 ){
+	if (! PSP_Settings.bSoundOff) {
+		S9xSetSoundMute (TRUE);
+		if (g_thread != -1) {
 			Settings.ThreadSound = FALSE;
-			sceKernelWaitThreadEnd( g_thread, NULL );
-			sceKernelDeleteThread( g_thread );
+			sceKernelWaitThreadEnd (g_thread, NULL);
+			sceKernelDeleteThread  (g_thread);
 			g_thread = -1;
 		}
 	}
 	
-	memset( &PSP_Settings, 0, sizeof( PSP_Settings ) );
+	memset (&PSP_Settings, 0, sizeof (PSP_Settings));
 	
 	char CFGPath [_MAX_PATH + 1];
-	strcpy(CFGPath, S9xGetFilename("cfg"));
+	strcpy (CFGPath, S9xGetFilename ("cfg"));
 	FILE *fd;
 	if ((fd = fopen (CFGPath, "rb"))) {
-		fread (&PSP_Settings, sizeof(PSP_Settings), 1, fd);
+		fread (&PSP_Settings, sizeof (PSP_Settings), 1, fd);
 		fclose (fd);
 		
 		if (PSP_Settings.iSaveSlot < 0 || PSP_Settings.iSaveSlot > SAVE_SLOT_MAX)
@@ -1995,8 +1998,8 @@ void load_config(void)
 			PSP_Settings.bVSync = false;
 		if (!PSP_Settings.bSoundOff)
 			PSP_Settings.bSoundOff = false;
-		if (PSP_Settings.iSoundRate < 0 || PSP_Settings.iSoundRate > 2)
-			PSP_Settings.iSoundRate = 2;
+		if (PSP_Settings.iSoundRate < 0 || PSP_Settings.iSoundRate >= NUM_PSP_SOUND_RATES)
+			PSP_Settings.iSoundRate = PSP_SOUND_RATE_44;
 		if (!PSP_Settings.bTrans)
 			PSP_Settings.bTrans = false;
 		if (PSP_Settings.iHBlankCycleDiv < 0 || PSP_Settings.iHBlankCycleDiv > PSP_CYCLE_DIV_MAX)
@@ -2007,8 +2010,8 @@ void load_config(void)
 			PSP_Settings.bSwapAnalog = false;
 		if (!PSP_Settings.bSaveThumb)
 			PSP_Settings.bSaveThumb = false;
-		if (PSP_Settings.iPSP_ClockUp < 0 || PSP_Settings.iPSP_ClockUp > 2)
-			PSP_Settings.iPSP_ClockUp = 0;
+		if (PSP_Settings.iPSP_ClockUp < 0 || PSP_Settings.iPSP_ClockUp >= NUM_PSP_CLOCK_SPEEDS)
+			PSP_Settings.iPSP_ClockUp = PSP_CLOCK_333;
 		if (PSP_Settings.iScreenSize < 0 || PSP_Settings.iScreenSize > 3)
 			PSP_Settings.iScreenSize = 0;
 		if (!PSP_Settings.bAutoSkip)
@@ -2032,50 +2035,56 @@ void load_config(void)
 	}
 	
 	// TODO: Switch to a parsed config file format, and compress it.
-	char vercnf[48];
-	strcpy(vercnf, "uo_Snes9x for PSP Ver.0.02pd1");
-	if (strcmp(PSP_Settings.vercnf, vercnf) != 0) {
-		strcpy(PSP_Settings.vercnf, vercnf);
-		PSP_Settings.iSaveSlot = 0;
-		PSP_Settings.iSkipFrames = 0;
-		PSP_Settings.bShowFPS = false;
-		PSP_Settings.bVSync = false;
-		PSP_Settings.bSoundOff = false;
-		PSP_Settings.iSoundRate = 2;
-		PSP_Settings.bTrans = true;
-		PSP_Settings.iHBlankCycleDiv = 10;
+	char vercnf [48];
+	strcpy (vercnf, PSP_CFG_VERSION);
+	
+	if (strcmp (PSP_Settings.vercnf, vercnf) != 0) {
+		strcpy (PSP_Settings.vercnf, vercnf);
+
+		PSP_Settings.iSaveSlot         = 0;
+		PSP_Settings.iSkipFrames       = 0;
+		PSP_Settings.bShowFPS          = false;
+		PSP_Settings.bVSync            = false;
+		PSP_Settings.bSoundOff         = false;
+		PSP_Settings.iSoundRate        = PSP_SOUND_RATE_44;
+		PSP_Settings.bTrans            = true;
+		PSP_Settings.iHBlankCycleDiv   = 10;
 		PSP_Settings.iAPUTimerCycleDiv = 10;
-		PSP_Settings.bSwapAnalog = false;
-		PSP_Settings.bSaveThumb = true;
-		PSP_Settings.iPSP_ClockUp = 2;
-		PSP_Settings.iScreenSize = 1;
-		PSP_Settings.bAutoSkip = false;
-		PSP_Settings.iBackgroundColor = 0;
-		PSP_Settings.iCompression = 0;
-		PSP_Settings.iSoundSync = 0;
-		PSP_Settings.bShowDebugInfo = false;
-		PSP_Settings.bUseGUBlit = true;
-		PSP_Settings.bSupportHiRes = false;
-		PSP_Settings.bBilinearFilter = true;
-		PSP_Settings.iAltSampleDecode = 0;
+		PSP_Settings.bSwapAnalog       = false;
+		PSP_Settings.bSaveThumb        = true;
+		PSP_Settings.iPSP_ClockUp      = PSP_CLOCK_333;
+		PSP_Settings.iScreenSize       = 1;
+		PSP_Settings.bAutoSkip         = false;
+		PSP_Settings.iBackgroundColor  = 0;
+		PSP_Settings.iCompression      = 0;
+		PSP_Settings.iSoundSync        = 0;
+		PSP_Settings.bShowDebugInfo    = false;
+		PSP_Settings.bUseGUBlit        = true;
+		PSP_Settings.bSupportHiRes     = false;
+		PSP_Settings.bBilinearFilter   = true;
+		PSP_Settings.iAltSampleDecode  = 0;
 	}
 
-	if (PSP_Settings.iSoundRate==0) S9xSetPlaybackRate( 11025 );
-	else if (PSP_Settings.iSoundRate==1) S9xSetPlaybackRate( 22050 );
-	else S9xSetPlaybackRate( 44100 );
-	if (!PSP_Settings.bSoundOff) {
+	set_playback_rate ();
+
+	if (! PSP_Settings.bSoundOff) {
 		Settings.ThreadSound = TRUE;
-		InitTimer();
+		InitTimer ();
 	}
-	Settings.H_Max = (long)((SNES_CYCLES_PER_SCANLINE * 1000) / ( PSP_Settings.iHBlankCycleDiv * 100));
+	
+	Settings.H_Max       = (long)((SNES_CYCLES_PER_SCANLINE * 1000) / ( PSP_Settings.iHBlankCycleDiv * 100));
 	Settings.HBlankStart = ((uint32)Settings.H_Max << 8) / SNES_HCOUNTER_MAX;
-	fix_H_Max();
+	
+	fix_H_Max ();
+	
 	Settings.PSP_APUTimerCycle = (uint32)((SNES_APUTIMER2_CYCLEx10000 * 1000) / (PSP_Settings.iAPUTimerCycleDiv * 100));
-	if (PSP_Settings.bTrans){
+	
+	if (PSP_Settings.bTrans) {
 		Settings.Transparency = TRUE;
 	} else {
 		Settings.Transparency = FALSE;
 	}
+	
 	Settings.SkipFrames = PSP_Settings.iSkipFrames;
 	
 	if (! PSP_Settings.bUseGUBlit) {
@@ -2092,12 +2101,9 @@ void load_config(void)
 		GFX.Screen = (uint8*)GFX_Screen;
 	}
 	
-	if (PSP_Settings.iPSP_ClockUp == 2) scePowerSetClockFrequency(333,333,166);
-	else if (PSP_Settings.iPSP_ClockUp == 1) scePowerSetClockFrequency(266,266,133);
-	else scePowerSetClockFrequency(222,222,111);
+	set_clock_speed ();
 	
-	Settings.SoundSync = PSP_Settings.iSoundSync;
-
+	Settings.SoundSync       = PSP_Settings.iSoundSync;
 	Settings.AltSampleDecode = PSP_Settings.iAltSampleDecode;
 
 	g_bSleep = false;
@@ -2105,60 +2111,66 @@ void load_config(void)
 	init_blit_backend ();
 }
 
-void ustoa(unsigned short val, char *s);
+void ustoa (unsigned short val, char *s);
 // RINのソースから頂きました。
 // みらきち様・kwn様 J が使用させて頂く事をお許し下さい。
 // by kwn
 // 壁紙保存用
-unsigned short WALL_BITMAP[480*272];
-int WALL_BITMAP_FLG = false;
-int load_wall_bmp()
+unsigned short WALL_BITMAP [480 * 272];
+int            WALL_BITMAP_FLG = false;
+int load_wall_bmp (void)
 {
 	int ret_int = -1;
 	// sceIoOpenの戻り値
 	int i_sceIoOpen_ret = -1;
 	unsigned char *wall_bmp;
 	unsigned char *vptr;
-	static unsigned char wall_buf[ 480 * 272 * 3 + 0x36 ];
-	char           wall_file_name[ _MAX_PATH ];
- 	unsigned short x,y,yy,r,g,b,data;
+	static unsigned char wall_buf [480 * 272 * 3 + 0x36];
+	char           wall_file_name [_MAX_PATH];
+	unsigned short x,y,yy,r,g,b,data;
 
-	char drive [ _MAX_DRIVE + 1 ];
-	char dir   [ _MAX_DIR   + 1 ];
-	char fname [ _MAX_FNAME + 1 ];
-	char ext   [ _MAX_EXT   + 1 ];
+	char drive [_MAX_DRIVE + 1];
+	char dir   [_MAX_DIR   + 1];
+	char fname [_MAX_FNAME + 1];
+	char ext   [_MAX_EXT   + 1];
 
-	_splitpath ( Memory.ROMFilename, drive, dir, fname, ext );
-	strcpy( wall_file_name, drive );
-	strcat( wall_file_name, dir );
-	strcat( wall_file_name, "/" );
-//	strcat( wall_file_name, fname );
-	strcat( wall_file_name, "wall.bmp\0" );
+	_splitpath (Memory.ROMFilename, drive, dir, fname, ext);
+	strcpy (wall_file_name, drive);
+	strcat (wall_file_name, dir);
+	strcat (wall_file_name, "/");
+//	strcat (wall_file_name, fname);
+	strcat (wall_file_name, "wall.bmp");
 
-	i_sceIoOpen_ret = sceIoOpen( wall_file_name, PSP_O_RDONLY, 0777 );
-	if( i_sceIoOpen_ret >= 0 ) {
-		ret_int = sceIoRead( i_sceIoOpen_ret, wall_buf, 480 * 272 * 3 + 0x36 );
+	i_sceIoOpen_ret = sceIoOpen (wall_file_name, PSP_O_RDONLY, 0777);
+	
+	if (i_sceIoOpen_ret >= 0) {
+		ret_int = sceIoRead (i_sceIoOpen_ret, wall_buf, 480 * 272 * 3 + 0x36);
 	}
-	sceIoClose( i_sceIoOpen_ret );
+	
+	sceIoClose (i_sceIoOpen_ret);
+	
 	// 正常に読込めたら
-	if ( ret_int >= 0 ) {
+	if (ret_int >= 0) {
 		wall_bmp = wall_buf + 0x36;
-		vptr = (unsigned char*)WALL_BITMAP;
-		for( y = 0; y < 272; y++ ) {
-			for( x = 0; x < 480; x++ ) {
+		vptr     = (unsigned char *)WALL_BITMAP;
+		
+		for (y = 0; y < 272; y++) {
+			for (x = 0; x < 480; x++) {
 				yy = 271 - y;
-				r = *( wall_bmp + ( yy * 480 + x ) * 3 + 2 );
-				g = *( wall_bmp + ( yy * 480 + x ) * 3 + 1 );
-				b = *( wall_bmp + ( yy * 480 + x ) * 3     );
-				data = ( ( ( b & 0xf8 ) << 7 ) | ( ( g & 0xf8 ) << 2 ) | ( r >> 3 ) );
+				r = *(wall_bmp + (yy * 480 + x) * 3 + 2);
+				g = *(wall_bmp + (yy * 480 + x) * 3 + 1);
+				b = *(wall_bmp + (yy * 480 + x) * 3    );
+				data = (((b & 0xf8) << 7) | ((g & 0xf8) << 2) | (r >> 3));
 				*(unsigned short *)vptr = data;
 				vptr += 2;
 			}
 		}
+		
 		WALL_BITMAP_FLG = true;
 	}else {
 		WALL_BITMAP_FLG = false;
 	}
+	
 	return ret_int;
 }
 
@@ -2170,107 +2182,114 @@ bool8 S9xUnfreezeGame_PSP (const char* filename);
 
 
 //     SRAM日付取得用構造体
-struct SceIoDirent sram_file_data[ 1 ];
-int sram_save_check()
+struct SceIoDirent sram_file_data [1];
+int sram_save_check (void)
 {
 	int  ret_int = false;
 	//   
 	int  i_sceIoDopen_ret = -1;
 	//   sramファイルのフルパス保存用変数
-	char save_sram_file_name[ _MAX_PATH ];
+	char save_sram_file_name [_MAX_PATH];
 	//   ダイアログテキストの保存用変数
-	char dialog_text_all[ D_text_all_MAX ];
+	char dialog_text_all     [D_text_all_MAX];
 	//   日付・日時取得用
-	char get_date_data[20];
+	char get_date_data       [20];
 	//   
 	int dir_files_cnt = 0;
 	
 	char drive [_MAX_DRIVE + 1];
-	char dir   [_MAX_DIR + 1];
+	char dir   [_MAX_DIR   + 1];
 	char fname [_MAX_FNAME + 1];
-	char ext   [_MAX_EXT + 1];
+	char ext   [_MAX_EXT   + 1];
+	
 	_splitpath (Memory.ROMFilename, drive, dir, fname, ext);
+	
 	// SAVEフォルダに保存
-	strcpy( save_sram_file_name, PBPPath );
-	strcat( save_sram_file_name, "SAVE/\0" );
+	strcpy (save_sram_file_name, PBPPath);
+	strcat (save_sram_file_name, "SAVE/");
 
-	strcpy( dialog_text_all, fname );
-	strcat( dialog_text_all, ".srm\0" );
-	i_sceIoDopen_ret = sceIoDopen( save_sram_file_name );
-	dir_files_cnt = 0;
-	while( 1 ) {
-		if( sceIoDread( i_sceIoDopen_ret, &sram_file_data[ 0 ] ) <= 0 ) {
+	strcpy (dialog_text_all, fname);
+	strcat (dialog_text_all, ".srm");
+	
+	i_sceIoDopen_ret = sceIoDopen (save_sram_file_name);
+	dir_files_cnt    = 0;
+	
+	while (1) {
+		if (sceIoDread (i_sceIoDopen_ret, &sram_file_data [0]) <= 0) {
 			dir_files_cnt = -1;
 			break;
 		}else {
-			if ( strcasecmp ( dialog_text_all, sram_file_data[ 0 ].d_name ) == 0 ) {
+			if (strcasecmp (dialog_text_all, sram_file_data [0].d_name) == 0) {
 				dir_files_cnt = 1;
 				break;
 			}
 		}
 	}
-	sceIoClose( i_sceIoDopen_ret );
-	if ( dir_files_cnt == 1 ) {
+	
+	sceIoClose (i_sceIoDopen_ret);
+	
+	if (dir_files_cnt == 1) {
 		//   ループカウント
 		int  loop_cnt;
 		//   タイトル文字列
-		char title_string[ D_text_MAX ];
+		char title_string [D_text_MAX];
 
 		// ダイアログタイトル文字列作成
-		strcpy( title_string, " 　【　　SRAM  Save　　】　 \0" );
+		strcpy (title_string, " 　【　　SRAM  Save　　】　 ");
 
 		// メッセージ作成
-		strcat( dialog_text_all, " - \0" );
-		ustoa ( sram_file_data[ 0 ].d_stat.st_mtime.year , get_date_data );
-		strcat( dialog_text_all, get_date_data );
-		strcat( dialog_text_all, "/00/00 00:00:00\0" );
+		strcat (dialog_text_all, " - ");
+		ustoa  (sram_file_data [0].d_stat.st_mtime.year, get_date_data);
+		strcat (dialog_text_all, get_date_data);
+		strcat (dialog_text_all, "/00/00 00:00:00");
 
 		// 月
-		if( sram_file_data[ 0 ].d_stat.st_mtime.month  > 10 ) 
-			dialog_text_all[ strlen( dialog_text_all ) -14] = sram_file_data[ 0 ].d_stat.st_mtime.month / 10 + '0';
-			dialog_text_all[ strlen( dialog_text_all ) -13] = sram_file_data[ 0 ].d_stat.st_mtime.month % 10 + '0';
+		if (sram_file_data [0].d_stat.st_mtime.month  > 10)
+			dialog_text_all [strlen (dialog_text_all) - 14] = sram_file_data [0].d_stat.st_mtime.month / 10 + '0';
+			dialog_text_all [strlen (dialog_text_all) - 13] = sram_file_data [0].d_stat.st_mtime.month % 10 + '0';
 		// 日
-		if( sram_file_data[ 0 ].d_stat.st_mtime.day  > 10 ) 
-			dialog_text_all[ strlen( dialog_text_all ) -11] = sram_file_data[ 0 ].d_stat.st_mtime.day / 10 + '0';
-			dialog_text_all[ strlen( dialog_text_all ) -10] = sram_file_data[ 0 ].d_stat.st_mtime.day % 10 + '0';
+		if (sram_file_data [0].d_stat.st_mtime.day  > 10)
+			dialog_text_all [strlen (dialog_text_all) - 11] = sram_file_data [0].d_stat.st_mtime.day / 10 + '0';
+			dialog_text_all [strlen (dialog_text_all) - 10] = sram_file_data [0].d_stat.st_mtime.day % 10 + '0';
 		// 時間
-		if( sram_file_data[ 0 ].d_stat.st_mtime.hour > 10 ) 
-			dialog_text_all[ strlen( dialog_text_all ) -8] = sram_file_data[ 0 ].d_stat.st_mtime.hour / 10 + '0';
-			dialog_text_all[ strlen( dialog_text_all ) -7] = sram_file_data[ 0 ].d_stat.st_mtime.hour % 10 + '0';
+		if (sram_file_data [0].d_stat.st_mtime.hour > 10)
+			dialog_text_all [strlen (dialog_text_all) - 8] = sram_file_data [0].d_stat.st_mtime.hour / 10 + '0';
+			dialog_text_all [strlen (dialog_text_all) - 7] = sram_file_data [0].d_stat.st_mtime.hour % 10 + '0';
 		// 分
-		if( sram_file_data[ 0 ].d_stat.st_mtime.minute  > 10 ) 
-			dialog_text_all[ strlen( dialog_text_all ) -5] = sram_file_data[ 0 ].d_stat.st_mtime.minute / 10 + '0';
-			dialog_text_all[ strlen( dialog_text_all ) -4] = sram_file_data[ 0 ].d_stat.st_mtime.minute % 10 + '0';
+		if (sram_file_data [0].d_stat.st_mtime.minute > 10)
+			dialog_text_all [strlen (dialog_text_all) - 5] = sram_file_data [0].d_stat.st_mtime.minute / 10 + '0';
+			dialog_text_all [strlen (dialog_text_all) - 4] = sram_file_data [0].d_stat.st_mtime.minute % 10 + '0';
 		// 秒
-		if( sram_file_data[ 0 ].d_stat.st_mtime.second  > 10 ) 
-			dialog_text_all[ strlen( dialog_text_all ) -2] = sram_file_data[ 0 ].d_stat.st_mtime.second / 10 + '0';
-			dialog_text_all[ strlen( dialog_text_all ) -1] = sram_file_data[ 0 ].d_stat.st_mtime.second  % 10 + '0';
+		if (sram_file_data [0].d_stat.st_mtime.second > 10)
+			dialog_text_all [strlen (dialog_text_all) - 2] = sram_file_data [0].d_stat.st_mtime.second / 10 + '0';
+			dialog_text_all [strlen (dialog_text_all) - 1] = sram_file_data [0].d_stat.st_mtime.second % 10 + '0';
 
 		// メッセージ作成
-		strcat( dialog_text_all, "\n\n\0"                           ); // 改行x2
-		strcat( dialog_text_all, "セーブデータを上書きします。\n\0" );
-		strcat( dialog_text_all, "      よろしいですか？\n\0"       );
-		strcat( dialog_text_all, "\n\0"                             ); // 改行
-		strcat( dialog_text_all, "    はい □ ／ いいえ ×\n\0"     );
-		strcat( dialog_text_all, "\n\0"                             ); // 改行
+		strcat (dialog_text_all, "\n\n"                                          ); // 改行x2
+		strcat (dialog_text_all, "セーブデータを上書きします。\n" );
+		strcat (dialog_text_all, "      よろしいですか？\n"              );
+		strcat (dialog_text_all, "\n"                                            ); // 改行
+		strcat (dialog_text_all, "    はい □ ／ いいえ ×\n"           );
+		strcat (dialog_text_all, "\n"                                            ); // 改行
 
 		// ダイアログ表示
-		message_dialog( D_dialog_pos_x1, D_dialog_pos_y1, title_string, dialog_text_all );
+		message_dialog (D_dialog_pos_x1, D_dialog_pos_y1, title_string, dialog_text_all);
 
 		// 無限ループ気持ち悪い
-		while( 1 ){
-			readpad();
+		while (1) {
+			readpad ();
+			
 			// ×ボタン押した
-			if ( new_pad & PSP_CTRL_CROSS ) {
+			if (new_pad & PSP_CTRL_CROSS) {
 				ret_int = false;
 				break;
 			// □ボタン押す
-			} else if ( new_pad & PSP_CTRL_SQUARE ){
+			} else if (new_pad & PSP_CTRL_SQUARE) {
 				ret_int = true;
 				break;
 			}
 		}
-	}else {
+	} else {
 		ret_int = false;
 	}
 
@@ -2280,34 +2299,37 @@ int sram_save_check()
 #define D_dialog_pos_x0 34
 #define D_dialog_pos_y0 74
 // ステートセーブチェックルーチン
-int state_save_check()
+int state_save_check (void)
 {
 	int ret_int = false;
 	// ダイアログテキストの保存用変数
-	char dialog_text_all[ D_text_all_MAX ];
+	char dialog_text_all [D_text_all_MAX];
 
 	// 選択しているセーブスロットにセーブデータが無ければ保存
-	if ( save_slots[PSP_Settings.iSaveSlot].flag == false ) {
+	if (save_slots [PSP_Settings.iSaveSlot].flag == false) {
 		ret_int = true;
-	}else {
+	} else {
 	// 選択しているセーブスロットにセーブデータが有ればダイアログを開く
-		strcpy( dialog_text_all, save_slots[ PSP_Settings.iSaveSlot ].date ); // セーブデータ情報表示
-		strcat( dialog_text_all, "\n\n\0"                           );        // 改行x2
-		strcat( dialog_text_all, "セーブデータを上書きします。\n\0" );
-		strcat( dialog_text_all, "      よろしいですか？\n\0"       );
-		strcat( dialog_text_all, "\n\0"                             );        // 改行
-		strcat( dialog_text_all, "    はい □ ／ いいえ ×\n\0"     );
-		strcat( dialog_text_all, "\n\0"                             );        // 改行
+		strcpy (dialog_text_all, save_slots [PSP_Settings.iSaveSlot].date          ); // セーブデータ情報表示
+		strcat (dialog_text_all, "\n\n"                                            );        // 改行x2
+		strcat (dialog_text_all, "セーブデータを上書きします。\n\0" );
+		strcat (dialog_text_all, "      よろしいですか？\n"                );
+		strcat (dialog_text_all, "\n"                                              );        // 改行
+		strcat (dialog_text_all, "    はい □ ／ いいえ ×\n"             );
+		strcat (dialog_text_all, "\n"                                              );        // 改行
+		
 		// ダイアログ表示
-		message_dialog( D_dialog_pos_x0, D_dialog_pos_y0, " 　【　　State Save　　】　 \0", dialog_text_all );
+		message_dialog (D_dialog_pos_x0, D_dialog_pos_y0, " 　【　　State Save　　】　 ", dialog_text_all);
+		
 		// 無限ループ気持ち悪い
-		while( 1 ){
-			readpad();
+		while (1) {
+			readpad ();
+			
 			// ×ボタン押した
-			if ( new_pad & PSP_CTRL_CROSS ) {
+			if (new_pad & PSP_CTRL_CROSS) {
 				break;
 			// □ボタン押す
-			} else if ( new_pad & PSP_CTRL_SQUARE ){
+			} else if (new_pad & PSP_CTRL_SQUARE) {
 				ret_int = true;
 				break;
 			}
@@ -2319,7 +2341,7 @@ int state_save_check()
 #define D_dialog_pos_x2 34
 #define D_dialog_pos_y2 90
 // ステートデリートチェックルーチン
-int state_delete_check()
+int state_delete_check (void)
 {
 	int ret_int = false;
 	// ダイアログテキストの保存用変数
@@ -2388,19 +2410,19 @@ void draw_menu (void)
 	char* msg = g_szMainMenuMsg;
 	int&  sel = g_iMainMenuSel;
 
-	char tmp[256];
+	char  tmp [256];
 	uint8 tmp_color;
 
 	int x,y;
 	
-	menu_frame((unsigned char *)msg, (unsigned char *)"○：OK  ×：Continue  SELECT+START：Exit to PSP Menu");
-		
-	mh_print(33, 33, (unsigned char*)Memory.ROMFilename, RGB(95,95,125));
+	menu_frame ((unsigned char *)msg, (unsigned char *)"○：OK  ×：Continue  SELECT+START：Exit to PSP Menu");
+
+	mh_print   (33, 33, (unsigned char*)Memory.ROMFilename, RGB(95,95,125));
 		
 	x = 2;
 	y = 6;
 		
-	pgPrint(x,y++,0xffff,"  SRAM Save");
+	pgPrint (x, y++, 0xffff, "  SRAM Save");
 		
 	y++;
 		
@@ -2456,8 +2478,8 @@ void draw_menu (void)
 	pgPrint(x+18,y++,RGB(255,tmp_color,tmp_color),tmp);
 
 	pgPrint(x,y,0xffff,"  PSP Clock     : ");
-	if (PSP_Settings.iPSP_ClockUp == 2) pgPrint(x+18,y++,RGB(255,95,95),"333MHz");
-	else if (PSP_Settings.iPSP_ClockUp == 1) pgPrint(x+18,y++,RGB(255,255,95),"266MHz");
+	if      (PSP_Settings.iPSP_ClockUp == PSP_CLOCK_333) pgPrint(x+18,y++,RGB(255,95,95),"333MHz");
+	else if (PSP_Settings.iPSP_ClockUp == PSP_CLOCK_266) pgPrint(x+18,y++,RGB(255,255,95),"266MHz");
 	else pgPrint(x+18,y++,0xffff,"222MHz");
 	y++;
 
@@ -2485,11 +2507,11 @@ void draw_menu (void)
 		y++;
 	}
 		
-	pgPutChar((x+1)*8,y*8,0xffff,0,127,1,0,1);
+	pgPutChar ((x + 1) * 8, y * 8, 0xffff, 0, 127, 1, 0, 1);
 		
-	if (save_slots[PSP_Settings.iSaveSlot].flag && save_slots[PSP_Settings.iSaveSlot].thumbflag) {
-		pgDrawFrame(327,129,456,242,RGB(85,85,95));
-		pgBitBlt(328,130,128,112,1,save_slots[PSP_Settings.iSaveSlot].thumbnail);
+	if (save_slots [PSP_Settings.iSaveSlot].flag && save_slots [PSP_Settings.iSaveSlot].thumbflag) {
+		pgDrawFrame (327, 129, 456, 242, RGB (85,85,95));
+		pgBitBlt    (328, 130, 128, 112, 1, save_slots [PSP_Settings.iSaveSlot].thumbnail);
 	}
 
 	int  size_of_states = 0;
@@ -2522,16 +2544,13 @@ void close_menu (void)
 /*
 	BEGIN_RELEASE_CODE
 	if (PSP_Settings.iScreenSize == 0) {
-		GFX.Screen = (uint8*)pgGetVramAddr( (SCREEN_WIDTH - SNES_WIDTH) >> 1, (SCREEN_HEIGHT - SNES_HEIGHT) >> 1 );
+		GFX.Screen = (uint8 *)pgGetVramAddr ((SCREEN_WIDTH - SNES_WIDTH) >> 1, (SCREEN_HEIGHT - SNES_HEIGHT) >> 1);
 	} else {
-		GFX.Screen = (uint8*)GFX_Screen;
+		GFX.Screen = (uint8 *)GFX_Screen;
 	}
 	END_RELEASE_CODE
 */
-
-	if      (PSP_Settings.iPSP_ClockUp == 2) scePowerSetClockFrequency (333, 333, 166);
-	else if (PSP_Settings.iPSP_ClockUp == 1) scePowerSetClockFrequency (266, 266, 133);
-	else                                     scePowerSetClockFrequency (222, 222, 111);
+	set_clock_speed ();
 	
 	g_bSleep = false;
 
@@ -2543,7 +2562,7 @@ void close_menu (void)
 void open_menu (void)
 {
 	// Do this before screwing with the blit backend...
-	get_screenshot((unsigned char *)GFX.Screen);
+	get_screenshot ((unsigned char *)GFX.Screen);
 
 	// While the menu is open, temporarily disable GU blitting...
 	bGUIMode = TRUE;
@@ -2552,96 +2571,91 @@ void open_menu (void)
 	char* msg = g_szMainMenuMsg;
 	int&  sel = g_iMainMenuSel;
 	
-	scePowerSetClockFrequency (222, 222, 111);
+	set_clock_speed (PSP_CLOCK_222);
 	
-	// mod by a - Only do this when a new state is written or a manual refresh is performed
-	//            Doing this here would make opening the menu take longer...
-	///get_slotdate(S9xGetFilename("sv0"));
-	///get_thumbs(S9xGetFilename("tn0"));
-
 	bool f_bExit = false;
 	
 	old_pad = PSP_CTRL_LEFT;
 	
-	msg[0]=0;
+	msg [0] = '\0'; // Please use '\0' instead of 0, it makes it easy
+	                // to tell at a glance that this serves as a
+			// C string NULL terminator.
 
-	for(;;){
-		readpad();
+	for (;;){
+		readpad ();
 
-		if (new_pad & PSP_CTRL_CIRCLE){
-			if (sel == SRAM_SAVE){
-				// mod by J
-				if ( sram_save_check() == true ) {
-					save_config();
-					if ( Memory.SaveSRAM( S9xGetFilename("srm") ) ) {
-							strcpy(msg, "SRAM Saved Successfully.");
+		if (new_pad & PSP_CTRL_CIRCLE) {
+			if (sel == SRAM_SAVE) {
+				if (sram_save_check () == true) {
+					save_config ();
+					
+					if (Memory.SaveSRAM (S9xGetSRAMFilename ())) {
+							strcpy (msg, "SRAM Saved Successfully.");
 					} else {
-							strcpy(msg, "SRAM Save Failed or Not Found SRAM.");
+							strcpy (msg, "SRAM Save Failed or Not Found SRAM.");
 					}
 				}else {
-					strcpy(msg, "SRAM Save Cancel.");
+					strcpy (msg, "SRAM Save Cancel.");
 				}
-			} else if (sel == STATE_SLOT){
+			} else if (sel == STATE_SLOT) {
 				PSP_Settings.iSaveSlot++;
 				if (PSP_Settings.iSaveSlot > SAVE_SLOT_MAX) {
 					PSP_Settings.iSaveSlot = 0;
 				}
-			} else if (sel == STATE_SAVE){
-				// mod by J
-				if ( state_save_check() == true ) {
+			} else if (sel == STATE_SAVE) {
+				if (state_save_check () == true ) {
 					// Speed the clock up to save time saving states
-					scePowerSetClockFrequency (333, 333, 166);
+					set_clock_speed (PSP_CLOCK_333);
 
-					pgFillBox( 129, 104, 351, 168, 0 );
-					mh_print(195, 132, (unsigned char*)"Now State Saving...", RGB(255,205,0));
-					pgScreenFlipV();
-					save_config();
-					Memory.SaveSRAM( S9xGetFilename("srm") );
+					pgFillBox       (129, 104, 351, 168, 0);
+					mh_print        (195, 132, (unsigned char*)"Now State Saving...", RGB (255,205,0));
+					pgScreenFlipV   ();
+					save_config     ();
+					Memory.SaveSRAM (S9xGetFilename ("srm"));
 					
 					int S9xFreezeGame_PSP (const char* filename);
-					if ( S9xFreezeGame_PSP (S9xGetFilename("sv0") ) ) {
+					if (S9xFreezeGame_PSP (S9xGetFilename("sv0"))) {
 							if (PSP_Settings.bSaveThumb) {
-								save_thumb(S9xGetFilename("tn0"));
+								save_thumb (S9xGetFilename ("tn0"));
 							} else {
-								delete_file(S9xGetFilename("tn0"));
+								delete_file (S9xGetFilename ("tn0"));
 							}
-							strcpy(msg, "State Saved Successfully.");
+							strcpy (msg, "State Saved Successfully.");
 					} else {
-							strcpy(msg, "State Save Failed.");
+							strcpy (msg, "State Save Failed.");
 					}
 					
 					refresh_state_list ();
 					
-					S9xSetSoundMute( TRUE );
+					S9xSetSoundMute (TRUE);
 
-					scePowerSetClockFrequency (222, 222, 111);
+					set_clock_speed (PSP_CLOCK_222);
 				}else {
 					strcpy(msg, "State Save Cancel.");
 				}
-			} else if (sel == STATE_LOAD){
-				scePowerSetClockFrequency (333, 333, 166);
+			} else if (sel == STATE_LOAD) {
+				set_clock_speed (PSP_CLOCK_333);
 
-				if ( S9xUnfreezeGame_PSP ( S9xGetFilename("sv0") ) ) {
-					Memory.LoadSRAM( S9xGetFilename("srm") );
-					S9xSetInfoString( "State Loaded." );
+				if (S9xUnfreezeGame_PSP (S9xGetFilename ("sv0"))) {
+					Memory.LoadSRAM  (S9xGetFilename ("srm"));
+					S9xSetInfoString ("State Loaded.");
 					break;
 				} else {
-					strcpy(msg, "State Load Failed.");
+					strcpy (msg, "State Load Failed.");
 				}
-			} else if (sel == STATE_DEL){
-				// mod by J
-				if ( state_delete_check() == true ) {
+			} else if (sel == STATE_DEL) {
+				if (state_delete_check () == true) {
 					// ステートセーブデータ削除
-					delete_file(S9xGetFilename("sv0"));
-					delete_file(S9xGetFilename("tn0"));
-					strcpy(msg, "State Delete Success.");
+					delete_file (S9xGetFilename ("sv0"));
+					delete_file (S9xGetFilename ("tn0"));
+					strcpy (msg, "State Delete Success.");
 				}else {
-					strcpy(msg, "State Delete Cancel.");
+					strcpy (msg, "State Delete Cancel.");
 				}
 
 				refresh_state_list ();
 			} else if (sel == STATE_COMPRESS) {
-				scePowerSetClockFrequency (333, 333, 166);
+				set_clock_speed (PSP_CLOCK_333);
 
 				bool success     = false;
 				int  compression = save_slots [PSP_Settings.iSaveSlot].compression;
@@ -2747,7 +2761,7 @@ void open_menu (void)
 				}
 
 				refresh_state_list ();
-				scePowerSetClockFrequency (222, 222, 111);
+				set_clock_speed (PSP_CLOCK_222);
 			} else if (sel == STATE_REFRESH) {
 				refresh_state_list ();
 			} else if (sel == STATE_CONFIG) {
@@ -2756,45 +2770,46 @@ void open_menu (void)
 				display_config ();
 			} else if (sel == SOUND_CONFIG) {
 				sound_config ();
-			} else if (sel == FRAME_SKIP){
+			} else if (sel == FRAME_SKIP) {
 				PSP_Settings.iSkipFrames++;
-				if ( PSP_Settings.iSkipFrames > 10 ){
+				if (PSP_Settings.iSkipFrames > 10) {
 					PSP_Settings.iSkipFrames = 0;
 				}
-			} else if (sel == AUTO_SKIP){
+			} else if (sel == AUTO_SKIP) {
 				PSP_Settings.bAutoSkip = !PSP_Settings.bAutoSkip;
-			} else if (sel == HBLANK_CYCLE){
+			} else if (sel == HBLANK_CYCLE) {
 				PSP_Settings.iHBlankCycleDiv++;
 				if (PSP_Settings.iHBlankCycleDiv > PSP_CYCLE_DIV_MAX) {
 					PSP_Settings.iHBlankCycleDiv = 10;
 				}
-			} else if (sel == APU_CYCLE){
+			} else if (sel == APU_CYCLE) {
 				PSP_Settings.iAPUTimerCycleDiv++;
 				if (PSP_Settings.iAPUTimerCycleDiv > PSP_CYCLE_DIV_MAX) {
 					PSP_Settings.iAPUTimerCycleDiv = 10;
 				}
-			} else if (sel == KEY_CONFIG){
-				// mod by J
-				key_config();
-			} else if (sel == PSP_CLOCKUP){
+			} else if (sel == KEY_CONFIG) {
+				key_config ();
+			} else if (sel == PSP_CLOCKUP) {
 				PSP_Settings.iPSP_ClockUp++;
-				if (PSP_Settings.iPSP_ClockUp > 2) {
+				if (PSP_Settings.iPSP_ClockUp >= NUM_PSP_CLOCK_SPEEDS) {
 					PSP_Settings.iPSP_ClockUp = 0;
 				}
-			} else if (sel == LOAD_ROM){
+			} else if (sel == LOAD_ROM) {
 				// Speed the clock up to save time loading ROMs (especially compressed ones)
-				scePowerSetClockFrequency (333, 333, 166);
+				set_clock_speed (PSP_CLOCK_333);
 
-				msg[0]=0;
-				FilerMsg[0]=0;
-				if (getFilePath(RomPath, EXT_MASK_ROM)){
-					save_config();
-					Memory.SaveSRAM( S9xGetFilename("srm") );
-					if ( Memory.LoadROM(RomPath) ){
-						Memory.LoadSRAM( S9xGetFilename("srm") );
-						load_config();
-						// add by J
-						load_wall_bmp();
+				msg      [0] = '\0';
+				FilerMsg [0] = '\0';
+				
+				if (getFilePath (RomPath, EXT_MASK_ROM)) {
+					save_config     ();
+					Memory.SaveSRAM (S9xGetSRAMFilename ());
+					
+					if (Memory.LoadROM (RomPath)) {
+						Memory.LoadSRAM (S9xGetSRAMFilename ());
+						load_config     ();
+						load_wall_bmp   ();
+						
 						Settings.Paused = FALSE;
 
 						refresh_state_list ();
@@ -2803,84 +2818,84 @@ void open_menu (void)
 
 						return;
 					} else {
-						strcpy(msg, "Rom image Load Failed.");
+						strcpy (msg, "Rom image Load Failed.");
 					}
 				}
-			} else if (sel == RESET){
-				S9xReset();
-				S9xSetInfoString( "Game Reseted." );
+			} else if (sel == RESET) {
+				S9xReset         ();
+				S9xSetInfoString ("Game Reset." );
 				break;
 			} else if (sel == FILE_MANAGER) {
 				getFilePath (RomPath, 0xffffffff);
 			}
-		} else if (new_pad & PSP_CTRL_CROSS){
+		} else if (new_pad & PSP_CTRL_CROSS) {
 			break;
-		} else if (new_pad & PSP_CTRL_UP){
-			if (sel!=0){
+		} else if (new_pad & PSP_CTRL_UP) {
+			if (sel != 0) {
 				sel--;
 			} else {
-				sel=FILE_MANAGER;
+				sel = FILE_MANAGER;
 			}
-		} else if (new_pad & PSP_CTRL_DOWN){
-			if (sel!=FILE_MANAGER){
+		} else if (new_pad & PSP_CTRL_DOWN) {
+			if (sel != FILE_MANAGER) {
 				sel++;
 			} else {
 				sel=0;
 			}
-		} else if (new_pad & PSP_CTRL_LEFT){
-			if (sel >= STATE_SLOT && sel <= STATE_REFRESH){
+		} else if (new_pad & PSP_CTRL_LEFT) {
+			if (sel >= STATE_SLOT && sel <= STATE_REFRESH) {
 				if (PSP_Settings.iSaveSlot < 1) {
 					PSP_Settings.iSaveSlot = SAVE_SLOT_MAX + 1;
 				}
 				PSP_Settings.iSaveSlot--;
-			} else if (sel == FRAME_SKIP){
-				if ( PSP_Settings.iSkipFrames > 0 ){
+			} else if (sel == FRAME_SKIP) {
+				if (PSP_Settings.iSkipFrames > 0) {
 					PSP_Settings.iSkipFrames--;
 				}
-			} else if (sel == AUTO_SKIP){
+			} else if (sel == AUTO_SKIP) {
 				PSP_Settings.bAutoSkip = true;
-			} else if (sel == HBLANK_CYCLE){
+			} else if (sel == HBLANK_CYCLE) {
 				if (PSP_Settings.iHBlankCycleDiv < 11) {
 					PSP_Settings.iHBlankCycleDiv = 11;
 				}
 				PSP_Settings.iHBlankCycleDiv--;
-			} else if (sel == APU_CYCLE){
+			} else if (sel == APU_CYCLE) {
 				if (PSP_Settings.iAPUTimerCycleDiv < 11) {
 					PSP_Settings.iAPUTimerCycleDiv = 11;
 				}
 				PSP_Settings.iAPUTimerCycleDiv--;
-			} else if (sel == PSP_CLOCKUP){
+			} else if (sel == PSP_CLOCKUP) {
 				if (PSP_Settings.iPSP_ClockUp < 1) {
 					PSP_Settings.iPSP_ClockUp = 1;
 				}
 				PSP_Settings.iPSP_ClockUp--;
 			}
-		} else if (new_pad & PSP_CTRL_RIGHT){
+		} else if (new_pad & PSP_CTRL_RIGHT) {
 			if (sel >= STATE_SLOT && sel <= STATE_REFRESH) {
 				PSP_Settings.iSaveSlot++;
 				if (PSP_Settings.iSaveSlot > SAVE_SLOT_MAX) {
 					PSP_Settings.iSaveSlot = 0;
 				}
-			} else if (sel == FRAME_SKIP){
-				if ( PSP_Settings.iSkipFrames < 10 ){
+			} else if (sel == FRAME_SKIP) {
+				if (PSP_Settings.iSkipFrames < 10) {
 					PSP_Settings.iSkipFrames++;
 				}
 			} else if (sel == AUTO_SKIP){
 				PSP_Settings.bAutoSkip = false;
-			} else if (sel == HBLANK_CYCLE){
+			} else if (sel == HBLANK_CYCLE) {
 				PSP_Settings.iHBlankCycleDiv++;
 				if (PSP_Settings.iHBlankCycleDiv > PSP_CYCLE_DIV_MAX) {
 					PSP_Settings.iHBlankCycleDiv = PSP_CYCLE_DIV_MAX;
 				}
-			} else if (sel == APU_CYCLE){
+			} else if (sel == APU_CYCLE) {
 				PSP_Settings.iAPUTimerCycleDiv++;
 				if (PSP_Settings.iAPUTimerCycleDiv > PSP_CYCLE_DIV_MAX) {
 					PSP_Settings.iAPUTimerCycleDiv = PSP_CYCLE_DIV_MAX;
 				}
-			} else if (sel == PSP_CLOCKUP){
+			} else if (sel == PSP_CLOCKUP) {
 				PSP_Settings.iPSP_ClockUp++;
-				if (PSP_Settings.iPSP_ClockUp > 2) {
-					PSP_Settings.iPSP_ClockUp = 2;
+				if (PSP_Settings.iPSP_ClockUp >= NUM_PSP_CLOCK_SPEEDS) {
+					PSP_Settings.iPSP_ClockUp = (NUM_PSP_CLOCK_SPEEDS - 1);
 				}
 			}
 		} else if ((now_pad & PSP_CTRL_SELECT) && (now_pad & PSP_CTRL_START)) {
@@ -2888,31 +2903,31 @@ void open_menu (void)
 			break;
 		}
 		// If both, the L and R triggers are down, don't do anything...
-		else if (new_pad & PSP_CTRL_LTRIGGER && (! (new_pad & PSP_CTRL_RTRIGGER))){
-			if (sel>LOAD_ROM) {
-				sel=LOAD_ROM;
-			} else if (sel>FRAME_SKIP){
-				sel=FRAME_SKIP;
-			} else if (sel>DISPLAY_CONFIG){
-				sel=DISPLAY_CONFIG;
-			} else if (sel>STATE_SLOT){
-				sel=STATE_SLOT;
-			} else if (sel>SRAM_SAVE){
-				sel=SRAM_SAVE;
+		else if (new_pad & PSP_CTRL_LTRIGGER && (! (new_pad & PSP_CTRL_RTRIGGER))) {
+			if (sel > LOAD_ROM) {
+				sel = LOAD_ROM;
+			} else if (sel > FRAME_SKIP) {
+				sel = FRAME_SKIP;
+			} else if (sel > DISPLAY_CONFIG) {
+				sel = DISPLAY_CONFIG;
+			} else if (sel > STATE_SLOT) {
+				sel = STATE_SLOT;
+			} else if (sel > SRAM_SAVE) {
+				sel = SRAM_SAVE;
 			}
 		}
 		// If both, the L and R triggers are down, don't do anything...
-		else if (new_pad & PSP_CTRL_RTRIGGER && (! (new_pad & PSP_CTRL_LTRIGGER))){
-			if (sel<STATE_SLOT) {
-				sel=STATE_SLOT;
-			} else if (sel<DISPLAY_CONFIG) {
-				sel=DISPLAY_CONFIG;
-			} else if (sel<FRAME_SKIP) {
-				sel=FRAME_SKIP;
-			} else if (sel<LOAD_ROM){
-				sel=LOAD_ROM;
-			} else if (sel<FILE_MANAGER){
-				sel=FILE_MANAGER;
+		else if (new_pad & PSP_CTRL_RTRIGGER && (! (new_pad & PSP_CTRL_LTRIGGER))) {
+			if (sel < STATE_SLOT) {
+				sel = STATE_SLOT;
+			} else if (sel < DISPLAY_CONFIG) {
+				sel = DISPLAY_CONFIG;
+			} else if (sel < FRAME_SKIP) {
+				sel = FRAME_SKIP;
+			} else if (sel < LOAD_ROM){
+				sel = LOAD_ROM;
+			} else if (sel < FILE_MANAGER){
+				sel = FILE_MANAGER;
 			}
 		}
 		
@@ -2921,9 +2936,9 @@ void open_menu (void)
 	}
 	
 	if (f_bExit) {
-		pgFillBox( 129, 104, 351, 168, 0 );
-		mh_print(210, 132, (unsigned char*)"Good bye ...", 0xffff);
-		pgScreenFlipV();
+		pgFillBox     (129, 104, 351, 168, 0);
+		mh_print      (210, 132, (unsigned char*)"Good bye ...", 0xffff);
+		pgScreenFlipV ();
 
 		// Shutdown Snes9x
 		S9xExit     ();
@@ -2935,12 +2950,12 @@ void open_menu (void)
 		sceKernelExitGame ();
 	}
 	
-	Settings.H_Max = (long)((SNES_CYCLES_PER_SCANLINE * 1000) / ( PSP_Settings.iHBlankCycleDiv * 100));
+	Settings.H_Max       = (long)((SNES_CYCLES_PER_SCANLINE * 1000) / ( PSP_Settings.iHBlankCycleDiv * 100));
 	Settings.HBlankStart = ((uint32)Settings.H_Max << 8) / SNES_HCOUNTER_MAX;
-	fix_H_Max();
+	fix_H_Max ();
 	Settings.PSP_APUTimerCycle = (uint32)((SNES_APUTIMER2_CYCLEx10000 * 1000) / (PSP_Settings.iAPUTimerCycleDiv * 100));
 	
-	if (PSP_Settings.bTrans){
+	if (PSP_Settings.bTrans) {
 		Settings.Transparency = TRUE;
 	} else {
 		Settings.Transparency = FALSE;
@@ -2949,69 +2964,77 @@ void open_menu (void)
 	close_menu ();
 }
 
-void S9xProcessEvents( bool8 block )
+void S9xProcessEvents (bool8 block)
 {
-	if ( s_iAnalog == ANALOG_NONE ) {
-	return;
+	if (s_iAnalog == ANALOG_NONE) {
+		return;
 	}
 	
-	if ( s_iAnalog == ANALOG_LEFT ){
-		S9xSetSoundMute( TRUE );
+	if (s_iAnalog == ANALOG_LEFT){
+		S9xSetSoundMute (TRUE);
 	
-		open_menu();
+		open_menu ();
 
 		pgWaitVn (8);
 
-		if (!PSP_Settings.bSoundOff) { S9xSetSoundMute( FALSE );}
-	} else if ( s_iAnalog == ANALOG_RIGHT ){
+		if (! PSP_Settings.bSoundOff) {
+			S9xSetSoundMute (FALSE);
+		}
+	} else if (s_iAnalog == ANALOG_RIGHT) {
 		PSP_Settings.bSoundOff = !PSP_Settings.bSoundOff;
+
 		if (PSP_Settings.bSoundOff) {
-			S9xSetSoundMute( TRUE );
-			if ( g_thread !=-1 ){
+			S9xSetSoundMute (TRUE);
+			
+			if (g_thread != -1) {
 				Settings.ThreadSound = FALSE;
-				sceKernelWaitThreadEnd( g_thread, NULL );
-				sceKernelDeleteThread( g_thread );
+				sceKernelWaitThreadEnd (g_thread, NULL);
+				sceKernelDeleteThread  (g_thread);
+				g_thread = -1;
 			}
-			S9xSetInfoString( "Sound: OFF" );
+			S9xSetInfoString ("Sound: OFF");
 		} else {
 			Settings.ThreadSound = TRUE;
-			InitTimer();
-			S9xSetSoundMute( FALSE );
-			S9xSetInfoString( "Sound: ON" );
+			InitTimer        ();
+			S9xSetSoundMute  (FALSE);
+			S9xSetInfoString ("Sound: ON");
 		}
-		pgWaitVn(16);
-	} else if ( s_iAnalog == ANALOG_UP ){
-		if ( PSP_Settings.iSkipFrames < 10 ){
+		
+		pgWaitVn (16);
+	} else if (s_iAnalog == ANALOG_UP){
+		if (PSP_Settings.iSkipFrames < 10) {
 			PSP_Settings.iSkipFrames++;
-			pgWaitVn(8);
+			pgWaitVn (8);
 		}
-	} else if ( s_iAnalog == ANALOG_DOWN ){
-		if ( PSP_Settings.iSkipFrames > 0 ){
+	} else if (s_iAnalog == ANALOG_DOWN) {
+		if (PSP_Settings.iSkipFrames > 0) {
 			PSP_Settings.iSkipFrames--;
-			pgWaitVn(8);
+			pgWaitVn (8);
 		}
 	}
 
-	if ( Settings.SkipFrames != PSP_Settings.iSkipFrames ){
+	if (Settings.SkipFrames != PSP_Settings.iSkipFrames) {
 		Settings.SkipFrames = PSP_Settings.iSkipFrames;
-		strcpy( String, "FrameSkip:" );
-		if ( Settings.SkipFrames < 10 ){
-			String[10] = (Settings.SkipFrames % 10) + '0';
-			String[11] = 0;
+		strcpy (String, "FrameSkip:");
+		
+		if (Settings.SkipFrames < 10){
+			String [10] = (Settings.SkipFrames % 10) + '0';
+			String [11] = '\0';
 		} else {
-			String[10] = (Settings.SkipFrames / 10) + '0';
-			String[11] = (Settings.SkipFrames % 10) + '0';
-			String[12] = 0;
+			String [10] = (Settings.SkipFrames / 10) + '0';
+			String [11] = (Settings.SkipFrames % 10) + '0';
+			String [12] = '\0';
 		}
-		S9xSetInfoString( String );
+		S9xSetInfoString (String);
 	}
+	
 	s_iAnalog = ANALOG_NONE;
 }
 
 void init_pg (void)
 {
-	if (PSP_Settings.bUseGUBlit)
-		pspDebugScreenInit ();
+//	if (PSP_Settings.bUseGUBlit)
+//		pspDebugScreenInit ();
 
 	pgMain ();
 	pgInit ();
@@ -3031,159 +3054,128 @@ void init_blit_backend (void)
 	S9xMarkScreenDirtyEx ();
 }
 
-int main(int argc, char **argv)
+int main( int argc, char **argv)
 {
-//	debug_log( argv );
+//	debug_log (argv);
 
 	pspDebugInstallErrorHandler (NULL);
 	pspDebugScreenInit          ();
 
 	PSP_Settings.bUseGUBlit = FALSE; // Disable this by default
 
-// mod by y
-	char *p, savedir[_MAX_PATH];
-//	pgMain();
-	strcpy(PBPPath, argv[0]);
-	p = strrchr(PBPPath, '/');
-	*++p = 0;
+	char *p, savedir [_MAX_PATH];
+	strcpy (PBPPath, argv [0]);
+	p = strrchr (PBPPath, '/');
+	*++p = '\0';
 
-	SetupCallbacks();
+	SetupCallbacks ();
 
-//	pgInit();
-
-//	pgScreenFrame(2,0);
+//	pgScreenFrame (2, 0);
 	init_blit_backend ();
 
-	sceCtrlSetSamplingCycle(0);
+	sceCtrlSetSamplingCycle (0);
 
-	strcpy(savedir,PBPPath);
-	strcat(savedir,"SAVE");
-	sceIoMkdir(savedir,0777);
+	strcpy            (savedir, PBPPath);
+	strcat            (savedir, "SAVE");
+	sceIoMkdir        (savedir, 0777);
+	clear_execute_bit (savedir);
 
-/*
-#ifdef RELEASE
-	sceCtrlSetAnalogMode( 1 );
-#else
-	sceCtrlSetAnalogMode( 0 );
-#endif // RELEASE
-*/
+
 	so.sound_fd = -1;
 
-//	debug_log( "Snes9x for PSP Ver.0.02" );
+//	debug_log ("Snes9x for PSP Ver.0.02");
 
-	memset( &Settings, 0, sizeof( Settings ) );
+	memset (&Settings, 0, sizeof (Settings));
+
+	Settings.CyclesPercentage           = 100;
+	Settings.SoundPlaybackRate          = 4;
+	Settings.SoundBufferSize            = SOUND_SAMPLE;
+	Settings.DisableSoundEcho           = FALSE;
+	Settings.APUEnabled                 =
+	Settings.NextAPUEnabled             = TRUE;
+	Settings.SoundSync                  = FALSE;
+	Settings.ThreadSound                = TRUE;
+	Settings.SoundEnvelopeHeightReading = TRUE;
+	Settings.DisableMasterVolume        = FALSE;
+	Settings.ShutdownMaster             = TRUE;
+	Settings.SkipFrames                 = 0;
+	Settings.FrameTimePAL               = 20000;
+	Settings.FrameTimeNTSC              = 16667;
+	Settings.FrameTime                  = Settings.FrameTimeNTSC;
+	Settings.TurboMode                  = FALSE;
+	Settings.TurboSkipFrames            = 10;
+	Settings.Transparency               = TRUE;
+	Settings.SupportHiRes               = FALSE;
+	Settings.ControllerOption           = SNES_JOYPAD;
+	Settings.H_Max                      = SNES_CYCLES_PER_SCANLINE;
+	Settings.HBlankStart                = (Settings.H_Max << 8) / SNES_HCOUNTER_MAX;
+	Settings.PSP_APUTimerCycle          = SNES_APUTIMER2_CYCLEx10000;
 
 #ifndef OPTI
-	Settings.JoystickEnabled = FALSE;
-#endif // OPTI
-	Settings.SoundPlaybackRate = 4;
-#ifndef OPTI
-	Settings.Stereo = TRUE;
-#endif // OPTI
-	Settings.SoundBufferSize = 0;
-	Settings.CyclesPercentage = 100;
-	Settings.DisableSoundEcho = FALSE;
-	Settings.APUEnabled = Settings.NextAPUEnabled = FALSE;
-	Settings.H_Max = SNES_CYCLES_PER_SCANLINE;
-	Settings.SkipFrames = AUTO_FRAMERATE;
-	Settings.ShutdownMaster = TRUE;
-	Settings.FrameTimePAL = 20000;
-	Settings.FrameTimeNTSC = 16667;
-	Settings.FrameTime = Settings.FrameTimeNTSC;
-#ifndef OPTI
+	Settings.JoystickEnabled    = FALSE;
+	Settings.Stereo             = TRUE;
 	Settings.StretchScreenshots = 1;
-#endif // OPTI
-	Settings.DisableMasterVolume = FALSE;
-#ifndef OPTI
-	Settings.Mouse = TRUE;
-	Settings.SuperScope = TRUE;
-	Settings.MultiPlayer5 = TRUE;
-#endif // OPTI
-	Settings.ControllerOption = SNES_JOYPAD;
-	Settings.Transparency = FALSE;
-#ifndef OPTI
-	Settings.SixteenBit = FALSE;
-	Settings.NetPlay = FALSE;
-	Settings.ServerName [0] = 0;
-	Settings.AutoSaveDelay = 30;
-	Settings.ApplyCheats = TRUE;
-#endif // OPTI
-	Settings.SupportHiRes = FALSE;
-	Settings.ThreadSound = FALSE;
-	Settings.TurboMode = FALSE;
-	Settings.TurboSkipFrames = 40;
-#ifndef OPTI
-	Settings.StretchScreenshots = 1;
-#endif // OPTI
-//Settings.DisplayFrameRate = TRUE;
-Settings.SkipFrames = 0;
-//Settings.SkipFrames = AUTO_FRAMERATE;
-//Settings.AutoMaxSkipFrames = 10;
-//Settings.SoundBufferSize = 44100 * 2 * 2 / 1000;
-Settings.SoundBufferSize = SOUND_SAMPLE;/* MAX_SOUND_SAMPLE; */
-Settings.SoundSync = FALSE;
-Settings.SoundEnvelopeHeightReading = TRUE;
-Settings.ThreadSound = TRUE;
-Settings.APUEnabled = Settings.NextAPUEnabled = TRUE;
-#ifdef PSP
-Settings.PSP_APUTimerCycle = SNES_APUTIMER2_CYCLEx10000;
-#endif // PSP
-
-#ifndef OPTI
+	Settings.Mouse              = FALSE;
+	Settings.SuperScope         = FALSE;
+	Settings.MultiPlayer5       = FALSE;
+	Settings.SixteenBit         = TRUE;
+	Settings.NetPlay            = FALSE;
+	Settings.ServerName [0]     = '\0';
+	Settings.AutoSaveDelay      = 30;
+	Settings.ApplyCheats        = FALSE;
 	Settings.Transparency = Settings.ForceTransparency;
-	if ( Settings.ForceNoTransparency ){
+	if (Settings.ForceNoTransparency) {
 		Settings.Transparency = FALSE;
 	}
 
-	if ( Settings.Transparency ){
+	if (Settings.Transparency) {
 		Settings.SixteenBit = TRUE;
 	}
 #endif // OPTI
 
-	Settings.HBlankStart = (Settings.H_Max << 8) / SNES_HCOUNTER_MAX;
-
-	if ( !Memory.Init() || !S9xInitAPU() ){
+	if (! (Memory.Init () && S9xInitAPU ())) {
 		return -1;
 	}
 
 #ifdef OPTI
-	S9xInitSound( Settings.SoundPlaybackRate, 1, Settings.SoundBufferSize );
+	S9xInitSound (Settings.SoundPlaybackRate, 1, Settings.SoundBufferSize);
 #else
-	S9xInitSound( Settings.SoundPlaybackRate, Settings.Stereo, Settings.SoundBufferSize );
+	S9xInitSound (Settings.SoundPlaybackRate, Settings.Stereo, Settings.SoundBufferSize);
 #endif // OPTI
 
-	if ( !Settings.APUEnabled ){
-		S9xSetSoundMute( TRUE );
+	if (! Settings.APUEnabled) {
+		S9xSetSoundMute (TRUE);
 	}
 
 	uint32 saved_flags = CPU.Flags;
 
-// add by J
-	key_config_init ();
+//	load_global_config ();
+	key_config_init    ();
 
 	// Speed the clock up to save time loading ROMs (especially compressed ones)
-	scePowerSetClockFrequency (333, 333, 166);
+	set_clock_speed (PSP_CLOCK_333);
 
-// mod by y
-	strcpy(LastPath,PBPPath);
-	FilerMsg[0]=0;
-	for(;;){
-		while(!getFilePath(RomPath, EXT_MASK_ROM))
+	strcpy(LastPath,PBPPath); // Replace with load_global_config
+	
+	FilerMsg [0] = '\0';
+	for (;;) {
+		while (! getFilePath (RomPath, EXT_MASK_ROM))
 			;
-		if ( !Memory.LoadROM(RomPath) ){
+			
+		if (! Memory.LoadROM (RomPath)) {
 			continue;
-		} else {
-			refresh_state_list ();
-
-			Settings.Paused = FALSE;
 		}
+		
+		refresh_state_list ();
+
+		Settings.Paused = FALSE;
 		break;
 	}
-// mod by J
-	load_wall_bmp ();
 
+	load_wall_bmp        ();
 	S9xMarkScreenDirtyEx ();
-	Memory.LoadSRAM( S9xGetFilename( "srm" ) );
+	
+	Memory.LoadSRAM  (S9xGetFilename ("srm"));
 //	S9xLoadCheatFile (S9xGetFilename ("cht"));
 
 	g_bROMLoaded = true;
@@ -3191,56 +3183,73 @@ Settings.PSP_APUTimerCycle = SNES_APUTIMER2_CYCLEx10000;
 	
 	CPU.Flags = saved_flags;
 
-	S9xInitInputDevices();
+	S9xInitInputDevices ();
 
-	S9xInitDisplay( 0, 0 );
-	if ( !S9xGraphicsInit() ){
+	S9xInitDisplay (0, 0);
+	if (! S9xGraphicsInit ()) {
 		return -1;
 	}
 
-//	S9xTextMode();
+#if 0
+//#ifdef USE_SNAPSHOT_FILE
+	S9xTextMode ();
 
-/*
+
 	if (snapshot_filename)
 	{
-	int Flags = CPU.Flags & (DEBUG_MODE_FLAG | TRACE_FLAG);
-	if (!S9xLoadSnapshot (snapshot_filename))
-		exit (1);
-	CPU.Flags |= Flags;
+		int Flags = CPU.Flags & (DEBUG_MODE_FLAG | TRACE_FLAG);
+		
+		if (! S9xLoadSnapshot (snapshot_filename))
+			exit (1);
+
+		CPU.Flags |= Flags;
 	}
-*/
-//	S9xGraphicsMode();
 
-//	sprintf (String, "\"%s\" %s: %s", Memory.ROMName, TITLE, VERSION);
-//	S9xSetTitle( String );
+	S9xGraphicsMode ();
 
-	InitTimer();
-	if ( !Settings.APUEnabled ){
-		S9xSetSoundMute( FALSE );
+	sprintf     (String, "\"%s\" %s: %s", Memory.ROMName, TITLE, VERSION);
+	S9xSetTitle (String);
+#endif
+
+	InitTimer ();
+	
+	if (! Settings.APUEnabled) {
+		S9xSetSoundMute (FALSE);
 	}
 
 	s_iFrame = 0;
-	gettimeofday( &s_tvStart, 0 );
+	gettimeofday (&s_tvStart, 0);
 
 	PSP_Settings.bSoundOff = false;
-	load_config();
+	load_config ();
+
+	S9xSetSoundMute (TRUE);
 
 	S9xMarkScreenDirtyEx ();
 
-	S9xSetSoundMute( TRUE );
+	// WTF?! What's messing with these?
+	g_bLoop         = TRUE;
+	g_bSleep        = FALSE;
+	Settings.Paused = FALSE;
 
-	while ( g_bLoop ){
-		if ( !Settings.Paused ){
-			S9xMainLoop();
+	while (g_bLoop) {
+		if (! Settings.Paused) {
+			S9xMainLoop ();
 		}
 		
-		if (g_bSleep){
-			while (g_bSleep) pgWaitV();
-			sceKernelLibcGettimeofday(&s_tvStart, NULL);
+		if (g_bSleep) {
+			while (g_bSleep)
+				pgWaitV ();
+				
+			sceKernelLibcGettimeofday (&s_tvStart, NULL);
 			next1.tv_sec = 0;
-			if (PSP_Settings.iPSP_ClockUp == 2) scePowerSetClockFrequency(333,333,166);
-			else if (PSP_Settings.iPSP_ClockUp == 1) scePowerSetClockFrequency(266,266,133);
-			if (!PSP_Settings.bSoundOff) { S9xSetSoundMute( FALSE );}
+
+			set_clock_speed ();
+
+			if (! PSP_Settings.bSoundOff) {
+				S9xSetSoundMute (FALSE);
+			}
+			
 			g_bSleep = false;
 		}
 	}
@@ -3391,145 +3400,156 @@ void refresh_state_list (void)
 #define SLASH_STR "/"
 #define SLASH_CHAR '/'
 
-void _makepath( char *path, const char *drive, const char *dir, const char *fname, const char *ext )
+void _makepath (char *path, const char *drive, const char *dir, const char *fname, const char *ext)
 {
-	if ( drive && *drive ){
+	if (drive && *drive) {
 		*path       = *drive;
 		*(path + 1) = ':';
-		*(path + 2) = 0;
+		*(path + 2) = '\0';
 	} else {
-		*path = 0;
+		*path = '\0';
 	}
 	
-	if ( dir && *dir ){
-		strcat( path, dir );
-		if ( strlen( dir ) != 1 || *dir != '\\' ){
-			strcat( path, SLASH_STR );
+	if (dir && *dir) {
+		strcat (path, dir);
+
+		if (strlen (dir) != 1 || *dir != '\\') {
+			strcat (path, SLASH_STR);
 		}
 	}
 	
-	if ( fname ){
-		strcat( path, fname );
+	if (fname) {
+		strcat (path, fname);
 	}
-	if ( ext && *ext ){
-		strcat( path, "." );
-		strcat( path, ext );
+
+	if (ext && *ext) {
+		strcat (path, ".");
+		strcat (path, ext);
 	}
 }
 
-void _splitpath( const char *path, char *drive, char *dir, char *fname, char *ext )
+void _splitpath (const char *path, char *drive, char *dir, char *fname, char *ext)
 {
-	if ( *path && *(path + 1) == ':' ){
-		*drive = toupper( *path );
-		path += 2;
+	if (*path && *(path + 1) == ':') {
+		*drive = toupper (*path);
+		 path += 2;
 	} else {
-		*drive = 0;
+		*drive = '\0';
 	}
 
-	char*	slash = strrchr( path, SLASH_CHAR );
-	if ( !slash ){
-		slash = strrchr( path, '/' );
+	char*	slash = strrchr (path, SLASH_CHAR);
+	
+	if (! slash) {
+		slash = strrchr (path, '/');
 	}
-	char*	dot = strrchr( path, '.' );
-	if ( dot && slash && dot < slash ){
+	
+	char*	dot = strrchr (path, '.');
+	
+	if (dot && slash && dot < slash) {
 		dot = NULL;
 	}
 
-	if ( !slash ){
-		if ( *drive ){
-			strcpy( dir, "\\" );
+	if (! slash) {
+		if (*drive) {
+			strcpy (dir, "\\");
 		} else {
-			strcpy( dir, "" );
+			*dir = '\0';
 		}
-		strcpy( fname, path );
-		if ( dot ){
-			*(fname + (dot - path)) = 0;
-			strcpy( ext, dot + 1 );
+
+		strcpy (fname, path);
+
+		if (dot) {
+			*(fname + (dot - path)) = '\0';
+			strcpy (ext, dot + 1);
 		} else {
-			strcpy( ext, "" );
+			*ext = '\0';
 		}
 	} else {
-		if ( *drive && *path != '\\' ){
-			strcpy( dir, "\\" );
-			strcat( dir, path );
-			*(dir + (slash - path) + 1) = 0;
+		if (*drive && *path != '\\'){
+			strcpy (dir, "\\");
+			strcat (dir, path);
+			*(dir + (slash - path) + 1) = '\0';
 		} else {
-			strcpy( dir, path );
-			if ( (slash - path) == 0 ){
-				*(dir + 1) = 0;
+			strcpy (dir, path);
+			
+			if ((slash - path) == '\0') {
+				*(dir + 1) = '\0';
 			} else {
-				*(dir + (slash - path)) = 0;
+				*(dir + (slash - path)) = '\0';
 			}
 		}
 
-		strcpy( fname, slash + 1 );
-		if ( dot ){
-			*(fname + (dot - slash) - 1) = 0;
-			strcpy( ext, dot + 1 );
+		strcpy (fname, slash + 1);
+		
+		if (dot) {
+			*(fname + (dot - slash) - 1) = '\0';
+			strcpy (ext, dot + 1);
 		} else {
-			strcpy( ext, "" );
+			*ext = '\0';
 		}
 	}
 }
 
 extern "C" {
 
-void strrev(char *s)
+void strrev (char *s)
 {
 	char tmp;
 	int i;
-	int len = strlen(s);
+	int len = strlen (s);
 	
-	for(i=0; i<len/2; i++){
-		tmp = s[i];
-		s[i] = s[len-1-i];
-		s[len-1-i] = tmp;
+	for (i = 0; i < (len / 2); i++) {
+		tmp             = s [i];
+		s [i]           = s [len - 1 - i];
+		s [len - 1 - i] = tmp;
 	}
 }
 
-void itoa(int val, char *s) {
+void itoa (int val, char *s)
+{
 	char *t;
-	int mod;
+	int   mod;
 
-	if(val < 0) {
+	if (val < 0) {
 		*s++ = '-';
-		val = -val;
+		 val = -val;
 	}
+
 	t = s;
 
-	while(val) {
-		mod = val % 10;
-		*t++ = (char)mod + '0';
-		val /= 10;
+	while (val) {
+		 mod  = val % 10;
+		*t++  = (char)mod + '0';
+		 val /= 10;
 	}
 
-	if(s == t)
+	if (s == t)
 		*t++ = '0';
 
 	*t = '\0';
 
-	strrev(s);
+	strrev (s);
 }
 
-void ustoa(unsigned short val, char *s)
+void ustoa (unsigned short val, char *s)
 {
 	char *t;
 	unsigned short mod;
 	
 	t = s;
 	
-	while(val) {
-		mod = val % 10;
-		*t++ = (char)mod + '0';
-		val /= 10;
+	while (val) {
+		 mod  = val % 10;
+		*t++  = (char)mod + '0';
+		 val /= 10;
 	}
 
-	if(s == t)
+	if (s == t)
 		*t++ = '0';
 
 	*t = '\0';
 
-	strrev(s);
+	strrev (s);
 }
 
 int atoi (const char *s)
@@ -3537,7 +3557,7 @@ int atoi (const char *s)
   int neg = 0, ret = 1;
 
   for (;ret;++s) {
-    switch(*s) {
+    switch (*s) {
       case ' ':
       case '\t':
         continue;
@@ -3573,6 +3593,40 @@ void clear_execute_bit (const char* filename)
 	sceIoChstat (filename, &filestat, 0xffffffff);
 }
 
+extern "C" {
+void set_clock_speed (int speed)
+{
+	switch (speed) {
+		case PSP_CLOCK_333:
+			scePowerSetClockFrequency (333, 333, 166);
+			break;
+		case PSP_CLOCK_266:
+			scePowerSetClockFrequency (266, 266, 133);
+			break;
+		case PSP_CLOCK_222:
+		default:
+			scePowerSetClockFrequency (222, 222, 111);
+			break;
+	}
+}
+
+void set_playback_rate (int rate)
+{
+	switch (rate) {
+		case PSP_SOUND_RATE_44:
+		default:
+			S9xSetPlaybackRate (44100);
+			break;
+		case PSP_SOUND_RATE_22:
+			S9xSetPlaybackRate (22050);
+			break;
+		case PSP_SOUND_RATE_11:
+			S9xSetPlaybackRate (11025);
+			break;
+	}
+}
+};
+
 #include "font.h"
 
 extern void DisplayChar (uint8 *Screen, uint8 c);
@@ -3593,8 +3647,8 @@ void S9xDisplayStringEx (const char *string, int x, int y)
 		  (font_width - 1) * x);
 #endif
 
-    int len = strlen (string);
-    int max_chars = IPPU.RenderedScreenWidth / (font_width - 1);
+    int len        = strlen (string);
+    int max_chars  = IPPU.RenderedScreenWidth / (font_width - 1);
     int char_count = 0;
     int i;
 
@@ -3657,7 +3711,7 @@ bool draw_profile_screen (void)
 	}
 
 	if (g_bShowProfilerInfo) {
-	  pspDebugScreenSetXY       (0, 0);
+	  pspDebugScreenSetXY (0, 0);
 
           pspDebugScreenPrintf ("IPPU Rendered Pixel Height: %d\n\n", IPPU.RenderedScreenHeight);
 
@@ -3721,17 +3775,3 @@ bool draw_profile_screen (void)
 	return (FALSE);
 }
 #endif /* USE_PROFILER */
-
-
-/*
-WIP
-・ちょっぴり速くなった
-・サウンドが綺麗になった
-・画面のセンタリング
-・フレームスキップ(時間同期すると遅いので本当のスキップのみ)
-・SRAMセーブを有効
-・フレームスキップ時にハングアップする不具合の修正
-・画面隅が欠ける不具合の修正
-
-http://www.geocities.jp/pasofami77/chip/sfcchip
-*/

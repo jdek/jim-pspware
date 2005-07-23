@@ -41,6 +41,9 @@ SceGUData SceGU;
 extern "C" {
 bool8 S9xSceGUInit ()
 {
+  sceGuInit ();
+  
+  S9xSceGUInit2 ();
 /*
   init_pg ();
 
@@ -56,6 +59,7 @@ bool8 S9xSceGUInit ()
 
 bool8 S9xSceGUInit2 ()
 {
+  SceGU.line_size        = 512;
   SceGU.max_texture_size = 512;
 
   if (SceGU.max_texture_size >= 512)
@@ -81,6 +85,7 @@ bool8 S9xSceGUInit2 ()
   }
 #endif
 
+  // Use a 16-bit pixel format 5-bits for RGB and 1-bit for Alpha (unused)
   SceGU.texture_format = GE_TPSM_5551;
   SceGU.pixel_format   = GE_PSM_5551;
   SceGU.ct             = GE_CT_5551;
@@ -90,9 +95,9 @@ bool8 S9xSceGUInit2 ()
 
   sceGuStart (0, SceGU.list);
 
-    sceGuDrawBufferList (SceGU.pixel_format, (void *)0,        SceGU.texture_size);
-    sceGuDispBuffer     (480, 272,           (void *)0x88000,  SceGU.texture_size);
-    sceGuDepthBuffer    (                    (void *)0x110000, SceGU.texture_size);
+    sceGuDrawBufferList (SceGU.pixel_format, (void *)0,        SceGU.line_size);
+    sceGuDispBuffer     (480, 272,           (void *)0x88000,  SceGU.line_size);
+    sceGuDepthBuffer    (                    (void *)0x110000, SceGU.line_size);
     sceGuOffset         (0, 0);
     sceGuViewport       ((480 / 2), (272 / 2), 480, 272);
     sceGuDepthRange     (0xc350, 0x2710);
@@ -225,7 +230,7 @@ void S9xSceGURenderTex (char *tex, int width, int height, int x, int y, int xsca
 #endif
 
     // Do a striped blit (takes the page-cache into account)
-    for (j = 0; j < width; j += SLICE_SIZE, x += slice_scale, vtx_iter += 2)
+    for (j = 0; j < width; j += SLICE_SIZE, x += slice_scale)
     {
 #ifndef DRAW_SINGLE_BATCH
       vtx_iter = (struct Vertex *)sceGuGetMemory (sizeof (struct Vertex) * 2);
@@ -247,6 +252,8 @@ void S9xSceGURenderTex (char *tex, int width, int height, int x, int y, int xsca
                                                2,
                                                0,
                                             vtx_iter);
+
+      vtx_iter += 2;
 #endif
     }
 
@@ -265,7 +272,12 @@ void S9xSceGURenderTex (char *tex, int width, int height, int x, int y, int xsca
 
   }
   sceGuFinish ();
-//sceGuSync   (0, 0);
+
+  if (PSP_Settings.bVSync)
+    sceDisplayWaitVblankStart ();
+
+//  sceGuSync (0, 0);
+//  sceGuSwapBuffers ();
 }
 };
 
