@@ -195,6 +195,9 @@ void S9xMarkScreenDirtyEx (void);
 extern "C" void init_blit_backend (void);
 extern "C" void init_pg           (void);
 
+extern "C" void pgShutdown        (void);
+
+
 extern "C" void draw_menu         (void);
 
 PSPSETTINGS PSP_Settings;
@@ -1534,6 +1537,8 @@ void S9xShutdown (void)
 
 	// Shutdown SceGU
 	S9xSceGUDeinit ();
+	
+  pgShutdown ();
 }
 
 // S9x may call this if it encounters a fatal error... Don't actually
@@ -2601,7 +2606,7 @@ void open_menu (void)
 					PSP_Settings.iSaveSlot = 0;
 				}
 			} else if (sel == STATE_SAVE) {
-				if (state_save_check () == true ) {
+				if (state_save_check () == true) {
 					// Speed the clock up to save time saving states
 					set_clock_speed (PSP_CLOCK_333);
 
@@ -2647,11 +2652,11 @@ void open_menu (void)
 					delete_file (S9xGetFilename ("sv0"));
 					delete_file (S9xGetFilename ("tn0"));
 					strcpy (msg, "State Delete Success.");
+
+					refresh_state_list ();
 				}else {
 					strcpy (msg, "State Delete Cancel.");
 				}
-
-				refresh_state_list ();
 			} else if (sel == STATE_COMPRESS) {
 				set_clock_speed (PSP_CLOCK_333);
 

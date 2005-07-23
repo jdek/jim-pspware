@@ -60,7 +60,7 @@ unsigned char *pgGetVramAddr(unsigned long x,unsigned long y)
 void pgInit(void)
 {
 	if (PSP_Settings.bUseGUBlit && (! bGUIMode)) {
-		S9xSceGUInit2 ();
+		S9xSceGUInit ();
 
 		pg_vramtop = (char *) (0x40000000 | sceGeEdramGetAddr ());
 		
@@ -75,6 +75,13 @@ void pgInit(void)
 	}
 	
 	pgScreenFrame (0, 0);
+}
+
+
+void pgShutdown (void)
+{
+	sceDisplaySetMode     (0, SCREEN_WIDTH, SCREEN_HEIGHT);
+	sceDisplaySetFrameBuf (pgGetVramAddr (0, 0), LINESIZE, 1, 0);
 }
 
 

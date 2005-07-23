@@ -39,9 +39,12 @@
 SceGUData SceGU;
 
 extern "C" {
-bool8 S9xSceGUInit ()
+bool8 S9xSceGUInit (void)
 {
   sceGuInit ();
+
+  sceDisplaySetMode (0, SCREEN_WIDTH, SCREEN_HEIGHT);
+
   
   S9xSceGUInit2 ();
 /*
@@ -57,7 +60,7 @@ bool8 S9xSceGUInit ()
   return (TRUE);
 }
 
-bool8 S9xSceGUInit2 ()
+bool8 S9xSceGUInit2 (void)
 {
   SceGU.line_size        = 512;
   SceGU.max_texture_size = 512;
