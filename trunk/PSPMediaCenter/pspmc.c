@@ -27,7 +27,12 @@
 
 /* Define the module info section */
 PSP_MODULE_INFO("PSPMC", 0x1000, 0, 1);
+//#define K_STARTUP
+#ifdef K_STARTUP
+PSP_MAIN_THREAD_ATTR(THREAD_ATTR_USER);
+#else
 PSP_MAIN_THREAD_ATTR(0);
+#endif
 
 /* Define printf, just to make typing easier */
 #define printf  pspDebugScreenPrintf
@@ -38,7 +43,9 @@ unsigned char banner[] = "PSP Media Center v0.90 by John_K & adresd\0";
 int errno, __errno;
 int codecnum = 0;
 
-/* Example custom exception handler */
+/**
+ * custom exception handler
+ */
 void MyExceptionHandler(PspDebugRegBlock * regs)
 {
     /* I always felt BSODs were more interesting that white on black */
@@ -55,25 +62,30 @@ void MyExceptionHandler(PspDebugRegBlock * regs)
 
 
 #ifdef USB_ENABLED
-//helper function to make things easier
+/**
+ * helper function to make things easier
+ */
 int LoadStartModule(char *path)
 {
-    u32 loadResult;
-    u32 startResult;
-    int status;
+  u32 loadResult;
+  u32 startResult;
+  int status;
 
-    loadResult = sceKernelLoadModule(path, 0, NULL);
-    if (loadResult & 0x80000000)
-	return -1;
-    else
-	startResult =
-	    sceKernelStartModule(loadResult, 0, NULL, &status, NULL);
+  loadResult = sceKernelLoadModule(path, 0, NULL);
+  if (loadResult & 0x80000000)
+    return -1;
+  else
+    startResult =
+    sceKernelStartModule(loadResult, 0, NULL, &status, NULL);
 
-    if (loadResult != startResult)
-	return -2;
+  if (loadResult != startResult)
+    return -2;
 
-    return 0;
+  return 0;
 }
+/**
+ * Load all the prx's needed for usb, and init the drivers
+ */
 void usb_init(void)
 {
   int retVal;
@@ -102,24 +114,36 @@ void usb_init(void)
   }
   retVal = 0;
 }
+/**
+ * Tear down the USB drivers
+ */
 void usb_deinit(void)
 {
   int retVal;
   unsigned int state = sceUsbGetState();
   if (state & PSP_USB_ACTIVATED) {
     retVal = sceUsbDeactivate();
-    if (retVal != 0)
+    if (retVal != 0)  {
       printf("Error calling sceUsbDeactivate (0x%08X)\n",retVal);
+	    sceKernelSleepThread();
+    }
   }
   retVal = sceUsbStop(PSP_USBSTOR_DRIVERNAME,0,0);
-  if (retVal != 0)
+  if (retVal != 0) {
     printf("Error calling sceUsbStop stor (0x%08X)\n",retVal);
+ 	  sceKernelSleepThread();
+  }
 
   retVal = sceUsbStop(PSP_USBBUS_DRIVERNAME,0,0);
-  if (retVal != 0)
+  if (retVal != 0) {
     printf("Error calling sceUsbStop bus (0x%08X)\n",retVal);
+	  sceKernelSleepThread();
+  }
 }
 
+/**
+ * Call this from the GUI end to toggle the USB on/off
+ */
 void usb_toggle(void)
 {
   unsigned int state = sceUsbGetState();
@@ -131,7 +155,7 @@ void usb_toggle(void)
 }
 #endif
 
-#if 0 // causes problems, so done in main at the moment
+#ifdef K_STARTUP // causes problems, so done in main at the moment
 /**
  * Function that is called from _init in kernelmode before the
  * main thread is started in usermode.
@@ -142,22 +166,18 @@ void loaderInit()
     pspKernelSetKernelPC();
     pspSdkInstallNoDeviceCheckPatch();
     pspDebugInstallKprintfHandler(NULL);
-    pspDebugInstallErrorHandler(MyExceptionHandler);
+    //pspDebugInstallErrorHandler(MyExceptionHandler);
 }
 #endif
 
-void cleanupandexit(void)
+
+/* Exit callback */
+void exit_callback(void)
 {
 #ifdef USB_ENABLED
   usb_deinit();
 #endif
   sceKernelExitGame();
-}
-
-/* Exit callback */
-void exit_callback(void)
-{
-  cleanupandexit;
 }
 
 /* Callback thread */
@@ -178,27 +198,27 @@ int SetupCallbacks(void)
 	sceKernelStartThread(thid, 0, 0);
     return thid;
 }
-
-/* main routine */
+/**
+ *  main routine 
+ */
 int main(int argc, char *argv[])
 {
     int stubnum;
 #ifdef USB_ENABLED
+    pspDebugScreenInit();
+    pspDebugScreenClear();
+#ifndef K_STARTUP
     pspSdkInstallNoDeviceCheckPatch();
-    pspDebugInstallKprintfHandler(NULL);
+    //pspDebugInstallKprintfHandler(NULL);
     pspDebugInstallErrorHandler(MyExceptionHandler);
+#endif
+    usb_init();
 #endif
 
     SetupCallbacks();
     // Setup Pad
     sceCtrlSetSamplingCycle(0);
     sceCtrlSetSamplingMode(0);
-
-#ifdef USB_ENABLED
-    pspDebugScreenInit();
-    pspDebugScreenClear();
-    usb_init();
-#endif
 
     //get codecStubs
     stubnum = 0;
@@ -211,7 +231,10 @@ int main(int argc, char *argv[])
     gui_main();
 
     pspAudioEnd();
-    cleanupandexit();
+#ifdef USB_ENABLED
+    usb_deinit();
+#endif
+    sceKernelExitGame();
 
     // wait forever
     sceKernelSleepThread();
