@@ -17,9 +17,10 @@ OBJS := pspmc.o $(PSP_OBJS)
 LIBS = $(PLAYER_LIBS) -lpspaudiolib  -lpspaudio -lpsplibc -lpsphprm
 # Take cflags and ldflags from codec script and add them in
 CFLAGS  := -G0 $(PSP_CFLAGS) $(CFLAGS)
-CXXFLAGS := $(CFLAGS) -fno-exceptions -fno-rtti
+#CXXFLAGS := $(CFLAGS) -fno-exceptions -fno-rtti
+CXXFLAGS := $(CFLAGS)
 ASFLAGS := $(CFLAGS)
-LDFLAGS := $(PSP_LDFLAGS) -Lnewlib-fix
+LDFLAGS := $(PSP_LDFLAGS) -Lnewlib-fix -v
 EXTRA_TARGETS := deps header 
 
 # This must be included here
