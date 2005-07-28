@@ -238,6 +238,8 @@ char LastPath [_MAX_PATH];
 char FilerMsg [256];
 static int  dialog_y;
 
+extern volatile bool8 g_bLoop;
+
 int getFilePath(char *out, int ext_mask)
 {
 	int original_ext_mask = ext_mask;
@@ -256,6 +258,10 @@ int getFilePath(char *out, int ext_mask)
 	getDir (path, ext_mask);
 
 	for(;;){
+		// Bail out if g_bLoop is false.
+		if (! g_bLoop)
+			return 0;
+		
 		readpad ();
 
 		if(new_pad)
@@ -808,7 +814,7 @@ bool8 delete_file_confirm (const char *path, const char *name)
 			return FALSE;
 		}
 		
-		// The user as confirmed the file delete
+		// The user has confirmed the file delete
 		else if (new_pad & PSP_CTRL_CIRCLE){
 			strcpy      (delete_path, path);
 			strcat      (delete_path, name);
@@ -970,15 +976,15 @@ bool8 copy_file (const char *path, const char *name)
 			sprintf (tmp_str, "    Please note, this operation will require %d Memory Stick swaps\n"
 					  " (Forced to read/write in %d Kb blocks due to limited Heap memory)\n"
 					  "\n"
-					  "                Continue □ ／ Abort ○\n\n",
+					  "                   Continue □ ／ Abort ○\n\n",
 				num_blocks,
 				  (block_size / 1024));
 
-			message_dialog (50, 125, "       　【　　Multiple Swap Confirmation　　】　  ",
+			message_dialog (50, 125, "           　【　　Multiple Swap Confirmation　　】　  ",
 					          tmp_str);
 
 			// Need the front/back buffers to say the same thing.
-			message_dialog (50, 125, "       　【　　Multiple Swap Confirmation　　】　  ",
+			message_dialog (50, 125, "           　【　　Multiple Swap Confirmation　　】　  ",
 					          tmp_str);
 
 			while (1) {
@@ -996,8 +1002,8 @@ bool8 copy_file (const char *path, const char *name)
 	
 	for (bytes_copied = 0; bytes_copied < file_size; bytes_copied += block_size)
 	{
-		// Keep these open so the user can't fsck themself and overwrite
-		// the same file...
+		// Keep these open until the beginning of each loop iteration so the
+		// user can't fsck themself and overwrite the same file...
 		if (file_in != NULL)
 			fclose (file_in);
 		if (file_out != NULL)

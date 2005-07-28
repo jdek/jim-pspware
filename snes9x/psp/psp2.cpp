@@ -2,32 +2,9 @@
 
 int ExitCallback (void)
 {
-	S9xSetSoundMute (TRUE);
-
-	if (g_thread !=-1) {
-		Settings.ThreadSound = FALSE;
-		sceKernelWaitThreadEnd (g_thread, NULL);
-		sceKernelDeleteThread  (g_thread);
-	}
-
-	S9xCloseSoundDevice ();
+	S9xShutdownPSP ();
 	
-	g_bLoop  = false;
-	g_bSleep = true;
-	
-	// Cleanup the games resources etc (if required)
-	Settings.Paused = TRUE;
-	if (g_bROMLoaded) {
-		save_config     ();
-		Memory.SaveSRAM (S9xGetFilename ("srm"));
-	}
-
-	scePowerSetClockFrequency (222, 222, 111);
-
-	// Exit game
-	sceKernelExitGame ();
-
-	return 0;
+	return 1;
 }
 
 void PowerCallback (int unknown, int pwrflags)
