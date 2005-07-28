@@ -1525,8 +1525,19 @@ void S9xGenerateSound (void)
 
 }
 
+void exit_game (void)
+{
+	scePowerSetClockFrequency (222, 222, 111);
+
+	// Exit game
+	sceKernelExitGame ();
+}
+
+// Shutdown the S9x core
 void S9xShutdown (void)
 {
+	S9xSetSoundMute (TRUE);
+
 	if (g_thread != -1) {
 		Settings.ThreadSound = FALSE;
 		sceKernelWaitThreadEnd (g_thread, NULL);
@@ -1537,8 +1548,6 @@ void S9xShutdown (void)
 
 	// Shutdown SceGU
 	S9xSceGUDeinit ();
-	
-  pgShutdown ();
 }
 
 // S9x may call this if it encounters a fatal error... Don't actually
@@ -1547,13 +1556,33 @@ void S9xExit (void)
 {
 	Settings.Paused = TRUE;
 
-	save_config ();
+	if (g_bROMLoaded) {
+		save_config ();
 
-	Memory.SaveSRAM (S9xGetSRAMFilename ());
-	Memory.Deinit   ();
+		Memory.SaveSRAM (S9xGetSRAMFilename ());
+		Memory.Deinit   ();
+	}
 
-//	exit (0);
+	g_bROMLoaded = FALSE;
 }
+
+//
+// Complete shutdown, this signals the main loop to exit.
+//
+//  * It's safe to call this from any thread.
+void S9xShutdownPSP (void)
+{
+	// Shutdown Snes9x
+	S9xExit     ();
+	S9xShutdown ();
+
+//	g_bSleep = true;
+	g_bLoop  = false;
+
+	pgShutdown ();
+}
+
+
 
 void *S9xProcessSound (void *)
 {
@@ -2943,14 +2972,7 @@ void open_menu (void)
 		mh_print      (210, 132, (unsigned char*)"Good bye ...", 0xffff);
 		pgScreenFlipV ();
 
-		// Shutdown Snes9x
-		S9xExit     ();
-		S9xShutdown ();
-
-		g_bLoop = false;
-
-		// Exit game
-		sceKernelExitGame ();
+		S9xShutdownPSP ();
 	}
 
 	Settings.H_Max       = (long)((SNES_CYCLES_PER_SCANLINE * 1000) / ( PSP_Settings.iHBlankCycleDiv * 100));
@@ -3162,8 +3184,15 @@ int main( int argc, char **argv)
 
 	FilerMsg [0] = '\0';
 	for (;;) {
-		while (! getFilePath (RomPath, EXT_MASK_ROM))
+		while ((! getFilePath (RomPath, EXT_MASK_ROM)) && g_bLoop)
 			;
+
+			// If the user selected Exit from the home button during ROM selection,
+			// exit here.
+			if (! g_bLoop) {
+				exit_game ();
+				return 0;
+			}
 
 		if (! Memory.LoadROM (RomPath)) {
 			continue;
@@ -3256,6 +3285,8 @@ int main( int argc, char **argv)
 			g_bSleep = false;
 		}
 	}
+
+	exit_game ();
 
 	return 0;
 }

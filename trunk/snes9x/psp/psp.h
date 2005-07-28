@@ -20,6 +20,8 @@ void sceDisplayWaitVblankStart();
 void sceDisplaySetMode(long unknown, long width, long height);
 void sceDisplaySetFrameBuf(char *topaddr,long linesize,long pixelsize,long);
 
+void S9xShutdownPSP (void);
+
 #define MAX_ENTRY 1024
 
 typedef struct
