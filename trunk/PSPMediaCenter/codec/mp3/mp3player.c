@@ -81,8 +81,8 @@ void MP3setStubs(codecStubs * stubs)
     stubs->end = MP3_End;
     stubs->time = MP3_GetTimeString;
     stubs->tick = NULL;
-    stubs->eos =  MP3_EndOfStream;
-    memcpy(stubs->extension, "mp3\0" "\0\0\0\0", 2*4);
+    stubs->eos = MP3_EndOfStream;
+    memcpy(stubs->extension, "mp3\0" "\0\0\0\0", 2 * 4);
 }
 
 static int PrintFrameInfo(struct mad_header *Header)
@@ -367,10 +367,10 @@ static void MP3Callback(short *_buf, unsigned long numSamples)
 			sceDisplayWaitVblankStart();
 		    }
 		    return;	//continue;
-    } else if (Stream.error == MAD_ERROR_BUFLEN) {
-      eos = 1;
+		} else if (Stream.error == MAD_ERROR_BUFLEN) {
+		    eos = 1;
 		    return;	//continue;
-    } else {
+		} else {
 		    printf("unrecoverable frame level error (%s).\n", MadErrorString(&Stream));
 		    sceDisplayWaitVblankStart();
 		    Status = 1;
@@ -625,7 +625,7 @@ void MP3_GetTimeString(char *dest)
 
 int MP3_EndOfStream()
 {
-  if (eos == 1)
-    return 1;
-  return 0;
+    if (eos == 1)
+	return 1;
+    return 0;
 }

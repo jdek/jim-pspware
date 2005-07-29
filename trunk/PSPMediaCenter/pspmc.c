@@ -53,7 +53,7 @@ void MyExceptionHandler(PspDebugRegBlock * regs)
     pspDebugScreenSetTextColor(0xFFFFFFFF);
     //pspDebugScreenClear();
 
-    pspDebugScreenSetXY(0,17);
+    pspDebugScreenSetXY(0, 17);
     pspDebugScreenPrintf("\nI regret to inform you your psp has just crashed\n");
     pspDebugScreenPrintf("Exception Details:\n");
     pspDebugDumpException(regs);
@@ -67,78 +67,79 @@ void MyExceptionHandler(PspDebugRegBlock * regs)
  */
 int LoadStartModule(char *path)
 {
-  u32 loadResult;
-  u32 startResult;
-  int status;
+    u32 loadResult;
+    u32 startResult;
+    int status;
 
-  loadResult = sceKernelLoadModule(path, 0, NULL);
-  if (loadResult & 0x80000000)
-    return -1;
-  else
-    startResult =
-    sceKernelStartModule(loadResult, 0, NULL, &status, NULL);
+    loadResult = sceKernelLoadModule(path, 0, NULL);
+    if (loadResult & 0x80000000)
+	return -1;
+    else
+	startResult = sceKernelStartModule(loadResult, 0, NULL, &status, NULL);
 
-  if (loadResult != startResult)
-    return -2;
+    if (loadResult != startResult)
+	return -2;
 
-  return 0;
+    return 0;
 }
+
 /**
  * Load all the prx's needed for usb, and init the drivers
  */
 void usb_init(void)
 {
-  int retVal;
-  //start necessary drivers
-  LoadStartModule("flash0:/kd/semawm.prx");
-  LoadStartModule("flash0:/kd/usbstor.prx");
-  LoadStartModule("flash0:/kd/usbstormgr.prx");
-  LoadStartModule("flash0:/kd/usbstorms.prx");
-  LoadStartModule("flash0:/kd/usbstorboot.prx");
+    int retVal;
+    //start necessary drivers
+    LoadStartModule("flash0:/kd/semawm.prx");
+    LoadStartModule("flash0:/kd/usbstor.prx");
+    LoadStartModule("flash0:/kd/usbstormgr.prx");
+    LoadStartModule("flash0:/kd/usbstorms.prx");
+    LoadStartModule("flash0:/kd/usbstorboot.prx");
 
-  //setup USB drivers
-  retVal = sceUsbStart(PSP_USBBUS_DRIVERNAME, 0, 0);
-  if (retVal != 0) {
-  	printf("Error starting USB Bus driver (0x%08X)\n", retVal);
-	  sceKernelSleepThread();
-  }
-  retVal = sceUsbStart(PSP_USBSTOR_DRIVERNAME, 0, 0);
-  if (retVal != 0) {
-	  printf("Error starting USB Mass Storage driver (0x%08X)\n", retVal);
-	  sceKernelSleepThread();
-  }
-  retVal = sceUsbstorBootSetCapacity(0x800000);
-  if (retVal != 0) {
-	  printf("Error setting capacity with USB Mass Storage driver (0x%08X)\n", retVal);
-	  sceKernelSleepThread();
-  }
-  retVal = 0;
+    //setup USB drivers
+    retVal = sceUsbStart(PSP_USBBUS_DRIVERNAME, 0, 0);
+    if (retVal != 0) {
+	printf("Error starting USB Bus driver (0x%08X)\n", retVal);
+	sceKernelSleepThread();
+    }
+    retVal = sceUsbStart(PSP_USBSTOR_DRIVERNAME, 0, 0);
+    if (retVal != 0) {
+	printf("Error starting USB Mass Storage driver (0x%08X)\n", retVal);
+	sceKernelSleepThread();
+    }
+    retVal = sceUsbstorBootSetCapacity(0x800000);
+    if (retVal != 0) {
+	printf("Error setting capacity with USB Mass Storage driver (0x%08X)\n", retVal);
+	sceKernelSleepThread();
+    }
+    retVal = 0;
 }
+
 /**
  * Tear down the USB drivers
  */
 void usb_deinit(void)
 {
-  int retVal;
-  unsigned int state = sceUsbGetState();
-  if (state & PSP_USB_ACTIVATED) {
-    retVal = sceUsbDeactivate();
-    if (retVal != 0)  {
-      printf("Error calling sceUsbDeactivate (0x%08X)\n",retVal);
+    int retVal;
+    unsigned int state = sceUsbGetState();
+    if (state & PSP_USB_ACTIVATED) {
+	retVal = sceUsbDeactivate();
+	if (retVal != 0) {
+	    printf("Error calling sceUsbDeactivate (0x%08X)\n", retVal);
 	    sceKernelSleepThread();
+	}
     }
-  }
-  retVal = sceUsbStop(PSP_USBSTOR_DRIVERNAME,0,0);
-  if (retVal != 0) {
-    printf("Error calling sceUsbStop stor (0x%08X)\n",retVal);
- 	  sceKernelSleepThread();
-  }
+    retVal = sceUsbStop(PSP_USBSTOR_DRIVERNAME, 0, 0);
+    if (retVal != 0) {
+	printf("Error calling sceUsbStop stor (0x%08X)\n", retVal);
+	sceKernelSleepThread();
+    }
 
-  retVal = sceUsbStop(PSP_USBBUS_DRIVERNAME,0,0);
-  if (retVal != 0) {
-    printf("Error calling sceUsbStop bus (0x%08X)\n",retVal);
-	  sceKernelSleepThread();
-  }
+    retVal = sceUsbStop(PSP_USBBUS_DRIVERNAME, 0, 0);
+    if (retVal != 0) {
+	printf("Error calling sceUsbStop bus (0x%08X)\n", retVal);
+	sceKernelSleepThread();
+    }
 }
 
 /**
@@ -146,16 +147,16 @@ void usb_deinit(void)
  */
 void usb_toggle(void)
 {
-  unsigned int state = sceUsbGetState();
-  if (state & PSP_USB_ACTIVATED) {
-    sceUsbDeactivate();
-  } else {
-    sceUsbActivate(0x1c8);
-  }
+    unsigned int state = sceUsbGetState();
+    if (state & PSP_USB_ACTIVATED) {
+	sceUsbDeactivate();
+    } else {
+	sceUsbActivate(0x1c8);
+    }
 }
 #endif
 
-#ifdef K_STARTUP // causes problems, so done in main at the moment
+#ifdef K_STARTUP		// causes problems, so done in main at the moment
 /**
  * Function that is called from _init in kernelmode before the
  * main thread is started in usermode.
@@ -166,22 +167,22 @@ void loaderInit()
     pspKernelSetKernelPC();
     pspSdkInstallNoDeviceCheckPatch();
     pspDebugInstallKprintfHandler(NULL);
-    //pspDebugInstallErrorHandler(MyExceptionHandler);
+    pspDebugInstallErrorHandler(MyExceptionHandler);
 }
 #endif
 
 
 /* Exit callback */
-void exit_callback(void)
+int exit_callback(int arg1, int arg2, void *common)
 {
 #ifdef USB_ENABLED
-  usb_deinit();
+    usb_deinit();
 #endif
-  sceKernelExitGame();
+    sceKernelExitGame();
 }
 
 /* Callback thread */
-void CallbackThread(void *arg)
+int CallbackThread(SceSize args, void *argp)
 {
     int cbid;
     cbid = sceKernelCreateCallback("Exit Callback", exit_callback, NULL);
@@ -193,11 +194,12 @@ void CallbackThread(void *arg)
 int SetupCallbacks(void)
 {
     int thid = 0;
-    thid = sceKernelCreateThread("update_thread", CallbackThread, 0x11, 0xFA0, 0, 0);
+    thid = sceKernelCreateThread("update_thread", CallbackThread, 0x11, 0xFA0, THREAD_ATTR_USER, 0);
     if (thid >= 0)
 	sceKernelStartThread(thid, 0, 0);
     return thid;
 }
+
 /**
  *  main routine 
  */
@@ -209,12 +211,13 @@ int main(int argc, char *argv[])
     pspDebugScreenClear();
 #ifndef K_STARTUP
     pspSdkInstallNoDeviceCheckPatch();
-    //pspDebugInstallKprintfHandler(NULL);
+    pspDebugInstallKprintfHandler(NULL);
     pspDebugInstallErrorHandler(MyExceptionHandler);
 #endif
     usb_init();
 #endif
-
+    pspDebugInstallKprintfHandler(NULL);
+    pspDebugInstallErrorHandler(MyExceptionHandler);
     SetupCallbacks();
     // Setup Pad
     sceCtrlSetSamplingCycle(0);
@@ -222,8 +225,7 @@ int main(int argc, char *argv[])
 
     //get codecStubs
     stubnum = 0;
-    CODEC_INITSTUBS 
-    codecnum = stubnum;
+    CODEC_INITSTUBS codecnum = stubnum;
 
     pspAudioInit();
 

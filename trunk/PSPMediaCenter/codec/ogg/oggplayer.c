@@ -30,7 +30,7 @@ int eof = 0;
 int current_section;
 char **oggComments;
 vorbis_info *vi;
-int errno;			// __errno;
+//int errno;			// __errno;
 static int isPlaying;		// Set to true when a mod is being played
 static int myChannel;
 int fd = 0;
@@ -53,21 +53,24 @@ void OGGsetStubs(codecStubs * stubs)
     stubs->time = OGG_GetTimeString;
     stubs->tick = NULL;
     stubs->eos = OGG_EndOfStream;
-    memcpy(stubs->extension, "ogg\0" "\0\0\0\0", 2*4);
+    memcpy(stubs->extension, "ogg\0" "\0\0\0\0", 2 * 4);
 }
 
 
 static void OGGCallback(short *_buf, unsigned long numSamples)
 {
-    static short tempmixbuf[PSP_NUM_AUDIO_SAMPLES * 2 * 2];
+    static short tempmixbuf[PSP_NUM_AUDIO_SAMPLES * 2 * 2] __attribute__ ((aligned(64)));
     static unsigned long tempmixleft = 0;
 
     if (isPlaying == TRUE) {	// Playing , so mix up a buffer
 	while (tempmixleft < numSamples) {	//  Not enough in buffer, so we must mix more
 	    unsigned long bytesRequired = (numSamples - tempmixleft) * 4;	// 2channels, 16bit = 4 bytes per sample
-	    unsigned long ret = ov_read(&vf, (char *) &tempmixbuf[tempmixleft * 2], bytesRequired, &current_section);
+	    unsigned long ret;
+	    sceKernelDcacheWritebackInvalidateAll();
+	    sceKernelIcacheClearAll();
+	    ret = ov_read(&vf, (char *) &tempmixbuf[tempmixleft * 2], bytesRequired, &current_section);
 	    if (ret == 0) {	//EOF
-        eos = 1;
+		eos = 1;
 		if (ov_pcm_seek_page(&vf, 0) != 0) {
 		    printf("Could not seek to start of file\n");
 		    OGG_End();
@@ -228,7 +231,7 @@ void OGG_GetTimeString(char *dest)
 
 int OGG_EndOfStream()
 {
-  if (eos == 1)
-    return 1;
-  return 0;
+    if (eos == 1)
+	return 1;
+    return 0;
 }

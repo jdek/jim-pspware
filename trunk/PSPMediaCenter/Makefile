@@ -14,24 +14,25 @@ include codec.conf
 
 # Now postprocess the values
 OBJS := pspmc.o $(PSP_OBJS)
-LIBS = $(PLAYER_LIBS) -lpspaudiolib  -lpspaudio -lpsplibc -lpsphprm
+LIBS = $(PLAYER_LIBS) -lpspaudiolib  -lpspaudio -lpsphprm
 # Take cflags and ldflags from codec script and add them in
 CFLAGS  := -G0 $(PSP_CFLAGS) $(CFLAGS)
 #CXXFLAGS := $(CFLAGS) -fno-exceptions -fno-rtti
 CXXFLAGS := $(CFLAGS)
-ASFLAGS := $(CFLAGS)
-LDFLAGS := $(PSP_LDFLAGS) -Lnewlib-fix -v
-EXTRA_TARGETS := deps header 
+#ASFLAGS := $(CFLAGS)
+#LDFLAGS := $(PSP_LDFLAGS)
+EXTRA_TARGETS := header 
+#USE_PSPSDK_LIBC = 1
 
 # This must be included here
 include $(PSPSDK)/lib/build.mak
 
 # Now our own build targets
-deps: 
-	make -C newlib-fix
+#deps: 
+#	make -C newlib-fix
 
 cleanall:
-	make -C newlib-fix clean
+#	make -C newlib-fix clean
 	rm -f *.elf *.o *.a $(PSP_EBOOT) $(FINAL_TARGET) release/* release/v1.0/* release/PSPMC/* release/PSPMC%/* codecincs.h $(PSP_OBJS) 2> /dev/null
 
 cleanup:
