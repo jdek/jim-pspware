@@ -22,7 +22,7 @@ CXXFLAGS := $(CFLAGS)
 #ASFLAGS := $(CFLAGS)
 #LDFLAGS := $(PSP_LDFLAGS)
 EXTRA_TARGETS := header 
-#USE_PSPSDK_LIBC = 1
+USE_PSPSDK_LIBC = 1
 
 # This must be included here
 include $(PSPSDK)/lib/build.mak

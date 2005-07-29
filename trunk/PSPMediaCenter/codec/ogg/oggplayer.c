@@ -65,10 +65,7 @@ static void OGGCallback(short *_buf, unsigned long numSamples)
     if (isPlaying == TRUE) {	// Playing , so mix up a buffer
 	while (tempmixleft < numSamples) {	//  Not enough in buffer, so we must mix more
 	    unsigned long bytesRequired = (numSamples - tempmixleft) * 4;	// 2channels, 16bit = 4 bytes per sample
-	    unsigned long ret;
-	    sceKernelDcacheWritebackInvalidateAll();
-	    sceKernelIcacheClearAll();
-	    ret = ov_read(&vf, (char *) &tempmixbuf[tempmixleft * 2], bytesRequired, &current_section);
+	    unsigned long ret = ov_read(&vf, (char *) &tempmixbuf[tempmixleft * 2], bytesRequired, &current_section);
 	    if (ret == 0) {	//EOF
 		eos = 1;
 		if (ov_pcm_seek_page(&vf, 0) != 0) {
