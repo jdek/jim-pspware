@@ -153,16 +153,20 @@ typedef struct
     uint32       list [262144] __attribute__((aligned(16)));
 
     int          line_size;      // 512
+
+    void*        vram_offset;    // Used for double buffering
 } SceGUData;
 
 extern SceGUData SceGU;
 
 START_EXTERN_C
 
-  bool8 S9xSceGUInit     (void);
-  bool8 S9xSceGUInit2    (void);
-  void  S9xSceGUPutImage (int width, int height);
-  void  S9xSceGUDeinit   (void);
+  void  S9xSceGUDeinit      (void);
+  bool8 S9xSceGUInit        (void);
+  bool8 S9xSceGUInit2       (void);
+  void  S9xSceGUPutImage    (int width, int height);
+  void* S9xSceGUGetVramBase (void);
+  void* S9xSceGUGetVramAddr (int x, int y);
 
 END_EXTERN_C
 

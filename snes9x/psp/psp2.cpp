@@ -3,6 +3,9 @@
 int ExitCallback (void)
 {
 	S9xShutdownPSP ();
+
+	if (g_bFatalError)
+		sceKernelExitGame ();
 	
 	return 1;
 }
