@@ -310,7 +310,7 @@ endif
 # -L../zlib
 LDLIBS =  psp/unziplib.a -L`psp-config -p`/lib \
 	  -lpspaudio -lpspctrl -lpsppower -lpspdebug -lpspgu -lpspge -lpspdisplay \
-	  -lpsplibc -lpspglue -lpspuser -lpspkernel -lm #-lz
+	  -lpsplibc -lpspuser -lpspkernel -lm #-lz
 	  
 
 ifdef PROFILE

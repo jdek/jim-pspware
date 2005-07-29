@@ -119,7 +119,10 @@
 
 /* Define the module info section */
 PSP_MODULE_INFO      ("uo_Snes9x for PSP", 0x1000, 1, 1);
-PSP_MAIN_THREAD_ATTR (0);
+PSP_MAIN_THREAD_ATTR (0);//PSP_THREAD_ATTR_USER | PSP_THREAD_ATTR_VFPU);
+
+// Temporary hack
+int __errno;
 
 // Things you should know, by Andon
 // ---
@@ -147,7 +150,7 @@ PSP_MAIN_THREAD_ATTR (0);
 //
 
 extern "C" {
-#include "zlib.h"
+//#include "zlib.h"
 #include "rle_codec.c"
 
 #define RLE_MAGIC     "RLE!"
@@ -975,7 +978,7 @@ void display_config_disp (int cur_pos)
 	                                (PSP_Settings.bSupportHiRes))
 
 		AddBooleanConfigOption (BILINEAR,         "Filter Technique ",
-	                            "Bilinear","Point",
+	                            "Bilinear","Nearest",
 	                                (PSP_Settings.bBilinearFilter))
 	}
 

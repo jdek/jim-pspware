@@ -36,7 +36,7 @@ void PowerCallback (int unknown, int pwrflags)
 	}
 
 	int cbid;
-	cbid = sceKernelCreateCallback ("Power Callback", (void *)PowerCallback, NULL);
+	cbid = sceKernelCreateCallback ("Power Callback", (SceKernelCallbackFunction)PowerCallback, NULL);
 	scePowerRegisterCallback       (0, cbid);
 }
 
@@ -46,9 +46,9 @@ int CallbackThread (int args, void *argp)
 {
 	int cbid;
 
-	cbid = sceKernelCreateCallback ("Exit Callback", (void *)ExitCallback, NULL);
+	cbid = sceKernelCreateCallback ("Exit Callback", (SceKernelCallbackFunction)ExitCallback, NULL);
 	sceKernelRegisterExitCallback  (cbid);
-	cbid = sceKernelCreateCallback ("Power Callback", (void *)PowerCallback, NULL);
+	cbid = sceKernelCreateCallback ("Power Callback", (SceKernelCallbackFunction)PowerCallback, NULL);
 	scePowerRegisterCallback       (0, cbid);
 
 	sceKernelSleepThreadCB ();
