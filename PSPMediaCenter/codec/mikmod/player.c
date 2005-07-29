@@ -38,10 +38,10 @@ extern char *_mm_errmsg[];
 
 void my_error_handler(void)
 {
-	printf("_mm_critical %d\n", _mm_critical);
-	printf("_mm_errno %d\n", _mm_errno);
-	printf("%s\n", _mm_errmsg[_mm_errno]);
-	return;
+    printf("_mm_critical %d\n", _mm_critical);
+    printf("_mm_errno %d\n", _mm_errno);
+    printf("%s\n", _mm_errmsg[_mm_errno]);
+    return;
 }
 
 UNIMOD *mf;
@@ -60,18 +60,7 @@ void MIKMODsetStubs(codecStubs * stubs)
     stubs->tick = NULL;
     stubs->eos = MIKMOD_EndOfStream;
     memcpy(stubs->extension, "mod\0"
-                             ".xm\0"
-                             ".it\0"
-                             "s3m\0"
-                             "stm\0"
-                             "mtm\0"
-                             "669\0"
-                             "far\0"
-                             "dsm\0"
-                             "med\0"
-                             "ult\0"
-                             "uni\0"
-                             "\0\0\0\0", 13*4);
+	   ".xm\0" ".it\0" "s3m\0" "stm\0" "mtm\0" "669\0" "far\0" "dsm\0" "med\0" "ult\0" "uni\0" "\0\0\0\0", 13 * 4);
     // mod,xm,it,s3m,stm,mtm,669,far,dsm,med,ult,uni
 }
 
@@ -81,10 +70,10 @@ void MIKMOD_Init(int channel)
     myChannel = channel;
     isPlaying = FALSE;
     if (inited == 0) {
-      inited = 1;
-      _mm_RegisterErrorHandler(my_error_handler);
-      MikMod_RegisterAllLoaders();
-      MikMod_RegisterAllDrivers();
+	inited = 1;
+	_mm_RegisterErrorHandler(my_error_handler);
+	MikMod_RegisterAllLoaders();
+	MikMod_RegisterAllDrivers();
     }
     //md_mode = DMODE_16BITS|DMODE_STEREO|DMODE_SOFT_SNDFX|DMODE_SOFT_MUSIC; 
     MikMod_Init();
@@ -93,7 +82,7 @@ void MIKMOD_Init(int channel)
 
 void MIKMOD_FreeTune()
 {
-  MikMod_FreeSong(mf);
+    MikMod_FreeSong(mf);
 }
 
 
@@ -111,43 +100,43 @@ void MIKMOD_End()
 int size;
 unsigned char *ptr;
 
-void MIKMOD_DisplayInfo(UNIMOD *ptr)
+void MIKMOD_DisplayInfo(UNIMOD * ptr)
 {
-  int count;
-  int x, y;
-  printf("\n");
-  printf("Song Name   : %s\n",ptr->songname);
-  printf("Composer    : %s\n",ptr->composer);
-  printf("Comment     : %s\n",ptr->comment);
-  printf("Module Type : %s\n",ptr->modtype);
-  printf("Channels    : %d\n",ptr->numchn);
-  //printf("Instruments : %d\n",ptr->numins);
-  //printf("Samples     : %d\n",ptr->numsmp);
-  //printf("Patterns    : %d\n",ptr->numpat);
+    int count;
+    int x, y;
+    printf("\n");
+    printf("Song Name   : %s\n", ptr->songname);
+    printf("Composer    : %s\n", ptr->composer);
+    printf("Comment     : %s\n", ptr->comment);
+    printf("Module Type : %s\n", ptr->modtype);
+    printf("Channels    : %d\n", ptr->numchn);
+    //printf("Instruments : %d\n",ptr->numins);
+    //printf("Samples     : %d\n",ptr->numsmp);
+    //printf("Patterns    : %d\n",ptr->numpat);
 
-  x = pspDebugScreenGetX();
-  y = pspDebugScreenGetY();
-  for (count = 1; count < ptr->numsmp; count++) {
-  	if (count == ((ptr->numsmp+1) / 2)) {
+    x = pspDebugScreenGetX();
+    y = pspDebugScreenGetY();
+    for (count = 1; count < ptr->numsmp; count++) {
+	if (count == ((ptr->numsmp + 1) / 2)) {
 	    x += 30;
-	    y -= (count-1);
-	  }
-	  pspDebugScreenSetXY(x, y + count);
-	  printf("  %02d - %s", count, mf->samples[count].samplename);
-  }
+	    y -= (count - 1);
+	}
+	pspDebugScreenSetXY(x, y + count);
+	printf("  %02d - %s", count, mf->samples[count].samplename);
+    }
 }
 
 int MIKMOD_Load(char *filename)
 {
-  isPlaying = FALSE;
+    isPlaying = FALSE;
 
-  mf = MikMod_LoadSong(filename,maxchan);
-  if (mf != 0) {
-    Player_Start(mf);
-    MIKMOD_DisplayInfo(mf);
-    return 1;
-  }
-  return 0;
+    mf = MikMod_LoadSong(filename, maxchan);
+    if (mf != 0) {
+	Player_Start(mf);
+	MIKMOD_DisplayInfo(mf);
+	return 1;
+    }
+    return 0;
 }
 
 // This function initialises for playing, and starts
@@ -164,8 +153,10 @@ int MIKMOD_Play()
 void MIKMOD_Pause()
 {
     isPlaying = !isPlaying;
-    if (isPlaying) MikMod_EnableOutput();
-    else MikMod_DisableOutput();
+    if (isPlaying)
+	MikMod_EnableOutput();
+    else
+	MikMod_DisableOutput();
 }
 
 int MIKMOD_Stop()
@@ -178,14 +169,14 @@ int MIKMOD_Stop()
 
 void MIKMOD_GetTimeString(char *dest)
 {
-  sprintf(dest,"%02d:%02d:%02d",mf->sngpos,mf->patpos,mf->vbtick);
+    sprintf(dest, "%02d:%02d:%02d", mf->sngpos, mf->patpos, mf->vbtick);
 }
 
 //extern BOOL MikMod_Playing(void);
 extern BOOL Player_Active(void);
 int MIKMOD_EndOfStream()
 {
-  if (!Player_Active()) return 1;
-  return 0;
+    if (!Player_Active())
+	return 1;
+    return 0;
 }
-

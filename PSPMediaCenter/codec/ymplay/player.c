@@ -50,8 +50,8 @@ void YMPLAYsetStubs(codecStubs * stubs)
     stubs->end = YMPLAY_End;
     stubs->time = YMPLAY_GetTimeString;
     stubs->tick = NULL;
-    stubs->eos  = YMPLAY_EndOfStream;
-    memcpy(stubs->extension, ".ym\0" "\0\0\0\0", 2*4);
+    stubs->eos = YMPLAY_EndOfStream;
+    memcpy(stubs->extension, ".ym\0" "\0\0\0\0", 2 * 4);
 }
 
 
@@ -61,25 +61,24 @@ static void YMPLAYCallback(short *_buf, unsigned long numSamples)
     //      u8 justStarted = 1;
 
     if (isPlaying == TRUE) {	//  Playing , so mix up a buffer
-   		short *s = (short *)_buf;
-  		short *d = (short *)_buf;
+	short *s = (short *) _buf;
+	short *d = (short *) _buf;
 
-	  	if (!ymMusicCompute((void *)pMusic, (ymsample *)_buf, numSamples))
-        eos = 1;
+	if (!ymMusicCompute((void *) pMusic, (ymsample *) _buf, numSamples))
+	    eos = 1;
 
-  		s += numSamples-1;
-		  d += numSamples*2-1;
-		  while (numSamples--)
-		  {
-  			*d = *s;
-			  *(d-1) = *s;
-			  s--;
-			  d -= 2;
-		  }
+	s += numSamples - 1;
+	d += numSamples * 2 - 1;
+	while (numSamples--) {
+	    *d = *s;
+	    *(d - 1) = *s;
+	    s--;
+	    d -= 2;
+	}
     } else {			//  Not Playing , so clear buffer
-	    int count;
-	    for (count = 0; count < numSamples * 2; count++)
-		*(_buf + count) = 0;
+	int count;
+	for (count = 0; count < numSamples * 2; count++)
+	    *(_buf + count) = 0;
     }
 }
 
@@ -94,7 +93,7 @@ void YMPLAY_Init(int channel)
 
 void YMPLAY_FreeTune()
 {
-  ymMusicDestroy(pMusic);
+    ymMusicDestroy(pMusic);
 }
 
 
@@ -114,23 +113,22 @@ unsigned char *ptr;
 
 int YMPLAY_Load(char *filename)
 {
-  eos = 0;
-  pMusic = ymMusicCreate();
-  mf = ymMusicLoad(pMusic,filename);
-  if (mf) {
-    ymMusicGetInfo(pMusic,&info);
-    ymMusicSetLoopMode(pMusic,YMFALSE);
-    ymMusicPlay(pMusic);
+    eos = 0;
+    pMusic = ymMusicCreate();
+    mf = ymMusicLoad(pMusic, filename);
+    if (mf) {
+	ymMusicGetInfo(pMusic, &info);
+	ymMusicSetLoopMode(pMusic, YMFALSE);
+	ymMusicPlay(pMusic);
 
-    printf("\n\n");
-		printf("Name.....: %s\n",info.pSongName);
-		printf("Author...: %s\n",info.pSongAuthor);
-		printf("Comment..: %s\n",info.pSongComment);
-  	printf("Duration.: %d:%02d\n",(int)info.musicTimeInSec/60,(int)info.musicTimeInSec%60);
-    return 1;
-  }
-  else
-    return 0;
+	printf("\n\n");
+	printf("Name.....: %s\n", info.pSongName);
+	printf("Author...: %s\n", info.pSongAuthor);
+	printf("Comment..: %s\n", info.pSongComment);
+	printf("Duration.: %d:%02d\n", (int) info.musicTimeInSec / 60, (int) info.musicTimeInSec % 60);
+	return 1;
+    } else
+	return 0;
 }
 
 // This function initialises for playing, and starts
@@ -159,12 +157,13 @@ int YMPLAY_Stop()
 
 void YMPLAY_GetTimeString(char *dest)
 {
-  unsigned long time = ymMusicGetPos(pMusic) / 1000;
-  sprintf(dest,"%d:%02d", (int)(time/60),(int)(time%60));
+    unsigned long time = ymMusicGetPos(pMusic) / 1000;
+    sprintf(dest, "%d:%02d", (int) (time / 60), (int) (time % 60));
 }
 
 int YMPLAY_EndOfStream()
 {
-  if (eos) return 1;
-  return 0;
+    if (eos)
+	return 1;
+    return 0;
 }

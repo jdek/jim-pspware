@@ -24,7 +24,8 @@ extern "C" {
 	     return k;
 	else
 	     return k - 1;
-    } static inline float myLog2(float i) {
+    }
+    static inline float myLog2(float i) {
 	float LogBodge = 0.346607f;
 	float x;
 	float y;
