@@ -34,6 +34,8 @@
 #include "ppu.h"
 #include "pg.h"
 
+#include <pspdisplay.h>
+
 #ifdef USE_SCEGU
 
 SceGUData SceGU;
@@ -85,12 +87,12 @@ bool8 S9xSceGUInit2 (void)
 #endif
 
   // Use a 16-bit pixel format 5-bits for RGB and 1-bit for Alpha (unused)
-  SceGU.texture_format = GE_TPSM_5551;
-  SceGU.pixel_format   = GE_PSM_5551;
-  SceGU.ct             = GE_CT_5551;
-  SceGU.tt             = GE_TT_16BIT;
-  SceGU.mt             = GE_MT_16BIT;
-  SceGU.dm             = GE_BM_2D;
+  SceGU.texture_format = GU_PSM_5551;
+  SceGU.pixel_format   = GU_PSM_5551;
+  SceGU.ct             = GU_COLOR_5551;
+  SceGU.tt             = GU_TEXTURE_16BIT;
+  SceGU.mt             = GU_VERTEX_16BIT;
+  SceGU.dm             = GU_TRANSFORM_2D;
 
   sceGuStart (0, SceGU.list);
 
@@ -101,19 +103,18 @@ bool8 S9xSceGUInit2 (void)
     sceGuViewport       ((480 / 2), (272 / 2), 480, 272);
     sceGuDepthRange     (0xc350, 0x2710);
     sceGuScissor        (0, 0, 480, 272);
-    sceGuEnable         (GU_STATE_SCISSOR);
-    sceGuDisable        (GU_STATE_ATE);
-    sceGuDisable        (GU_STATE_ZTE);
-    sceGuEnable         (GU_STATE_CULL);
-    sceGuDisable        (GU_STATE_ALPHA);
-    sceGuDisable        (GU_STATE_LIGHTING);
-    sceGuFrontFace      (GE_FACE_CW);
-    sceGuEnable         (GU_STATE_TEXTURE);
-    sceGuClear          (GE_CLEAR_COLOR | GE_CLEAR_DEPTH);
+    sceGuEnable         (GU_SCISSOR_TEST);
+    sceGuDisable        (GU_ALPHA_TEST);
+    sceGuDisable        (GU_DEPTH_TEST);
+    sceGuEnable         (GU_CULL_FACE);
+    sceGuDisable        (GU_LIGHTING);
+    sceGuFrontFace      (GU_CW);
+    sceGuEnable         (GU_TEXTURE_2D);
+    sceGuClear          (GU_COLOR_BUFFER_BIT | GU_DEPTH_BUFFER_BIT);
 
 #if 0
     sceGuTexWrap        (GE_WRAP_REPEAT, GE_WRAP_REPEAT);
-    sceGuTexFunc        (GE_TFX_MODULATE, /*GE_TCC_RGBA*/ GE_TCC_RGB);
+    sceGuTexFunc        (GU_TFX_MODULATE, /*GE_TCC_RGBA*/ GE_TCC_RGB);
 #endif
   sceGuFinish ();
 
@@ -154,13 +155,13 @@ inline int S9xSceGuNumBytesPerPixel (int format)
   switch (format) {
     // 2 bytes per pixel
     default:
-    case GE_PSM_5551:
-    case GE_PSM_5650:
-    case GE_PSM_4444:
+    case GU_PSM_5551:
+    case GU_PSM_5650:
+    case GU_PSM_4444:
       return 2;
 
     // 4 bytes per pixel
-    case GE_PSM_8888:
+    case GU_PSM_8888:
       return 4;
   }
 }
@@ -270,8 +271,8 @@ void S9xSceGURenderTex (char *tex, int width, int height, int x, int y, int xsca
       unsigned int j;
 
       const int slice_scale = ((float)xscale / (float)width) * (float)SLICE_SIZE;
-      const int tex_filter  = (PSP_Settings.bBilinearFilter ? GE_FILTER_LINEAR :
-                                                              GE_FILTER_POINT);
+      const int tex_filter  = (PSP_Settings.bBilinearFilter ? GU_LINEAR :
+                                                              GU_NEAREST);
 
       struct Vertex* vertices;
       struct Vertex* vtx_iter;
@@ -282,7 +283,7 @@ void S9xSceGURenderTex (char *tex, int width, int height, int x, int y, int xsca
 #else
       sceGuTexImage     (0, width, height, SceGU.line_size, (void *)(0x04000000 + (uint32)SceGU.vram_offset));
 #endif
-      sceGuTexFunc      (GE_TFX_REPLACE, 0);
+      sceGuTexFunc      (GU_TFX_REPLACE, 0);
       sceGuTexFilter    (tex_filter, tex_filter);
       sceGuTexScale     (1, 1);
       sceGuTexOffset    (0, 0);
@@ -312,27 +313,18 @@ void S9xSceGURenderTex (char *tex, int width, int height, int x, int y, int xsca
         vtx_iter [0].color = vtx_iter [1].color = 0;
 
 #ifndef DRAW_SINGLE_BATCH
-        sceGuDrawArray (GU_PRIM_SPRITES, GE_SETREG_VTYPE (SceGU.tt,
-                                                          SceGU.ct,
-                                                          0,
-                                                          SceGU.mt,
-                                                          0, 0, 0, 0,
-                                                          SceGU.dm),
-                                                 2,
-                                                 0,
-                                              vtx_iter);
-
+			  sceGuDrawArray (GU_SPRITES, SceGU.tt | SceGU.ct | SceGU.mt | SceGU.dm, 2, 0, vtx_iter);
         vtx_iter += 2;
 #endif
       }
 
 #ifdef DRAW_SINGLE_BATCH
-      sceGuDrawArray (GU_PRIM_SPRITES, GE_SETREG_VTYPE (SceGU.tt,
-                                                        SceGU.ct,
-                                                        0,
-                                                        SceGU.mt,
-                                                        0, 0, 0, 0,
-                                                        SceGU.dm),
+      sceGuDrawArray (GU_SPRITES, GE_SETREG_VTYPE (SceGU.tt,
+                                                   SceGU.ct,
+                                                   0,
+                                                   SceGU.mt,
+                                                   0, 0, 0, 0,
+                                                   SceGU.dm),
                                             num_verts,
                                                0,
                                             vertices);
@@ -459,8 +451,8 @@ void DrawTilePSP (uint32 Tile, uint32 Offset, uint32 StartLine,
 
     sceGuStart(0,list);
 
-    sceGuTexMode(GE_TPSM_5551,0,0,0);
-    sceGuTexFunc(GE_TFX_REPLACE,0);
+    sceGuTexMode(GU_PSM_5551,0,0,0);
+    sceGuTexFunc(GU_TFX_REPLACE,0);
     sceGuTexOffset(0,0);
     sceGuAmbientColor(0xffffffff);
 

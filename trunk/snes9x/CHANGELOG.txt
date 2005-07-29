@@ -14,6 +14,8 @@ Andon (28/Jul/05)
      also offers to display callstack info now.
  + Yoshi's Island runs now, although extremely
    slowly :)
+ + Misc. changes required for Snes9x to compile
+   with the latest PSP SDK.
 
 
  ADDITIONS
