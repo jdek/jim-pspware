@@ -357,7 +357,7 @@ snes9x: $(PSP_OBJECTS)
 
 EBOOT.PBP: $(SNES9XBIN) PARAM.SFO
 	psp-strip $(SNES9XBIN) -o $(SNES9XBIN)_stripped
-	pack-pbp $@ PARAM.SFO NULL NULL NULL NULL NULL $(SNES9XBIN)_stripped NULL
+	pack-pbp $@ PARAM.SFO ICON0.PNG NULL NULL NULL NULL $(SNES9XBIN)_stripped NULL
 	-rm -f $(SNES9XBIN)_stripped
 
 PARAM.SFO:

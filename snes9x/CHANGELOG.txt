@@ -30,6 +30,8 @@ Andon (28/Jul/05)
 -----------
  + Fixed several issues related to exiting the
    game using the Home button.
+ + The Snes9x icon is once again packed into
+   the final PBP.
 
 
 
