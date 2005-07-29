@@ -1722,7 +1722,8 @@ void S9xExit (void)
 {
 	Settings.Paused = TRUE;
 
-	if (g_bROMLoaded) {
+  // Don't save the config or SRAM if a fatal error caused this exit.
+	if (g_bROMLoaded && (! g_bFatalError)) {
 		save_config ();
 
 		Memory.SaveSRAM (S9xGetSRAMFilename ());
