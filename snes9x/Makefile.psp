@@ -218,14 +218,14 @@ DEFS      = -DPSP -DPSP_NOTUSE -DUSE_SCEGU
 ifdef OPTI
 DEFS     += -DOPTI
 endif
-CPUFLAGS = -march=allegrex -mgp32 -msingle-float -mno-fp-exceptions -mno-check-zero-division
+CPUFLAGS = -mno-fp-exceptions -mno-check-zero-division
 #CPUFLAGS = -march=allegrex -mgp32 -mlong32 -msingle-float -mabi=eabi -mhard-float -mtune=allegrex -mlong-calls -mno-check-zero-division -mno-fp-exceptions #-mfix-r4000
 # http://www.cqpub.co.jp/interface/column/freesoft/2002/200208/08-4.htm
 #OPTIMISE=-O4 -ffreestanding -ffast-math -fschedule-insns2 -fomit-frame-pointer -fno-inline-functions -fno-defer-pop -fforce-addr -fstrict-aliasing -funroll-loops -fdelete-null-pointer-checks -fno-exceptions
 #OPTIMISE=-O2 -G8 -fstrict-aliasing -ffast-math -fsingle-precision-constant
 OPTIMISE=-O2 -ffast-math
 ifndef DEBUG
-OPTIMISE += -frename-registers -fomit-frame-pointer
+OPTIMISE += -frename-registers
 endif
 
 # This will make compile times go up, without a lot of performance gain...
@@ -240,7 +240,7 @@ OPTIMISE += --param max-reload-search-insns=100000 --param max-inline-insns-auto
 OPTIMISE += -Wdisabled-optimization -Wextra -Wstrict-aliasing=2 #-Wcast-align
 endif
 	 
-OPTIMISE_C=-ffreestanding $(OPTIMISE)
+OPTIMISE_C=$(OPTIMISE)
 OPTIMISE_CXX=-fno-exceptions -fno-rtti $(OPTIMISE)
 
 
