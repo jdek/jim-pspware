@@ -1,3 +1,38 @@
+Andon (28/Jul/05)
+-----------------
+ CHANGES
+---------
+ + SceGU is now double buffered.
+ + For the 1x display mode using SceGU, a new
+   optimization is used that triples the RAM
+   to VRAM transfer rate.
+ + Moved the old "Show Debug Info" option from
+   the Display Config to the new Debugger menu.
+ + The Snes9x error handler is MUCH more
+   advanced now.
+  >> It displays relevant config options and
+     also offers to display callstack info now.
+ + Yoshi's Island runs now, although extremely
+   slowly :)
+
+
+ ADDITIONS
+-----------
+ + Added a new debugger menu where you can sim-
+   ulate crashes to test the error handler code
+   and display system info.
+  >> Give the Segmentation Fault crash simulator
+     a whirl. Aside from having to restart the
+     program, nothing bad will happen.
+
+
+ BUG FIXES
+-----------
+ + Fixed several issues related to exiting the
+   game using the Home button.
+
+
+
 Andon (22/Jul/05)
 -----------------
  CHANGES

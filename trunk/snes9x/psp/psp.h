@@ -44,7 +44,7 @@ typedef struct
 	int		iBackgroundColor;
 	int		iCompression;
 	int		iSoundSync;
-	bool8	bShowDebugInfo;
+	bool8	bRunInDebugMode;
 	bool8	bBilinearFilter;
 	bool8	bUseGUBlit;
 	bool8	bSupportHiRes;

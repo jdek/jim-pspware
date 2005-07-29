@@ -1,6 +1,6 @@
 /*******************************************************************************
   Snes9x - Portable Super Nintendo Entertainment System (TM) emulator.
- 
+
   (c) Copyright 1996 - 2002 Gary Henderson (gary.henderson@ntlworld.com) and
                             Jerremy Koot (jkoot@snes9x.com)
 
@@ -43,10 +43,10 @@
   S-DD1 C emulator code
   (c) Copyright 2003 Brad Jorsch with research by
                      Andreas Naive and John Weidman
- 
+
   S-RTC C emulator code
   (c) Copyright 2001 John Weidman
-  
+
   ST010 C++ emulator code
   (c) Copyright 2003 Feather, Kris Bleakley, John Weidman and Matthew Kendora
 
@@ -60,29 +60,29 @@
   SH assembler code partly based on x86 assembler code
   (c) Copyright 2002 - 2004 Marcus Comstedt (marcus@mc.pp.se) 
 
- 
+
   Specific ports contains the works of other authors. See headers in
   individual files.
- 
+
   Snes9x homepage: http://www.snes9x.com
- 
+
   Permission to use, copy, modify and distribute Snes9x in both binary and
   source form, for non-commercial purposes, is hereby granted without fee,
   providing that this license information and copyright notice appear with
   all copies and any derived work.
- 
+
   This software is provided 'as-is', without any express or implied
   warranty. In no event shall the authors be held liable for any damages
   arising from the use of this software.
- 
+
   Snes9x is freeware for PERSONAL USE only. Commercial users should
   seek permission of the copyright holders first. Commercial use includes
   charging money for Snes9x or software derived from Snes9x.
- 
+
   The copyright holders request that bug fixes and improvements to the code
   should be forwarded to them so everyone can benefit from the modifications
   in future versions.
- 
+
   Super NES and Super Nintendo Entertainment System are trademarks of
   Nintendo Co., Limited and its subsidiary companies.
 *******************************************************************************/
@@ -157,13 +157,14 @@ extern "C" {
 #define GZ_MAGIC_LEN strlen (GZ_MAGIC)
 
 // Reserve 360 Kb for freeze buffers, increase if needed...
-#define MAX_FREEZE_SIZE 368640 
+#define MAX_FREEZE_SIZE 368640
 //#define MAX_FREEZE_SIZE 409600 /* 400 Kb */
 
 bool8 bGUIMode = FALSE;
 };
 
 
+#define printf       pspDebugScreenPrintf
 #define gettimeofday sceKernelLibcGettimeofday
 
 
@@ -171,6 +172,7 @@ static struct timeval s_tvStart;
 static int            s_iFrame;
 static int            s_iFramebufferState = 0; // 0 = clean, 1 = front/back buffer dirty, 2 = front & back dirty
 
+char                  PBPArgv [_MAX_PATH]; // The original argv[0]
 char                  PBPPath [_MAX_PATH];
 char                  RomPath [_MAX_PATH];
 
@@ -183,6 +185,8 @@ char                  RomPath [_MAX_PATH];
 static int            s_iAnalog = ANALOG_NONE;
 
 extern "C" void save_config (void);
+
+void error_handler (PspDebugRegBlock *regs);
 
 void refresh_state_list (void);
 void clear_execute_bit  (const char* filename);
@@ -238,6 +242,7 @@ extern "C" void set_playback_rate (int rate = PSP_Settings.iSoundRate);
 #define LOWER_THRESHOLD       0x2f
 #define PSP_CYCLE_DIV_MAX     30
 
+volatile bool8      g_bFatalError           = false;
 volatile bool8      g_bSleep                = false;
 volatile bool8      g_bROMLoaded            = false;
 
@@ -263,7 +268,7 @@ static bool8        s_bShowProfilerInfo_old = false;
 // Allow debug info to be toggled on/off in release builds
 //
 #ifdef RELEASE
-#define DEBUG_TEST PSP_Settings.bShowDebugInfo
+#define DEBUG_TEST PSP_Settings.bRunInDebugMode
 #else
 #define DEBUG_TEST true
 #endif
@@ -286,6 +291,9 @@ static bool8        s_bShowProfilerInfo_old = false;
 const char *S9xGetSRAMFilename (void);
 
 void S9xCloseSoundDevice (void);
+
+extern "C" void DeinitTimer (void);
+extern "C" void InitTimer   (void);
 
 #include "psp2.cpp"
 
@@ -512,10 +520,10 @@ bool8 S9xOpenSnapshotFile (const char *fname, bool8 read_only, STREAM *file)
     char drive    [_MAX_DRIVE + 1];
     char dir      [_MAX_DIR   + 1];
     char fn       [_MAX_FNAME + 1];
-    char ext [_MAX_EXT + 1];
+    char ext      [_MAX_EXT   + 1];
 
-    _splitpath( fname, drive, dir, fn, ext);
-    _makepath( filename, drive, dir, fn, ext);
+    _splitpath (fname,    drive, dir, fn, ext);
+    _makepath  (filename, drive, dir, fn, ext);
 
     if (read_only)
     {
@@ -580,7 +588,7 @@ void S9xLoadSDD1Data (void)
 
     if (strncmp (Memory.ROMName, "Star Ocean",            10) == 0 ||
         strncmp (Memory.ROMName, "STREET FIGHTER ALPHA2", 21) == 0 ||
-	strncmp (Memory.ROMName, "STREET FIGHTER ZERO2",  20) == 0)
+        strncmp (Memory.ROMName, "STREET FIGHTER ZERO2",  20) == 0)
     {
         Settings.SDD1Pack = TRUE;
     }
@@ -730,6 +738,18 @@ void key_config()
   strcat (dialog_text_all, ":  ");                                      \
 }
 
+// Differs from a config option, because it has no state
+#define AddUtilFunction(idx,name) {                                     \
+  if (cur_pos == idx)                                                   \
+    strcat (dialog_text_all, selected_line);                            \
+  else                                                                  \
+    strcat (dialog_text_all, unselected_line);                          \
+                                                                        \
+  strcat (dialog_text_all, name);                                       \
+  strcat (dialog_text_all, "\n");                                       \
+}
+
+
 #define AddBooleanConfigOption(idx,name,true_string,false_string,val) { \
   AddConfigOption (idx, name);                                          \
                                                                         \
@@ -741,7 +761,7 @@ void key_config()
 
 void state_config_disp (int cur_pos)
 {
-	char dialog_text_all [ D_text_all_MAX ];
+	char dialog_text_all [D_text_all_MAX];
 
 	*dialog_text_all = '\0';
 
@@ -761,14 +781,13 @@ void state_config_disp (int cur_pos)
 	else
 		AddConfigValue ("Uncompressed")
 
-	strcat( dialog_text_all, "\n");
-
-	strcat( dialog_text_all, "  NOTE: Compression will make state saves incompatible\n"
+	strcat (dialog_text_all, "\n"
+	                         "  NOTE: Compression will make state saves incompatible\n"
 	                         "        with older versions, but will make state saving\n"
-				 "        faster and use less Memory Stick space.\n" );
-	strcat( dialog_text_all, "\n"               );
+	                         "        faster and use less Memory Stick space.\n"
+	                         "\n");
 
-	message_dialog( 34, 75, " 　【　　State Save Config　　】　 ", dialog_text_all );
+	message_dialog (34, 75, " 　【　　State Save Config　　】　 ", dialog_text_all);
 }
 
 void state_config (void)
@@ -856,7 +875,6 @@ namespace DisplayOptions
 		SHOWFPS,
 		VSYNC,
 		TRANS,
-		DEBUG,
 		BLIT_BACKEND,
 		HIRES,
 		BILINEAR,
@@ -874,12 +892,33 @@ enum {
 	NUM_SCREEN_SIZES,
 };
 
+const char* screen_size (int size)
+{
+	switch (size) {
+		case SCR_SIZE_X1:
+			return "Normal";
+		case SCR_SIZE_FIT:
+			if (PSP_Settings.bUseGUBlit)
+				return "4:3";
+			else
+				return "Fit";
+		case SCR_SIZE_FULL:
+			if (! PSP_Settings.bUseGUBlit)
+				return "Width x2";
+		case SCR_SIZE_FULLFIT:
+			return "Full";
+		default:
+			return "Unknown";
+	}
+}
+
+
 
 void display_config_disp (int cur_pos)
 {
 	using namespace DisplayOptions;
 
-	char dialog_text_all [ D_text_all_MAX ];
+	char dialog_text_all [D_text_all_MAX];
 
 	*dialog_text_all = '\0';
 
@@ -887,7 +926,7 @@ void display_config_disp (int cur_pos)
 	const char* unselected_line = "    ";
 
 
-        AddConfigOption        (SCR_SIZE,         "Screen Size      ")
+	AddConfigOption        (SCR_SIZE,         "Screen Size      ")
 
 	if (PSP_Settings.iScreenSize == SCR_SIZE_X1)
 		AddConfigValue ("Normal")
@@ -921,10 +960,6 @@ void display_config_disp (int cur_pos)
 	AddBooleanConfigOption (TRANS,            "Transparency     ",
 	                            "ON","OFF",
 	                                (PSP_Settings.bTrans))
-
-	AddBooleanConfigOption (DEBUG,            "Show Debug Info  ",
-	                            "ON","OFF",
-	                                (PSP_Settings.bShowDebugInfo))
 
 	AddBooleanConfigOption (BLIT_BACKEND,     "Bit Blit Backend ",
 	                            "SceGU (advanced)","pg (original)",
@@ -1013,10 +1048,6 @@ void display_config (void)
 					PSP_Settings.bTrans = !PSP_Settings.bTrans;
 					break;
 
-				case DEBUG:
-					PSP_Settings.bShowDebugInfo = !PSP_Settings.bShowDebugInfo;
-					break;
-
 				case BLIT_BACKEND:
 					PSP_Settings.bUseGUBlit = !PSP_Settings.bUseGUBlit;
 
@@ -1067,10 +1098,6 @@ void display_config (void)
 					PSP_Settings.bTrans = TRUE;
 					break;
 
-				case DEBUG:
-					PSP_Settings.bShowDebugInfo = TRUE;
-					break;
-
 				case BLIT_BACKEND:
 					PSP_Settings.bUseGUBlit = FALSE;
 
@@ -1119,10 +1146,6 @@ void display_config (void)
 
 				case TRANS:
 					PSP_Settings.bTrans = FALSE;
-					break;
-
-				case DEBUG:
-					PSP_Settings.bShowDebugInfo = FALSE;
 					break;
 
 				case BLIT_BACKEND:
@@ -1369,15 +1392,7 @@ void sound_config (void)
 	    (PSP_Settings.bSoundOff        != f_bOldSoundOff)        ||
 	    (PSP_Settings.iSoundSync       != f_iOldSoundSync)) {
 		if (! f_bOldSoundOff) {
-			S9xSetSoundMute (TRUE);
-
-			if (g_thread != -1) {
-				Settings.ThreadSound = FALSE;
-				sceKernelWaitThreadEnd (g_thread, NULL);
-				sceKernelDeleteThread  (g_thread);
-
-				g_thread = -1;
-			}
+			DeinitTimer ();
 		}
 
 		set_playback_rate ();
@@ -1386,13 +1401,170 @@ void sound_config (void)
 
 		if (! PSP_Settings.bSoundOff) {
 			Settings.ThreadSound = TRUE;
-			void InitTimer (void);
 			InitTimer ();
 		}
 	}
 
 	if (f_iOldAltSampleDecode != PSP_Settings.iAltSampleDecode)
 		Settings.AltSampleDecode = PSP_Settings.iAltSampleDecode;
+}
+
+namespace DebuggerOptions
+{
+	enum {
+		DEBUG_OFF,
+		DEBUG_SIM_ZERODIV, // NOTE: This probably won't be caught!
+		DEBUG_SIM_SEGV,
+//		DEBUG_DUMP_CALLSTACK,
+		DEBUG_DUMP_SYSINFO,
+
+		NUM_DEBUG_OPTIONS,
+	};
+};
+
+void debugger_menu_disp (int cur_pos)
+{
+	using namespace DebuggerOptions;
+
+	char dialog_text_all [D_text_all_MAX];
+
+	*dialog_text_all = '\0';
+
+	const char* selected_line   = "  > ";
+	const char* unselected_line = "    ";
+
+
+	AddBooleanConfigOption (DEBUG_OFF,         "Debug Mode " ,
+	                            "ON", "OFF",
+	                                (PSP_Settings.bRunInDebugMode))
+	
+	AddConfigValue ("")
+	AddConfigValue ("Crash Simulations")
+	AddConfigValue ("")
+
+//	AddUtilFunction        (DEBUG_SIM_ZERODIV, "Simulate Division by Zero")
+	AddUtilFunction        (DEBUG_SIM_ZERODIV, "Simulate Division by Zero  [Exception Disabled]")
+	AddUtilFunction        (DEBUG_SIM_SEGV,    "Simulate Segmentation Fault")
+
+	AddConfigValue ("")
+	AddConfigValue ("Debug Info")
+	AddConfigValue ("")
+
+//	AddUtilFunction        (DEBUG_DUMP_CALLSTACK, "Display Callstack")
+	AddUtilFunction        (DEBUG_DUMP_SYSINFO,   "Display System Info")
+
+	// Add a blank line below the last option...
+	AddConfigValue ("");
+	AddConfigValue ("WARNING: The crash simulations WILL ACTUALLY cause the\n"
+	                "         application to crash, you should only use them if\n"
+	                "         you intend to test the crash handler.\n")
+
+	message_dialog (34, 75, "        　【　　uo_Snes9x PSP-Dev Debugger　　】　 ", dialog_text_all);
+}
+
+void debugger_menu (void)
+{
+	using namespace DebuggerOptions;
+
+	static int sel = 0;
+
+	while (1) {
+		readpad ();
+
+		if (new_pad & PSP_CTRL_CROSS) {
+			break;
+		}
+
+		else if (new_pad & PSP_CTRL_DOWN) {
+			sel++;
+			if (sel > (NUM_DEBUG_OPTIONS - 1))
+				sel = 0;
+		}
+
+		else if (new_pad & PSP_CTRL_UP) {
+			sel--;
+			if (sel < 0)
+				sel = (NUM_DEBUG_OPTIONS - 1);
+		}
+
+		else if (new_pad & PSP_CTRL_LEFT) {
+			if (sel == DEBUG_OFF) {
+				PSP_Settings.bRunInDebugMode = TRUE;
+			}
+		}
+
+		else if (new_pad & PSP_CTRL_RIGHT) {
+			if (sel == DEBUG_OFF) {
+				PSP_Settings.bRunInDebugMode = FALSE;
+			}
+		}
+
+		else if (new_pad & PSP_CTRL_CIRCLE) {
+			if (sel == DEBUG_OFF) {
+				PSP_Settings.bRunInDebugMode = ! PSP_Settings.bRunInDebugMode;
+			}
+			
+			else if (sel == DEBUG_SIM_SEGV) {
+				char* badptr = NULL;
+				*badptr = 0xDEADBEEF;
+				/*
+				typedef int (*PspDebugInputHandler)(char *data, int len);
+				PspDebugInputHandler x = NULL;
+				x (NULL, 0);
+				*/
+			}
+
+			else if (sel == DEBUG_SIM_ZERODIV) {
+				int x = 32;
+				int y = 0;
+				int z = (x / y);
+			}
+
+			else if (sel == DEBUG_DUMP_SYSINFO)
+			{
+				pspDebugScreenInit     ();
+
+				extern void dump_sysinfo (void);
+				dump_sysinfo ();
+
+				printf ("\n");
+
+				printf ("Press X to return to the Debugger Menu.\n");
+
+				while (1) {
+					readpad ();
+
+					if (new_pad & PSP_CTRL_CROSS)
+						break;
+				}
+
+				init_pg ();
+			}
+
+			/*
+			else if (sel == DEBUG_DUMP_CALLSTACK)
+			{
+				dump_callstack ();
+
+				printf ("\n");
+
+				printf ("Press X to return to the Debugger Menu.\n");
+
+				while (1) {
+					readpad ();
+
+					if (new_pad & PSP_CTRL_CROSS)
+						break;
+				}
+			}
+			*/
+		}
+
+		// Update any text on the main menu...
+		draw_menu ();
+
+		debugger_menu_disp (sel);
+	}
 }
 
 
@@ -1536,13 +1708,7 @@ void exit_game (void)
 // Shutdown the S9x core
 void S9xShutdown (void)
 {
-	S9xSetSoundMute (TRUE);
-
-	if (g_thread != -1) {
-		Settings.ThreadSound = FALSE;
-		sceKernelWaitThreadEnd (g_thread, NULL);
-		sceKernelDeleteThread  (g_thread);
-	}
+	DeinitTimer ();
 
 	S9xCloseSoundDevice ();
 
@@ -1627,13 +1793,35 @@ void *S9xProcessSound (void *)
 	return (NULL);
 }
 
+void DeinitTimer (void)
+{
+//	debug_log ("Delete Thread");
+
+	S9xSetSoundMute (TRUE);
+
+	if (g_thread != -1) {
+		Settings.ThreadSound = FALSE;
+
+		sceKernelWaitThreadEnd (g_thread, NULL);
+		sceKernelDeleteThread  (g_thread);
+
+		g_thread = -1;
+	}
+
+//	debug_log ("Thread deleted");
+}
 
 void InitTimer (void)
 {
 	debug_log ("Create Thread");
+
 	g_thread = sceKernelCreateThread ("sound thread", (SceKernelThreadEntry)S9xProcessSound, 0x8, 0x40000, THREAD_ATTR_USER, 0);
+
 	if (g_thread < 0) {
 		debug_log ("Thread failed");
+
+		Settings.ThreadSound = FALSE;
+
 		return;
 	}
 
@@ -1826,7 +2014,7 @@ inline void draw_fps (int raster_method = FPS_RASTER_PG)
 			s_iFrame  = 0;
 		}
 
-	        if (raster_method == FPS_RASTER_PG) {
+			if (raster_method == FPS_RASTER_PG) {
 			// Don't use this method of drawing the FPS if the screen mode
 			// is FULL and SceGU blitting is enabled...
 			if ((! PSP_Settings.bUseGUBlit) || PSP_Settings.iScreenSize < SCR_SIZE_FULL)
@@ -1844,6 +2032,8 @@ inline void draw_fps (int raster_method = FPS_RASTER_PG)
 
 bool draw_profile_screen (void);
 
+extern "C" void S9xSceGUSwapBuffers (void);
+
 #ifdef OPTI
 bool8 S9xDeinitUpdate (int Width, int Height)
 #else
@@ -1858,19 +2048,15 @@ bool8 S9xDeinitUpdate (int Width, int Height, bool8 sixteen_bit)
 	if (PSP_Settings.bUseGUBlit) {
 		// Dirty framebuffer clear for SceGU blit
 		if (s_iFramebufferState > 0) {
-			s_iFramebufferState = 0; // Not double buffered, so only clear once.
+			s_iFramebufferState--;
+//			s_iFramebufferState = 0; // Not double buffered, so only clear once.
 			clear_framebuffer ();
-
-//			sceKernelDcacheWritebackAll ();
+			S9xSceGUSwapBuffers ();
 		}
 
 		// Special consideration for fullscreen modes and FPS drawing
 		if (PSP_Settings.bShowFPS && PSP_Settings.iScreenSize >= SCR_SIZE_FULL)
 			draw_fps (FPS_RASTER_S9X);
-
-		// If you don't call this, Gu will run into cache problems with
-		// reading pixel data...
-		sceKernelDcacheWritebackAll ();
 
 		S9xSceGUPutImage (Width, Height);
 	} else {
@@ -2002,13 +2188,7 @@ void save_config (void)
 void load_config (void)
 {
 	if (! PSP_Settings.bSoundOff) {
-		S9xSetSoundMute (TRUE);
-		if (g_thread != -1) {
-			Settings.ThreadSound = FALSE;
-			sceKernelWaitThreadEnd (g_thread, NULL);
-			sceKernelDeleteThread  (g_thread);
-			g_thread = -1;
-		}
+		DeinitTimer ();
 	}
 
 	memset (&PSP_Settings, 0, sizeof (PSP_Settings));
@@ -2054,8 +2234,8 @@ void load_config (void)
 			PSP_Settings.iCompression = 0;
 		if (PSP_Settings.iSoundSync < 0 || PSP_Settings.iSoundSync > 2)
 			PSP_Settings.iSoundSync = 0;
-		if (!PSP_Settings.bShowDebugInfo)
-			PSP_Settings.bShowDebugInfo = false;
+		if (!PSP_Settings.bRunInDebugMode)
+			PSP_Settings.bRunInDebugMode = false;
 		if (!PSP_Settings.bUseGUBlit)
 			PSP_Settings.bUseGUBlit = false;
 		if (!PSP_Settings.bSupportHiRes)
@@ -2090,7 +2270,7 @@ void load_config (void)
 		PSP_Settings.iBackgroundColor  = 0;
 		PSP_Settings.iCompression      = 0;
 		PSP_Settings.iSoundSync        = 0;
-		PSP_Settings.bShowDebugInfo    = false;
+		PSP_Settings.bRunInDebugMode   = false;
 		PSP_Settings.bUseGUBlit        = true;
 		PSP_Settings.bSupportHiRes     = false;
 		PSP_Settings.bBilinearFilter   = true;
@@ -2123,14 +2303,14 @@ void load_config (void)
 		BEGIN_RELEASE_CODE
 
 		if (PSP_Settings.iScreenSize == 0) {
-			GFX.Screen = (uint8*)pgGetVramAddr( (SCREEN_WIDTH - SNES_WIDTH) >> 1, (SCREEN_HEIGHT - SNES_HEIGHT) >> 1 );
+			GFX.Screen = (uint8 *)pgGetVramAddr ((SCREEN_WIDTH - SNES_WIDTH) >> 1, (SCREEN_HEIGHT - SNES_HEIGHT) >> 1);
 		} else {
-			GFX.Screen = (uint8*)GFX_Screen;
+			GFX.Screen = (uint8 *)GFX_Screen;
 		}
 
 		END_RELEASE_CODE
 	} else {
-		GFX.Screen = (uint8*)GFX_Screen;
+		GFX.Screen = (uint8 *)GFX_Screen;
 	}
 
 	set_clock_speed ();
@@ -2433,8 +2613,8 @@ enum {
 
 	LOAD_ROM,
 	RESET,
-
 	FILE_MANAGER,
+	DEBUGGER,
 };
 
 void draw_menu (void)
@@ -2517,10 +2697,8 @@ void draw_menu (void)
 
 	pgPrint(x,y++,0xffff,"  ROM Selector");
 	pgPrint(x,y++,0xffff,"  Reset");
-
-	y++;
-
 	pgPrint(x,y++,0xffff,"  File Manager");
+	pgPrint(x,y++,0xffff,"  Debugger");
 
 	y = sel + 6;
 	if (sel >= STATE_SLOT) {
@@ -2533,9 +2711,6 @@ void draw_menu (void)
 		y++;
 	}
 	if (sel >= LOAD_ROM){
-		y++;
-	}
-	if (sel >= FILE_MANAGER){
 		y++;
 	}
 
@@ -2859,6 +3034,8 @@ void open_menu (void)
 				break;
 			} else if (sel == FILE_MANAGER) {
 				getFilePath (RomPath, 0xffffffff);
+			} else if (sel == DEBUGGER) {
+				debugger_menu ();
 			}
 		} else if (new_pad & PSP_CTRL_CROSS) {
 			break;
@@ -2866,10 +3043,10 @@ void open_menu (void)
 			if (sel != 0) {
 				sel--;
 			} else {
-				sel = FILE_MANAGER;
+				sel = DEBUGGER;
 			}
 		} else if (new_pad & PSP_CTRL_DOWN) {
-			if (sel != FILE_MANAGER) {
+			if (sel != DEBUGGER) {
 				sel++;
 			} else {
 				sel=0;
@@ -2958,8 +3135,8 @@ void open_menu (void)
 				sel = FRAME_SKIP;
 			} else if (sel < LOAD_ROM){
 				sel = LOAD_ROM;
-			} else if (sel < FILE_MANAGER){
-				sel = FILE_MANAGER;
+			} else if (sel < DEBUGGER){
+				sel = DEBUGGER;
 			}
 		}
 
@@ -3009,14 +3186,8 @@ void S9xProcessEvents (bool8 block)
 		PSP_Settings.bSoundOff = !PSP_Settings.bSoundOff;
 
 		if (PSP_Settings.bSoundOff) {
-			S9xSetSoundMute (TRUE);
+			DeinitTimer ();
 
-			if (g_thread != -1) {
-				Settings.ThreadSound = FALSE;
-				sceKernelWaitThreadEnd (g_thread, NULL);
-				sceKernelDeleteThread  (g_thread);
-				g_thread = -1;
-			}
 			S9xSetInfoString ("Sound: OFF");
 		} else {
 			Settings.ThreadSound = TRUE;
@@ -3079,14 +3250,15 @@ void init_blit_backend (void)
 	S9xMarkScreenDirtyEx ();
 }
 
-int main( int argc, char **argv)
+int main (int argc, char **argv)
 {
 //	debug_log (argv);
 
-	pspDebugInstallErrorHandler (NULL);
-	pspDebugScreenInit          ();
+	pspDebugInstallErrorHandler (error_handler);
 
 	PSP_Settings.bUseGUBlit = FALSE; // Disable this by default
+
+	strcpy (PBPArgv, argv [0]);
 
 	char *p, savedir [_MAX_PATH];
 	strcpy (PBPPath, argv [0]);
@@ -3376,13 +3548,13 @@ int S9xFreezeGame_PSP (const char* filename)
 extern "C" {
 bool8 S9xIsFreezeGameRLE (void* data)
 {
-    char header [4];
-    memcpy (header, data, RLE_MAGIC_LEN);
+	char header [4];
+	memcpy (header, data, RLE_MAGIC_LEN);
 
-    if (strncmp (header, RLE_MAGIC, RLE_MAGIC_LEN) == 0)
-      return (TRUE);
+	if (strncmp (header, RLE_MAGIC, RLE_MAGIC_LEN) == 0)
+		return (TRUE);
 
-    return (FALSE);
+	return (FALSE);
 }
 };
 
@@ -3590,27 +3762,27 @@ void ustoa (unsigned short val, char *s)
 
 int atoi (const char *s)
 {
-  int neg = 0, ret = 1;
+	int neg = 0, ret = 1;
 
-  for (;ret;++s) {
-    switch (*s) {
-      case ' ':
-      case '\t':
-        continue;
-      case '-':
-        ++neg;
-      case '+':
-        ++s;
-      default:
-        ret = 0;
-    }
-    break;
-  }
+	for (;ret;++s) {
+		switch (*s) {
+			case ' ':
+			case '\t':
+				continue;
+			case '-':
+				++neg;
+			case '+':
+				++s;
+			default:
+				ret = 0;
+		}
+		break;
+	}
 
-  while ((*s >= '0') && (*s <= '9'))
-    ret = ((ret * 10) + (int)(*s++ - '0'));
+	while ((*s >= '0') && (*s <= '9'))
+		ret = ((ret * 10) + (int)(*s++ - '0'));
 
-  return ((neg == 0) ? ret : -ret);
+	return ((neg == 0) ? ret : -ret);
 }
 }
 
@@ -3643,6 +3815,51 @@ void set_clock_speed (int speed)
 		default:
 			scePowerSetClockFrequency (222, 222, 111);
 			break;
+	}
+}
+
+// CPU clock in MHz for the given enum
+int cpu_clock (int psp_clock_enum = PSP_Settings.iPSP_ClockUp)
+{
+	switch (psp_clock_enum)
+	{
+		case PSP_CLOCK_333:
+			return 333;
+		case PSP_CLOCK_266:
+			return 266;
+		case PSP_CLOCK_222:
+		default:
+			return 222;
+	}
+}
+
+// RAM clock in MHz for the given enum
+int ram_clock (int psp_clock_enum = PSP_Settings.iPSP_ClockUp)
+{
+	switch (psp_clock_enum)
+	{
+		case PSP_CLOCK_333:
+			return 333;
+		case PSP_CLOCK_266:
+			return 266;
+		case PSP_CLOCK_222:
+		default:
+			return 222;
+	}
+}
+
+// Bus (GPU) clock in MHz for the given enum
+int bus_clock (int psp_clock_enum = PSP_Settings.iPSP_ClockUp)
+{
+	switch (psp_clock_enum)
+	{
+		case PSP_CLOCK_333:
+			return 166;
+		case PSP_CLOCK_266:
+			return 133;
+		case PSP_CLOCK_222:
+		default:
+			return 111;
 	}
 }
 
@@ -3754,21 +3971,21 @@ bool draw_profile_screen (void)
 	if (g_bShowProfilerInfo) {
 	  pspDebugScreenSetXY (0, 0);
 
-          pspDebugScreenPrintf ("IPPU Rendered Pixel Height: %d\n\n", IPPU.RenderedScreenHeight);
+		printf ("IPPU Rendered Pixel Height: %d\n\n", IPPU.RenderedScreenHeight);
 
 	  #define LOG_PROFILE_FUNC(func,type) \
-	    pspDebugScreenPrintf ("%25s (...) =%u usecs\n", #func, type.time_##func);
+	    printf ("%25s (...) =%u usecs\n", #func, type.time_##func);
 
 #ifdef GFX_PROFILER
-	  pspDebugScreenPrintf ("RenderScreen         (...) = %u usecs\n", gfx_profile.time_RenderScreen);
-	  pspDebugScreenPrintf ("DrawObjs             (...) = %u usecs\n", gfx_profile.time_DrawObjs);
-	  pspDebugScreenPrintf ("SelectTileRenderer   (...) = %u usecs\n", gfx_profile.time_SelectTileRenderer);
-	  pspDebugScreenPrintf ("DrawBackground       (...) = %u usecs\n", gfx_profile.time_DrawBackground);
-	  pspDebugScreenPrintf ("DrawBackground_8     (...) = %u usecs\n", gfx_profile.time_DrawBackground_8);
-	  pspDebugScreenPrintf ("DrawBakground_16     (...) = %u usecs\n", gfx_profile.time_DrawBackground_16);
-	  pspDebugScreenPrintf ("DrawBackgroundMosaic (...) = %u usecs\n", gfx_profile.time_DrawBackgroundMosaic);
-	  pspDebugScreenPrintf ("DrawBackgroundOffset (...) = %u usecs\n", gfx_profile.time_DrawBackgroundOffset);
-	  pspDebugScreenPrintf ("DrawBackgroundMode5  (...) = %u usecs\n", gfx_profile.time_DrawBackgroundMode5);
+	  printf ("RenderScreen         (...) = %u usecs\n", gfx_profile.time_RenderScreen);
+	  printf ("DrawObjs             (...) = %u usecs\n", gfx_profile.time_DrawObjs);
+	  printf ("SelectTileRenderer   (...) = %u usecs\n", gfx_profile.time_SelectTileRenderer);
+	  printf ("DrawBackground       (...) = %u usecs\n", gfx_profile.time_DrawBackground);
+	  printf ("DrawBackground_8     (...) = %u usecs\n", gfx_profile.time_DrawBackground_8);
+	  printf ("DrawBakground_16     (...) = %u usecs\n", gfx_profile.time_DrawBackground_16);
+	  printf ("DrawBackgroundMosaic (...) = %u usecs\n", gfx_profile.time_DrawBackgroundMosaic);
+	  printf ("DrawBackgroundOffset (...) = %u usecs\n", gfx_profile.time_DrawBackgroundOffset);
+	  printf ("DrawBackgroundMode5  (...) = %u usecs\n", gfx_profile.time_DrawBackgroundMode5);
 #endif
 
 #ifdef TILE_PROFILER
@@ -3816,6 +4033,151 @@ bool draw_profile_screen (void)
 	return (FALSE);
 }
 #endif /* USE_PROFILER */
+
+
+
+extern "C" {
+void dump_sysinfo (void)
+{
+	printf ("ROM File Loaded: %s - Last Frame: %d - (%s)\n\n",
+	                 Memory.ROMName,
+	                   IPPU.RenderedFramesCount,
+	                     (PSP_Settings.bRunInDebugMode ? "Debug" : "Release"));
+
+	printf ("Graphics Subsystem\n");
+	printf ("------------------\n");
+	printf (" Bit Blit Backend: %s (%s)\n", (PSP_Settings.bUseGUBlit ? "SceGU"    : "pg"),
+	                                        (bGUIMode                ?
+	                                        (PSP_Settings.bUseGUBlit ? "GUI Mode" : "Native")
+	                                                                              : "Active"));
+	if (PSP_Settings.bUseGUBlit) {
+		printf (" >> SceGU         (");
+		printf ("HiRes Mode: %s, ", (PSP_Settings.bSupportHiRes ? "On" : "Off"));
+		printf ("VRAM Offset: 0x%08X", SceGU.vram_offset);
+		printf (")\n");
+	}
+	if ((! PSP_Settings.bUseGUBlit) || bGUIMode) {
+		if (PSP_Settings.bUseGUBlit) {
+			printf (" >> pg [GUI Mode] (");
+		} else {
+			printf (" >> pg            (");
+		}
+
+		extern long pg_screenmode;
+		extern long pg_showframe;
+		extern long pg_drawframe;
+
+		printf ("Frame (%d : %d : %d), ",
+		                          pg_screenmode, pg_drawframe, pg_showframe);
+		printf ("VRAM Base: 0x%08X", pgGetVramAddr (0, 0));
+		printf (")\n");
+	}
+	
+	printf (" Screen (%s, ", screen_size (PSP_Settings.iScreenSize));
+	if (WALL_BITMAP_FLG) {
+		printf ("\"Wall Bitmap\"");
+	} else {
+		printf ("%s", (PSP_Settings.iBackgroundColor ? "White" : "Black"));
+	}
+	printf (", ");
+	printf ("Show FPS: %s, ",(PSP_Settings.bShowFPS ? "On" : "Off"));
+	printf ("VSync: %s)\n",  (PSP_Settings.bVSync   ? "On" : "Off"));
+
+	printf ("\n");
+
+	printf ("Sound Subsystem\n");
+	printf ("---------------\n");
+	printf (" Sound (%s, %dkHz, ", (PSP_Settings.bSoundOff  ? "Off" : "On"),
+	                               (PSP_Settings.iSoundRate ?
+	                                    (PSP_Settings.iSoundRate * 2 * 11) :
+	                                    (11)));
+	printf ("Sync: %d, ",    (PSP_Settings.iSoundSync));
+	printf ("Decode: %d)\n", (PSP_Settings.iAltSampleDecode));
+
+	printf ("\n");
+
+	printf ("Misc.\n");
+	printf ("-----\n");
+	printf (" Config Clocks.: (CPU: %d MHz, RAM: %d MHz, Bus (GPU): %d MHz)\n",
+	                          cpu_clock (), ram_clock (), bus_clock ());
+	printf (" Actual Clocks.: (CPU: %d MHz, RAM: %d MHz, Bus (GPU): %d MHz)\n",
+	                          scePowerGetCpuClockFrequency (),
+	                            scePowerGetCpuClockFrequency (),
+	                              scePowerGetBusClockFrequency ());
+}
+}
+
+void error_handler (PspDebugRegBlock *regs)
+{
+	g_bFatalError   = TRUE;  // So that the Home button's Exit will work
+	g_bLoop         = FALSE;
+	g_bSleep        = FALSE;
+	Settings.Paused = TRUE;
+
+	// The traditional register dump provided by the PSP SDK
+	pspDebugScreenInit    ();
+	pspDebugDumpException (regs);
+
+	// Extra debug details for uo_Snes9x for PSP
+	printf ("\n");
+	{
+		dump_sysinfo ();
+	}
+	printf ("\n");
+
+	printf ("Press X to exit to the PSP Menu or O to display the callstack.\n");
+
+	bool stack_trace = false;
+
+	while (1) {
+		readpad ();
+
+		if (new_pad & PSP_CTRL_CROSS) {
+			S9xShutdownPSP ();
+			exit_game      ();
+		}
+
+		// Dump the callstack or return to register dump
+		if (new_pad & PSP_CTRL_CIRCLE) {
+			if (! stack_trace) {
+				stack_trace = true;
+
+				PspDebugStackTrace traces [31];
+				pspDebugGetStackTrace2 (regs, traces, 31);
+
+				pspDebugScreenClear ();
+
+				for (int i = 0; i < 31; i++) {
+					printf ("%02d: [0x%08x] --> (0x%08x) ", i, traces [i].call_addr,
+					                                           traces [i].func_addr);
+					int num_bad = 0;
+	
+					if (! traces [i].call_addr) {
+						++num_bad;
+						printf ("<Bad Caller Addr?>");
+					}
+					if (! traces [i].func_addr) {
+						++num_bad;
+						printf ("<Bad Func Addr?>");
+					}
+
+					// When both are bad, the \n just gets in the way because of a quirk in
+					// the PSP SDK that counts \n as a character when calculating line length.
+					if (num_bad < 2)
+						printf ("\n");
+				}
+
+				printf ("\n");
+
+				printf ("Press X to exit to the PSP Menu or O to display the register dump.\n");
+			} else {
+				error_handler (regs);
+				return;
+			}
+		}
+	}
+}
+
 
 /* vi:set ts=2 sts=2 sw=2: */
 

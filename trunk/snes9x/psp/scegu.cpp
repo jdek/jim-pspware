@@ -39,24 +39,20 @@
 SceGUData SceGU;
 
 extern "C" {
+
+void S9xSceGUSwapBuffers (void);
+
 bool8 S9xSceGUInit (void)
 {
   sceGuInit ();
 
   sceDisplaySetMode (0, SCREEN_WIDTH, SCREEN_HEIGHT);
 
-  
   S9xSceGUInit2 ();
-/*
-  init_pg ();
 
-  S9xInitDisplay (0, 0);
+  sceGuDrawBuffer (SceGU.pixel_format, (void *)0, SceGU.line_size);
+  sceGuDisplay    (1);
 
-  S9xGraphicsDeinit ();
-  S9xGraphicsInit   ();
-
-  S9xMarkScreenDirty ();
-*/
   return (TRUE);
 }
 
@@ -121,14 +117,17 @@ bool8 S9xSceGUInit2 (void)
 #endif
   sceGuFinish ();
 
-  sceGuSync           (0, 0);
+  sceGuSync   (0, 0);
+
+  S9xSceGUSwapBuffers ();
 
   return (TRUE);
 }
 
 void S9xSceGUDeinit ()
 {
-  sceGuTerm ();
+  sceGuDisplay (0);
+  sceGuTerm    ();
   /// ...
 }
 
@@ -148,6 +147,44 @@ enum {
 };
 
 //ScePSPFMatrix4 projview; // Load Identity and pass this
+
+// Utility reserved for future use
+inline int S9xSceGuNumBytesPerPixel (int format)
+{
+  switch (format) {
+    // 2 bytes per pixel
+    default:
+    case GE_PSM_5551:
+    case GE_PSM_5650:
+    case GE_PSM_4444:
+      return 2;
+
+    // 4 bytes per pixel
+    case GE_PSM_8888:
+      return 4;
+  }
+}
+
+
+void* S9xSceGUGetVramBase (void)
+{
+  return (void *)(0x04000000 + (uint32)SceGU.vram_offset);
+}
+
+void* S9xSceGUGetVramAddr (int x, int y)
+{
+  // If we ever use a non-5551 pixel format, use S9xSceGUBytesPerPixel (...)
+
+  return (void *)((char *)S9xSceGUGetVramBase () + (x * 2) +
+                                                   (y * SceGU.line_size * 2));
+}
+
+
+void S9xSceGUSwapBuffers (void)
+{
+  SceGU.vram_offset = sceGuSwapBuffers ();
+}
+
 
 void S9xSceGURenderTex (char *tex, int width, int height, int x, int y, int xscale, int yscale, int xres, int yres);
 
@@ -198,96 +235,124 @@ void S9xSceGUPutImage (int snes_width, int snes_height)
   }
 }
 
+//#define SCEGU_DIRECT_COPY
 #define SLICE_SIZE 64 // Change this to experiment with different page-cache sizes
 //#define DRAW_SINGLE_BATCH
 
 void S9xSceGURenderTex (char *tex, int width, int height, int x, int y, int xscale, int yscale, int xres, int yres)
 {
-  unsigned int j;
-
-  const int slice_scale = ((float)xscale / (float)width) * (float)SLICE_SIZE;
-  const int tex_filter  = (PSP_Settings.bBilinearFilter ? GE_FILTER_LINEAR :
-                                                          GE_FILTER_POINT);
-
-  struct Vertex* vertices;
-  struct Vertex* vtx_iter;
+  // If you don't call this, Gu will run into cache problems with
+  // reading pixel data...
+  sceKernelDcacheWritebackAll ();
 
   sceGuStart (0, SceGU.list);
   {
-    sceGuTexMode      (SceGU.texture_format, 0, 0, 0);
-    sceGuTexImage     (0, width, height, width, tex);
-    sceGuTexFunc      (GE_TFX_REPLACE, 0);
-    sceGuTexFilter    (tex_filter, tex_filter);
-    sceGuTexScale     (1, 1);
-    sceGuTexOffset    (0, 0);
-    sceGuAmbientColor (0xffffffff);
+    // If the x/y scale matches the width/height, we can take a shortcut and
+    // merely copy tex into the VRAM at the given (x,y) coordinate.
+    //
+    //  NOTE: This disables bilinear filtering, but that's not saying a whole
+    //        lot, since the image will not require a min / mag filter.
+    if ((xscale == width) && (yscale == height)) {
+      sceGuCopyImage (SceGU.pixel_format, 0, 0, xres, yres, width, tex, x, y,
+                        SceGU.line_size,
+                          (void *)(0x04000000 + (uint32)SceGU.vram_offset));
+    }
 
-    sceGuScissor      (x, y, xres, yres);
+    // If the scale doesn't match the width/height, we have to perform a
+    // special blit to stretch the image.
+    else {
+#ifdef SCEGU_DIRECT_COPY
+      sceGuCopyImage (SceGU.pixel_format, 0, 0, width, height, width, tex, 0, 0,
+                        SceGU.line_size,
+                          (void *)(0x04000000 + (uint32)SceGU.vram_offset));
+#endif
+
+      unsigned int j;
+
+      const int slice_scale = ((float)xscale / (float)width) * (float)SLICE_SIZE;
+      const int tex_filter  = (PSP_Settings.bBilinearFilter ? GE_FILTER_LINEAR :
+                                                              GE_FILTER_POINT);
+
+      struct Vertex* vertices;
+      struct Vertex* vtx_iter;
+
+      sceGuTexMode      (SceGU.texture_format, 0, 0, 0);
+#ifndef SCEGU_DIRECT_COPY
+      sceGuTexImage     (0, width, height, width, tex);
+#else
+      sceGuTexImage     (0, width, height, SceGU.line_size, (void *)(0x04000000 + (uint32)SceGU.vram_offset));
+#endif
+      sceGuTexFunc      (GE_TFX_REPLACE, 0);
+      sceGuTexFilter    (tex_filter, tex_filter);
+      sceGuTexScale     (1, 1);
+      sceGuTexOffset    (0, 0);
+      sceGuAmbientColor (0xffffffff);
+
+      sceGuScissor      (x, y, xres, yres);
 
 #ifdef DRAW_SINGLE_BATCH
-    // Allocate (memory map) the "vertex array" beforehand
-    const int num_verts = (width / SLICE_SIZE) * 2;
-    const int vtx_alloc = num_verts * sizeof (struct Vertex);
-               vertices = (struct Vertex *)sceGuGetMemory (vtx_alloc);
-               vtx_iter = vertices;
+      // Allocate (memory map) the "vertex array" beforehand
+      const int num_verts = (width / SLICE_SIZE) * 2;
+      const int vtx_alloc = num_verts * sizeof (struct Vertex);
+                 vertices = (struct Vertex *)sceGuGetMemory (vtx_alloc);
+                 vtx_iter = vertices;
 #endif
 
-    // Do a striped blit (takes the page-cache into account)
-    for (j = 0; j < width; j += SLICE_SIZE, x += slice_scale)
-    {
+      // Do a striped blit (takes the page-cache into account)
+      for (j = 0; j < width; j += SLICE_SIZE, x += slice_scale)
+      {
 #ifndef DRAW_SINGLE_BATCH
-      vtx_iter = (struct Vertex *)sceGuGetMemory (sizeof (struct Vertex) * 2);
+        vtx_iter = (struct Vertex *)sceGuGetMemory (sizeof (struct Vertex) * 2);
 #endif
-      vtx_iter [0].u = j;                 vtx_iter [0].v = 0;
-      vtx_iter [0].x = x;                 vtx_iter [0].y = y;            vtx_iter [0].z = 0;
-      vtx_iter [1].u = (j + SLICE_SIZE);  vtx_iter [1].v = height;
-      vtx_iter [1].x = (x + slice_scale); vtx_iter [1].y = (y + yscale); vtx_iter [1].z = 0;
+        vtx_iter [0].u = j;                 vtx_iter [0].v = 0;
+        vtx_iter [0].x = x;                 vtx_iter [0].y = y;            vtx_iter [0].z = 0;
+        vtx_iter [1].u = (j + SLICE_SIZE);  vtx_iter [1].v = height;
+        vtx_iter [1].x = (x + slice_scale); vtx_iter [1].y = (y + yscale); vtx_iter [1].z = 0;
 
-      vtx_iter [0].color = vtx_iter [1].color = 0;
+        vtx_iter [0].color = vtx_iter [1].color = 0;
 
 #ifndef DRAW_SINGLE_BATCH
+        sceGuDrawArray (GU_PRIM_SPRITES, GE_SETREG_VTYPE (SceGU.tt,
+                                                          SceGU.ct,
+                                                          0,
+                                                          SceGU.mt,
+                                                          0, 0, 0, 0,
+                                                          SceGU.dm),
+                                                 2,
+                                                 0,
+                                              vtx_iter);
+
+        vtx_iter += 2;
+#endif
+      }
+
+#ifdef DRAW_SINGLE_BATCH
       sceGuDrawArray (GU_PRIM_SPRITES, GE_SETREG_VTYPE (SceGU.tt,
                                                         SceGU.ct,
                                                         0,
                                                         SceGU.mt,
                                                         0, 0, 0, 0,
                                                         SceGU.dm),
-                                               2,
+                                            num_verts,
                                                0,
-                                            vtx_iter);
-
-      vtx_iter += 2;
+                                            vertices);
 #endif
     }
-
-#ifdef DRAW_SINGLE_BATCH
-    sceGuDrawArray (GU_PRIM_SPRITES, GE_SETREG_VTYPE (SceGU.tt,
-                                                      SceGU.ct,
-                                                      0,
-                                                      SceGU.mt,
-                                                      0, 0, 0, 0,
-                                                      SceGU.dm),
-                                          num_verts,
-                                             0,
-                                          vertices);
-#endif
-
-
   }
   sceGuFinish ();
+  sceGuSync   (0, 0);
 
   if (PSP_Settings.bVSync)
     sceDisplayWaitVblankStart ();
 
-//  sceGuSync (0, 0);
-//  sceGuSwapBuffers ();
+  S9xSceGUSwapBuffers ();
 }
 };
 
 
 #if 0
 void DrawTilePSP (uint32 Tile, uint32 Offset, uint32 StartLine,
-		  uint32 LineCount)
+      uint32 LineCount)
 {
     TILE_PREAMBLE
 
@@ -306,27 +371,27 @@ void DrawTilePSP (uint32 Tile, uint32 Offset, uint32 StartLine,
     static bool8 init = FALSE;
 
     if (init == FALSE) {
-		sceGuStart(0,list);
-		sceGuDrawBufferList(GE_PSM_5551,(void*)0,512);
-		sceGuDispBuffer(480,272,(void*)0x88000,512);
-		sceGuDepthBuffer((void*)0x110000,512);
-		sceGuOffset(0,0);
-		sceGuViewport(480/2,272/2,480,272);
-		sceGuDepthRange(0xc350,0x2710);
-		sceGuScissor(0,0,480,272);
-		sceGuEnable(GU_STATE_SCISSOR);
-		sceGuDisable(GU_STATE_ATE);
-		sceGuDisable(GU_STATE_ZTE);
-		sceGuEnable(GU_STATE_CULL);
-		sceGuDisable(GU_STATE_ALPHA);
-		sceGuDisable(GU_STATE_LIGHTING);
-		sceGuFrontFace(GE_FACE_CW);
-		sceGuEnable(GU_STATE_TEXTURE);
-		sceGuClear(GE_CLEAR_COLOR|GE_CLEAR_DEPTH);
-		sceGuFinish();
-		sceGuSync(0,0);
+    sceGuStart(0,list);
+    sceGuDrawBufferList(GE_PSM_5551,(void*)0,512);
+    sceGuDispBuffer(480,272,(void*)0x88000,512);
+    sceGuDepthBuffer((void*)0x110000,512);
+    sceGuOffset(0,0);
+    sceGuViewport(480/2,272/2,480,272);
+    sceGuDepthRange(0xc350,0x2710);
+    sceGuScissor(0,0,480,272);
+    sceGuEnable(GU_STATE_SCISSOR);
+    sceGuDisable(GU_STATE_ATE);
+    sceGuDisable(GU_STATE_ZTE);
+    sceGuEnable(GU_STATE_CULL);
+    sceGuDisable(GU_STATE_ALPHA);
+    sceGuDisable(GU_STATE_LIGHTING);
+    sceGuFrontFace(GE_FACE_CW);
+    sceGuEnable(GU_STATE_TEXTURE);
+    sceGuClear(GE_CLEAR_COLOR|GE_CLEAR_DEPTH);
+    sceGuFinish();
+    sceGuSync(0,0);
 
-		init = TRUE;
+    init = TRUE;
     }
 
     pos [0][X] = 0 + x * 1;
@@ -340,55 +405,55 @@ void DrawTilePSP (uint32 Tile, uint32 Offset, uint32 StartLine,
 
     if (!(Tile & (V_FLIP | H_FLIP)))
     {
-	// Normal
-	tex [0][U] = 0.0f;
-	tex [0][V] = StartLine;
-	tex [1][U] = 8.0f;
-	tex [1][V] = StartLine;
-	tex [2][U] = 8.0f;
-	tex [2][V] = StartLine + LineCount;
-	tex [3][U] = 0.0f;
-	tex [3][V] = StartLine + LineCount;
+  // Normal
+  tex [0][U] = 0.0f;
+  tex [0][V] = StartLine;
+  tex [1][U] = 8.0f;
+  tex [1][V] = StartLine;
+  tex [2][U] = 8.0f;
+  tex [2][V] = StartLine + LineCount;
+  tex [3][U] = 0.0f;
+  tex [3][V] = StartLine + LineCount;
     }
     else
     if (!(Tile & V_FLIP))
     {
-	// Flipped
-	tex [0][U] = 8.0f;
-	tex [0][V] = StartLine;
-	tex [1][U] = 0.0f;
-	tex [1][V] = StartLine;
-	tex [2][U] = 0.0f;
-	tex [2][V] = StartLine + LineCount;
-	tex [3][U] = 8.0f;
-	tex [3][V] = StartLine + LineCount;
+  // Flipped
+  tex [0][U] = 8.0f;
+  tex [0][V] = StartLine;
+  tex [1][U] = 0.0f;
+  tex [1][V] = StartLine;
+  tex [2][U] = 0.0f;
+  tex [2][V] = StartLine + LineCount;
+  tex [3][U] = 8.0f;
+  tex [3][V] = StartLine + LineCount;
 
     }
     else
     if (Tile & H_FLIP)
     {
-	// Horizontal and vertical flip
-	tex [0][U] = 8.0f;
-	tex [0][V] = StartLine + LineCount;
-	tex [1][U] = 0.0f;
-	tex [1][V] = StartLine + LineCount;
-	tex [2][U] = 0.0f;
-	tex [2][V] = StartLine;
-	tex [3][U] = 8.0f;
-	tex [3][V] = StartLine;
+  // Horizontal and vertical flip
+  tex [0][U] = 8.0f;
+  tex [0][V] = StartLine + LineCount;
+  tex [1][U] = 0.0f;
+  tex [1][V] = StartLine + LineCount;
+  tex [2][U] = 0.0f;
+  tex [2][V] = StartLine;
+  tex [3][U] = 8.0f;
+  tex [3][V] = StartLine;
 
     }
     else
     {
-	// Vertical flip only
-	tex [0][U] = 0.0f;
-	tex [0][V] = StartLine + LineCount;
-	tex [1][U] = 8.0f;
-	tex [1][V] = StartLine + LineCount;
-	tex [2][U] = 8.0f;
-	tex [2][V] = StartLine;
-	tex [3][U] = 0.0f;
-	tex [3][V] = StartLine;
+  // Vertical flip only
+  tex [0][U] = 0.0f;
+  tex [0][V] = StartLine + LineCount;
+  tex [1][U] = 8.0f;
+  tex [1][V] = StartLine + LineCount;
+  tex [2][U] = 8.0f;
+  tex [2][V] = StartLine;
+  tex [3][U] = 0.0f;
+  tex [3][V] = StartLine;
 
     }
 
@@ -422,4 +487,6 @@ void DrawTilePSP (uint32 Tile, uint32 Offset, uint32 StartLine,
 #endif
 
 #endif /* USE_SCEGU */
+
+/* vi:set ts=2 sts=2 sw=2 et: */ /* tw=80 - prefered */
 

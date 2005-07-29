@@ -52,7 +52,7 @@ unsigned char *pgGetVramAddr(unsigned long x,unsigned long y)
 		return (unsigned char *)pg_vramtop+(pg_drawframe?FRAMESIZE:0)+x*PIXELSIZE*2+y*LINESIZE*2+0x40000000;
 //	return pg_vramtop+(pg_drawframe?FRAMESIZE:0)+x*PIXELSIZE*2+y*LINESIZE*2;//+0x40000000;	//•Ï‚í‚ç‚È‚¢‚ç‚µ‚¢
 	} else {
-		return (unsigned char *)pg_vramtop+x*PIXELSIZE*2+y*LINESIZE*2+0x40000000;
+		return (unsigned char *)S9xSceGUGetVramAddr(x,y);
 	}
 }
 
