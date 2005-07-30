@@ -1,0 +1,143 @@
+Lua Player 0.3 by Shine
+
+
+Requirements
+
+  zlib, libpng, liblua, liblualib
+
+
+Build
+
+  make
+
+
+Install on PSP
+
+Copy the EBOOT.PBP, your script.lua and all PNG files in a PSP/GAME/somewhere
+directory to your PSP. See the snake directory for a sample game. To install
+Snake, copy script.lua, background.png and tiles.png into the same directory,
+where EBOOT.PBP is (for the 1.5 version in the directory without the "%"
+letter).
+
+
+Function reference
+
+You can use all Lua functions from http://www.lua.org can be used and the
+following special PSP Lua Player functions for your script.lua:
+
+
+int ctrlRead()
+
+Read the current bitmask of the buttons. Use the isCtrl*-functions to check
+which button is pressed.
+
+
+boolean isCtrlSelect(int bitmask)
+boolean isCtrlStart(int bitmask)
+boolean isCtrlUp(int bitmask)
+boolean isCtrlRight(int bitmask)
+boolean isCtrlDown(int bitmask)
+boolean isCtrlLeft(int bitmask)
+boolean isCtrlUp(int bitmask)
+boolean isCtrlLTrigger(int bitmask)
+boolean isCtrlRTrigger(int bitmask)
+boolean isCtrlTriangle(int bitmask)
+boolean isCtrlCircle(int bitmask)
+boolean isCtrlCross(int bitmask)
+boolean isCtrlSquare(int bitmask)
+boolean isCtrlHome(int bitmask)
+boolean isCtrlHold(int bitmask)
+
+
+void waitVblankStart([int count])
+
+Wait for next Vblank start. If you specify a count parameter, it waits
+multiple times for Vblank start. This can be used for delays, for
+example 60 for a one seconds delay.
+
+
+int lua_flipScreen(lua_State *L)
+
+Flip the current drawing offscreen with the display screen.
+
+
+void blitImage(int x, int y, int imageHandle [, int destinationImageHandle])
+
+Blit an image to screen or into another image, if destinationImageHandle
+is specified. Alpha channel is ignored.
+
+
+void blitAlphaImage(int x, int y, int imageHandle [, int destinationImageHandle])
+
+Blit an image to screen or into another image, if destinationImageHandle
+is specified.
+
+
+void blitImageRect(int sx, int sy, int width, int height, int imageHandle, int dx, int dy [, int destinationImageHandle])
+
+sx: left position of rectangle in source image
+sy: top position of rectangle in source image
+width: width of rectangle in source image
+height: height of rectangle in source image
+imageHandle: the source image
+dx: left target position in destination image or screen
+dy: top target position in destination image or screen
+destinationImageHandle: destination image, if specified
+
+Blit a part of an image to screen or into another image, if
+destinationImageHandle is specified. Alpha channel is ignored.
+
+
+void blitAlphaImageRect(int sx, int sy, int width, int height, int imageHandle, int dx, int dy [, int destinationImageHandle])
+
+Same as blitImageRect, but with alpha channel.
+
+
+void fillRect(int color, int x0, int y0, int width, int height [, int destinationImageHandle])
+
+Fill a rectangle.
+
+
+int createImage(int width, int height)
+
+Create an empty image.
+
+
+void clear(int color [, int imageHandle])
+
+Clear an image or screen.
+
+
+void screenshot(string filename)
+
+Save a screenshot in the game directory in TGA format.
+
+
+int loadImage(string filename)
+
+Load an image in the game directory in PNG format.
+
+
+getImageWidth(int imageHandle)
+
+Get the width of an image.
+
+
+getImageHeight(int imageHandle)
+
+Get the height of an image.
+
+
+void putPixel(int color, int x, int y [, int imageHandle)
+
+Put a pixel on an image or on screen.
+
+
+void getPixel(int x, int y [, int imageHandle)
+
+Get the color of an pixel of an image or screen.
+
+
+void printDecimal(int x, int y, int value, int color)
+
+Print a decimal number as 7 segment.
