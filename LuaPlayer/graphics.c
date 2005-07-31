@@ -20,6 +20,8 @@ typedef struct
 	short x, y, z;
 } Vertex;
 
+extern u8 msx[];
+
 static unsigned int __attribute__((aligned(16))) list[256];
 static int dispBufferNumber;
 static int initialized = 0;
@@ -315,7 +317,7 @@ static const char digitFont[] = {
 	0,0,0,1,
 	1,1,1,1};
 
-void print7Segment(int x, int y, int digit, u32 color)
+void print7SegmentScreen(int x, int y, int digit, u32 color)
 {
 	if (!initialized) return;
 	u16* vram = getVramDrawBuffer();
@@ -330,6 +332,76 @@ void print7Segment(int x, int y, int digit, u32 color)
 		}
 	}
 	sceKernelDcacheWritebackInvalidateAll();
+}
+
+void print7SegmentImage(int x, int y, int digit, u32 color, Image* image)
+{
+	if (!initialized) return;
+	int xo, yo;
+	int i = digit * 5*4;
+	for (yo = 0; yo < 5; yo++) {
+		for (xo = 0; xo < 4; xo++) {
+			if (digitFont[i]) {
+				image->data[xo + x + (yo + y) * image->textureWidth] = color;
+			}
+			i++;
+		}
+	}
+	sceKernelDcacheWritebackInvalidateAll();
+}
+
+void printTextScreen(int x, int y, const char* text, u32 color)
+{
+	int c, i, j, l;
+	u8 *font;
+	u16 *vram_ptr;
+	u16 *vram;
+	
+	if (!initialized) return;
+
+	for (c = 0; c < strlen(text); c++) {
+		if (x < 0 || x + 8 >= SCREEN_WIDTH || y < 0 || y + 8 >= SCREEN_HEIGHT) break;
+		char ch = text[c];
+		vram = getVramDrawBuffer() + x + y * PSP_LINE_SIZE;
+		
+		font = &msx[ (int)ch * 8];
+		for (i = l = 0; i < 8; i++, l += 8, font++) {
+			vram_ptr  = vram;
+			for (j = 0; j < 8; j++) {
+				if ((*font & (128 >> j))) *vram_ptr = color;
+				vram_ptr++;
+			}
+			vram += PSP_LINE_SIZE;
+		}
+		x += 8;
+	}
+}
+
+void printTextImage(int x, int y, const char* text, u32 color, Image* image)
+{
+	int c, i, j, l;
+	u8 *font;
+	u16 *data_ptr;
+	u16 *data;
+	
+	if (!initialized) return;
+
+	for (c = 0; c < strlen(text); c++) {
+		if (x < 0 || x + 8 >= image->imageWidth || y < 0 || y + 8 >= image->imageHeight) break;
+		char ch = text[c];
+		data = image->data + x + y * image->textureWidth;
+		
+		font = &msx[ (int)ch * 8];
+		for (i = l = 0; i < 8; i++, l += 8, font++) {
+			data_ptr  = data;
+			for (j = 0; j < 8; j++) {
+				if ((*font & (128 >> j))) *data_ptr = color;
+				data_ptr++;
+			}
+			data += image->textureWidth;
+		}
+		x += 8;
+	}
 }
 
 void screenshot(const char* filename)

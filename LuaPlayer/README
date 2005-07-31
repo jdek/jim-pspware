@@ -141,3 +141,29 @@ Get the color of an pixel of an image or screen.
 void printDecimal(int x, int y, int value, int color)
 
 Print a decimal number as 7 segment.
+
+
+void printText(int x, int y, string text, int color)
+
+Print a text at the specified position
+
+
+int getColorNumber(int r, int g, int b)
+
+Return the color for using with putPixel, clear and fillRect (opaque is set for alpha)
+
+
+table dir([path])
+
+Return the entries of the current directory or of path, if specified, or nil,
+if an error occured
+
+
+string getCurrentDirectory()
+
+Return the current directory.
+
+
+void setCurrentDirectory(string path)
+
+Change the current directory
