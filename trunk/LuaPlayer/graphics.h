@@ -189,7 +189,7 @@ extern u16 getPixelScreen(int x, int y);
 extern u16 getPixelImage(int x, int y, Image* image);
 
 /**
- * Prints a 7 segment digit.
+ * Print a 7 segment digit.
  *
  * @pre x < SCREEN_WIDTH - 4 && y < SCREEN_HEIGHT - 5 && digit >= 0 && digit <= 9
  * @param x - left position of digit
@@ -197,7 +197,40 @@ extern u16 getPixelImage(int x, int y, Image* image);
  * @param digit - the digit to print
  * @param color - new color for the pixels
  */
-extern void print7Segment(int x, int y, int digit, u32 color);
+extern void print7SegmentScreen(int x, int y, int digit, u32 color);
+
+/**
+ * Print a 7 segment digit.
+ *
+ * @pre x < SCREEN_WIDTH - 4 && y < SCREEN_HEIGHT - 5 && digit >= 0 && digit <= 9 && image != NULL
+ * @param x - left position of digit
+ * @param y - top position of digit
+ * @param digit - the digit to print
+ * @param color - new color for the pixels
+ * @param image - image
+ */
+extern void print7SegmentImage(int x, int y, int digit, u32 color, Image* image);
+
+/**
+ * Print a text (pixels out of the screen or image are clipped).
+ *
+ * @param x - left position of text
+ * @param y - top position of text
+ * @param text - the text to print
+ * @param color - new color for the pixels
+ */
+extern void printTextScreen(int x, int y, const char* text, u32 color);
+
+/**
+ * Print a text (pixels out of the screen or image are clipped).
+ *
+ * @param x - left position of text
+ * @param y - top position of text
+ * @param text - the text to print
+ * @param color - new color for the pixels
+ * @param image - image
+ */
+extern void printTextImage(int x, int y, const char* text, u32 color, Image* image);
 
 /**
  * Save a screenshot in TGA format.
