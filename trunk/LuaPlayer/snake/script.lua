@@ -82,11 +82,11 @@ function clearTileInSnakeImage(x, y)
 end
 
 function drawTileToOffscreen(tile, x, y)
-	blitAlphaImageRect(16*tile.x, 16*tile.y, 16, 16, tiles, 16*x, 16*y);
+	blitAlphaImageRect(16*tile.x, 16*tile.y, 16, 16, tiles, 16*x, 16*y)
 end
 
 function drawTileToSnakeImage(tile, x, y)
-	blitAlphaImageRect(16*tile.x, 16*tile.y, 16, 16, tiles, 16*x, 16*y, snake);
+	blitAlphaImageRect(16*tile.x, 16*tile.y, 16, 16, tiles, 16*x, 16*y, snake)
 end	
 
 function newGame()
@@ -111,7 +111,7 @@ function newGame()
 end
 
 function keyboardControl()
-	waitVblankStart();
+	waitVblankStart()
 	pad = ctrlRead()
 	if isCtrlUp(pad) then
 		dx = 0
@@ -144,8 +144,8 @@ function move()
 	-- add new head
 	cellHead.next = {}
 	cellHead = cellHead.next
-	cellHead.x = lastX + dx;
-	cellHead.y = lastY + dy;
+	cellHead.x = lastX + dx
+	cellHead.y = lastY + dy
 	
 	-- set direction for new head
 	direction = 0
@@ -246,8 +246,8 @@ while true do
 	if score > high then
 		high = score
 	end
-	printDecimal(410, 81, score, 0);
-	printDecimal(429, 129, high, 0);
+	printDecimal(410, 81, score, 0)
+	printDecimal(429, 129, high, 0)
 	waitVblankStart()
 	flipScreen()
 	if isGameOver() then
