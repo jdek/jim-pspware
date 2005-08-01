@@ -249,6 +249,7 @@ while true do
 	printDecimal(410, 81, score, 0)
 	printDecimal(429, 129, high, 0)
 	waitVblankStart()
+--	print("Hallo")
 	flipScreen()
 	if isGameOver() then
 		waitVblankStart(50)

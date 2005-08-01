@@ -255,4 +255,28 @@ extern void initGraphics();
  */
 extern void disableGraphics();
 
+/**
+ * Draw a line to screen.
+ *
+ * @pre x0 >= 0 && x0 < SCREEN_WIDTH && y0 >= 0 && y0 < SCREEN_HEIGHT &&
+ *      x1 >= 0 && x1 < SCREEN_WIDTH && y1 >= 0 && y1 < SCREEN_HEIGHT
+ * @param x0 - x line start position
+ * @param y0 - y line start position
+ * @param x1 - x line end position
+ * @param y1 - y line end position
+ */
+void drawLineScreen(int x0, int y0, int x1, int y1, int color);
+
+/**
+ * Draw a line to screen.
+ *
+ * @pre x0 >= 0 && x0 < image->imageWidth && y0 >= 0 && y0 < image->imageHeight &&
+ *      x1 >= 0 && x1 < image->imageWidth && y1 >= 0 && y1 < image->imageHeight
+ * @param x0 - x line start position
+ * @param y0 - y line start position
+ * @param x1 - x line end position
+ * @param y1 - y line end position
+ */
+void drawLineImage(int x0, int y0, int x1, int y1, int color, Image* image);
+
 #endif

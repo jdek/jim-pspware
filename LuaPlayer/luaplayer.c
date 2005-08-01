@@ -378,7 +378,7 @@ static int lua_printDecimal(lua_State *L)
 	int color = luaL_checkint(L, 4);
 	Image* image = NULL;
 	if (argc == 5) {
-		int imageHandle = luaL_checkint(L, 3);
+		int imageHandle = luaL_checkint(L, 5);
 		if (imageHandle < 1 || imageHandle > currentImageHandle) return luaL_error(L, "wrong source image handle");
 		image = images[imageHandle];
 	}
@@ -409,7 +409,7 @@ static int lua_printDecimal(lua_State *L)
 static int lua_printText(lua_State *L)
 {
 	int argc = lua_gettop(L);
-	if (argc != 4) return luaL_error(L, "wrong number of arguments");
+	if (argc != 4 && argc != 5) return luaL_error(L, "wrong number of arguments");
 	int x = luaL_checkint(L, 1);
 	int y = luaL_checkint(L, 2);
 	const char* text = luaL_checkstring(L, 3);
@@ -417,7 +417,7 @@ static int lua_printText(lua_State *L)
 	if (argc == 4) {
 		printTextScreen(x, y, text, color);
 	} else {
-		int imageHandle = luaL_checkint(L, 3);
+		int imageHandle = luaL_checkint(L, 5);
 		if (imageHandle < 1 || imageHandle > currentImageHandle) return luaL_error(L, "wrong source image handle");
 		Image* image = images[imageHandle];
 		printTextImage(x, y, text, color, image);
@@ -445,6 +445,41 @@ static int lua_getColorNumber(lua_State *L)
 	
 	lua_pushnumber(L, rgb); 
 	return 1; 
+}
+
+static int lua_drawLine(lua_State *L) 
+{ 
+	int argc = lua_gettop(L); 
+	if (argc != 5 && argc != 6) return luaL_error(L, "wrong number of arguments"); 
+	
+	int x0 = luaL_checkint(L, 1); 
+	int y0 = luaL_checkint(L, 2); 
+	int x1 = luaL_checkint(L, 3); 
+	int y1 = luaL_checkint(L, 4); 
+	int color = luaL_checkint(L, 5); 
+	
+	// TODO: better clipping
+	if (x0 < 0) x0 = 0;
+	if (y0 < 0) y0 = 0;
+	if (x1 < 0) x1 = 0;
+	if (y1 < 0) y1 = 0;
+	if (argc == 5) {
+		if (x0 >= SCREEN_WIDTH) x0 = SCREEN_WIDTH - 1;
+		if (x1 >= SCREEN_WIDTH) x0 = SCREEN_WIDTH - 1;
+		if (y0 >= SCREEN_HEIGHT) y0 = SCREEN_HEIGHT - 1;
+		if (y1 >= SCREEN_HEIGHT) x0 = SCREEN_HEIGHT - 1;
+		drawLineScreen(x0, y0, x1, y1, color);
+	} else {
+		int imageHandle = luaL_checkint(L, 6);
+		if (imageHandle < 1 || imageHandle > currentImageHandle) return luaL_error(L, "wrong source image handle");
+		Image* image = images[imageHandle];
+		if (x0 >= image->imageWidth) x0 = image->imageWidth - 1;
+		if (x1 >= image->imageWidth) x0 = image->imageWidth - 1;
+		if (y0 >= image->imageHeight) y0 = image->imageHeight - 1;
+		if (y1 >= image->imageHeight) x0 = image->imageHeight - 1;
+		drawLineImage(x0, y0, x1, y1, color, image);
+	}
+	return 0;
 }
 
 
@@ -562,6 +597,7 @@ void runScript(const char* filename)
 	lua_register(L, "printDecimal", lua_printDecimal);
 	lua_register(L, "printText", lua_printText);
 	lua_register(L, "getColorNumber", lua_getColorNumber);
+	lua_register(L, "drawLine", lua_drawLine);
 	lua_register(L, "dir", lua_dir);
 	lua_register(L, "getCurrentDirectory", lua_getCurrentDirectory);
 	lua_register(L, "setCurrentDirectory", lua_setCurrentDirectory);
