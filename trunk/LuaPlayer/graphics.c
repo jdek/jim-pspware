@@ -375,6 +375,7 @@ void printTextScreen(int x, int y, const char* text, u32 color)
 		}
 		x += 8;
 	}
+	sceKernelDcacheWritebackInvalidateAll();
 }
 
 void printTextImage(int x, int y, const char* text, u32 color, Image* image)
@@ -402,6 +403,7 @@ void printTextImage(int x, int y, const char* text, u32 color, Image* image)
 		}
 		x += 8;
 	}
+	sceKernelDcacheWritebackInvalidateAll();
 }
 
 void screenshot(const char* filename)
@@ -439,6 +441,81 @@ void flipScreen()
 	sceGuSwapBuffers();
 	sceDisplaySetFrameBuf(vram, PSP_LINE_SIZE, 1, 1);
 	dispBufferNumber ^= 1;
+}
+
+static void drawLine(int x0, int y0, int x1, int y1, int color, u16* destination, int width)
+{
+	#define SWAP(a, b) tmp = a; a = b; b = tmp;
+	int x, y, e, dx, dy, tmp;
+	if (x0 > x1) {
+		SWAP(x0, x1);
+		SWAP(y0, y1);
+	}
+	e = 0;
+	x = x0;
+	y = y0;
+	dx = x1 - x0;
+	dy = y1 - y0;
+	if (dy >= 0) {
+		if (dx >= dy) {
+			for (x = x0; x <= x1; x++) {
+				destination[x + y * width] = color;
+				if (2 * (e + dy) < dx) {
+					e += dy;
+				} else {
+					y++;
+					e += dy - dx;
+				}
+			}
+		} else {
+			for (y = y0; y <= y1; y++) {
+				destination[x + y * width] = color;
+				if (2 * (e + dx) < dy) {
+					e += dx;
+				} else {
+					x++;
+					e += dx - dy;
+				}
+			}
+		}
+	} else {
+		if (dx >= -dy) {
+			for (x = x0; x <= x1; x++) {
+				destination[x + y * width] = color;
+				if (2 * (e + dy) > -dx) {
+					e += dy;
+				} else {
+					y--;
+					e += dy + dx;
+				}
+			}
+		} else {   	
+			SWAP(x0, x1);
+			SWAP(y0, y1);
+			x = x0;
+			dx = x1 - x0;
+			dy = y1 - y0;
+			for (y = y0; y <= y1; y++) {
+				destination[x + y * width] = color;
+				if (2 * (e + dx) > -dy) {
+					e += dx;
+				} else {
+					x--;
+					e += dx + dy;
+				}
+			}
+		}
+	}
+}
+
+void drawLineScreen(int x0, int y0, int x1, int y1, int color)
+{
+	drawLine(x0, y0, x1, y1, color, getVramDrawBuffer(), PSP_LINE_SIZE);
+}
+
+void drawLineImage(int x0, int y0, int x1, int y1, int color, Image* image)
+{
+	drawLine(x0, y0, x1, y1, color, image->data, image->textureWidth);
 }
 
 void initGraphics()
