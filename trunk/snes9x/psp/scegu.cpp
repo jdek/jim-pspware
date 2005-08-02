@@ -53,7 +53,10 @@ bool8 S9xSceGUInit (void)
   S9xSceGUInit2 ();
 
   sceGuDrawBuffer (SceGU.pixel_format, (void *)0, SceGU.line_size);
+
+#ifdef SCEGU_DOUBLE_BUFFERED
   sceGuDisplay    (1);
+#endif
 
   return (TRUE);
 }
@@ -183,7 +186,10 @@ void* S9xSceGUGetVramAddr (int x, int y)
 
 void S9xSceGUSwapBuffers (void)
 {
+// This just makes things slower to be completely honest...
+#ifdef SCEGU_DOUBLE_BUFFERED
   SceGU.vram_offset = sceGuSwapBuffers ();
+#endif
 }
 
 
@@ -191,6 +197,11 @@ void S9xSceGURenderTex (char *tex, int width, int height, int x, int y, int xsca
 
 void S9xSceGUPutImage (int snes_width, int snes_height)
 {
+#ifndef SCEGU_DOUBLE_BUFFERED
+  if (PSP_Settings.bVSync)
+    sceDisplayWaitVblankStart ();
+#endif
+
   const int tex_res = (PSP_Settings.bSupportHiRes ? 512 : 256);
 
   switch (PSP_Settings.iScreenSize)
@@ -246,36 +257,41 @@ void S9xSceGURenderTex (char *tex, int width, int height, int x, int y, int xsca
   // reading pixel data...
   sceKernelDcacheWritebackAll ();
 
-  sceGuStart (0, SceGU.list);
-  {
-    // If the x/y scale matches the width/height, we can take a shortcut and
-    // merely copy tex into the VRAM at the given (x,y) coordinate.
-    //
-    //  NOTE: This disables bilinear filtering, but that's not saying a whole
-    //        lot, since the image will not require a min / mag filter.
-    if ((xscale == width) && (yscale == height)) {
+  unsigned int j;
+
+  const int slice_scale = ((float)xscale / (float)width) * (float)SLICE_SIZE;
+  const int tex_filter  = (PSP_Settings.bBilinearFilter ? GU_LINEAR :
+                                                              GU_NEAREST);
+
+  struct Vertex* vertices;
+  struct Vertex* vtx_iter;
+
+
+  // If the x/y scale matches the width/height, we can take a shortcut and
+  // merely copy tex into the VRAM at the given (x,y) coordinate.
+  //
+  //  NOTE: This disables bilinear filtering, but that's not saying a whole
+  //        lot, since the image will not require a min / mag filter.
+  if ((xscale == width) && (yscale == height)) {
+    sceGuStart (0, SceGU.list);
       sceGuCopyImage (SceGU.pixel_format, 0, 0, xres, yres, width, tex, x, y,
                         SceGU.line_size,
                           (void *)(0x04000000 + (uint32)SceGU.vram_offset));
-    }
+    sceGuFinish ();
+  }
 
-    // If the scale doesn't match the width/height, we have to perform a
-    // special blit to stretch the image.
-    else {
+  // If the scale doesn't match the width/height, we have to perform a
+  // special blit to stretch the image.
+  else {
 #ifdef SCEGU_DIRECT_COPY
+    sceGuStart (0, SceGU.list);
+
       sceGuCopyImage (SceGU.pixel_format, 0, 0, width, height, width, tex, 0, 0,
                         SceGU.line_size,
                           (void *)(0x04000000 + (uint32)SceGU.vram_offset));
 #endif
 
-      unsigned int j;
-
-      const int slice_scale = ((float)xscale / (float)width) * (float)SLICE_SIZE;
-      const int tex_filter  = (PSP_Settings.bBilinearFilter ? GU_LINEAR :
-                                                              GU_NEAREST);
-
-      struct Vertex* vertices;
-      struct Vertex* vtx_iter;
+      sceGuStart (0, SceGU.list);
 
       sceGuTexMode      (SceGU.texture_format, 0, 0, 0);
 #ifndef SCEGU_DIRECT_COPY
@@ -329,15 +345,19 @@ void S9xSceGURenderTex (char *tex, int width, int height, int x, int y, int xsca
                                                0,
                                             vertices);
 #endif
-    }
+    sceGuFinish ();
   }
-  sceGuFinish ();
+
+#ifdef SCEGU_DOUBLE_BUFFERED
   sceGuSync   (0, 0);
 
   if (PSP_Settings.bVSync)
     sceDisplayWaitVblankStart ();
+#endif
 
+#ifdef SCEGU_DOUBLE_BUFFERED
   S9xSceGUSwapBuffers ();
+#endif
 }
 };
 

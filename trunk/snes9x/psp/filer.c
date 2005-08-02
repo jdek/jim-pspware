@@ -709,18 +709,18 @@ void get_screenshot(unsigned char *buf)
 	int x,y,i;
 	i = 0;
 
-	const int y_incr = (PSP_Settings.bUseGUBlit ? (PSP_Settings.bSupportHiRes ? 2 : 1) : 2);
+	const int line_size = (PSP_Settings.bUseGUBlit ? (PSP_Settings.bSupportHiRes ? LINESIZE : LINESIZE / 2) : LINESIZE);
 	
 	vptr0=buf;
-	for (y=0; y<224; y += y_incr) {
+	for (y=0; y<224; y += 2) {
 		rgbptr=(unsigned short *)vptr0;
 		for (x=0; x<256; x+=2) {
 			rgb = (*rgbptr & *(rgbptr+1)) + (((*rgbptr ^ *(rgbptr+1)) & 0x7bde) >> 1);
-			rgb2 = (*(rgbptr+LINESIZE) & *(rgbptr+LINESIZE+1)) + (((*(rgbptr+LINESIZE) ^ *(rgbptr+LINESIZE+1)) & 0x7bde) >> 1);
+			rgb2 = (*(rgbptr+line_size) & *(rgbptr+line_size+1)) + (((*(rgbptr+line_size) ^ *(rgbptr+line_size+1)) & 0x7bde) >> 1);
 			now_thumb[i++] = (rgb & rgb2) + (((rgb ^ rgb2) & 0x7bde) >> 1);
 			rgbptr+=2;
 		}
-		vptr0+=LINESIZE*y_incr*2;
+		vptr0+=line_size*2*2;
 	}
 }
 

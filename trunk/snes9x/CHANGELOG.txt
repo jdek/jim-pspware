@@ -1,3 +1,19 @@
+Andon (2/Aug/05)
+----------------
+ ADDITIONS
+-----------
+ + Added a compile/link log to the Makefile.
+  >> You can refer back to compile.log or
+     link.log if you encounter errors...
+    * This cleans up the build spam as well
+      as allowing more warnings to be enabled
+      and humanly read.
+  >> To disable the compile/link logs and
+     revert to the original text spam, comment
+     out the line that reads: LOGED_BUILD=1
+      
+
+
 Andon (28/Jul/05)
 -----------------
  CHANGES

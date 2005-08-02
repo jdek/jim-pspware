@@ -2052,8 +2052,11 @@ bool8 S9xDeinitUpdate (int Width, int Height, bool8 sixteen_bit)
 	if (PSP_Settings.bUseGUBlit) {
 		// Dirty framebuffer clear for SceGU blit
 		if (s_iFramebufferState > 0) {
+#ifdef SCEGU_DOUBLE_BUFFERED
 			s_iFramebufferState--;
-//			s_iFramebufferState = 0; // Not double buffered, so only clear once.
+#else
+			s_iFramebufferState = 0; // Not double buffered, so only clear once.
+#endif
 			clear_framebuffer ();
 			S9xSceGUSwapBuffers ();
 		}
