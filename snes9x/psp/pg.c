@@ -62,7 +62,7 @@ void pgInit(void)
 	if (PSP_Settings.bUseGUBlit && (! bGUIMode)) {
 		S9xSceGUInit ();
 
-		pg_vramtop = (char *) (0x40000000 | sceGeEdramGetAddr ());
+		pg_vramtop = (char *) (0x40000000 | (uint32)sceGeEdramGetAddr ());
 		
 		sceDisplaySetMode     (0, SCREEN_WIDTH, SCREEN_HEIGHT);
 		sceDisplaySetFrameBuf (pg_vramtop, LINESIZE, 1 ,1);
@@ -797,8 +797,8 @@ void pgMain(void)
 
 	pgiInit();
 
-	if (PSP_Settings.bUseGUBlit || bGUIMode)
-		sceDisplaySetMode(1,SCREEN_WIDTH,SCREEN_HEIGHT);
+//	if (PSP_Settings.bUseGUBlit || bGUIMode)
+//		sceDisplaySetMode(1,SCREEN_WIDTH,SCREEN_HEIGHT);
 }
 
 // add by J

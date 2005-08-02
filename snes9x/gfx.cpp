@@ -513,11 +513,11 @@ inline void DrawTile16_OBJ_inline (const uint32& Tile, const uint32& Offset, con
 		Depth[N]  = GFX_Z2; \
 	}
 		while (LineCount-- && LineCount < 256){
-		    if (*dp){
+		    if (*dp/* && *((uint32*)Depth) < GFX_Z1*/) {
 				FN(0); FN(2); FN(1); FN(3);
 			}
 
-		    if (*(dp + 1)){
+		    if (*(dp + 1)/* && *((uint32*)Depth + 1) < GFX_Z1*/) {
 				FN(4); FN(6); FN(5); FN(7);
 			}
 			bp += inc;
@@ -533,11 +533,11 @@ inline void DrawTile16_OBJ_inline (const uint32& Tile, const uint32& Offset, con
 		Depth[N]  = GFX_Z2; \
     }
 		while (LineCount-- && LineCount < 256){
-		    if (*(dp + 1)){
+		    if (*(dp + 1)/* && *((uint32*)Depth + 1) < GFX_Z1*/) {
 				FN(0, 7); FN(1, 6); FN(2, 5); FN(3, 4);
 			}
 
-		    if (*dp){
+		    if (*dp/* && *((uint32*)Depth + 1) < GFX_Z1*/) {
 				FN(4, 3); FN(5, 2); FN(6, 1); FN(7, 0);
 			}
 		    bp += inc;
@@ -648,11 +648,11 @@ inline void DrawTile16_inline (const uint32& Tile, const uint32& Offset, const u
 }
 
 #define CALL_DRAW_TILE_FUNC(Func,Tile,Offset,StartLine,LineCount) {   \
-/*      if (Func == DrawTile16_OBJ) {                                   \
+     /* if (Func == DrawTile16_OBJ) {                                   \
         DrawTile16_OBJ_inline (Tile, Offset, StartLine, LineCount);   \
      } else if (Func == DrawTile16) {                                 \
         DrawTile16_inline (Tile, Offset, StartLine, LineCount);       \
-     } else */ {                                                         \
+     } else*/ {                                                         \
         (*DrawTilePtr) (Tile,Offset,StartLine,LineCount);             \
     }                                                                 \
 }
