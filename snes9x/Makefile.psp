@@ -22,6 +22,7 @@ OPTI=1
 OPTITEST=1
 #USE_PROFILER=1
 #UBER_OPTIMIZE=1
+LOGGED_BUILD=1
 
 #Fairly good and special-char-safe descriptor of the os being built on.
 OS=`uname -s -r -m|sed \"s/ /-/g\"|tr \"[A-Z]\" \"[a-z]\"|tr \"/()\" \"___\"`
@@ -178,12 +179,12 @@ endif
 JOYDEFINES = 
 
 ifdef DREAMCAST
-CCC = sh-elf-c++ -fno-rtti
+CXX = sh-elf-c++ -fno-rtti
 CC = sh-elf-gcc
 NASM = fail
 GASM = fail
 else
-CCC = c++  -fno-rtti
+CXX = c++  -fno-rtti
 CC = gcc
 NASM = not_found
 GASM = c++
@@ -209,7 +210,7 @@ OPTIMISE=-O4 -ffreestanding -ffast-math -fschedule-insns2 -fomit-frame-pointer -
 endif
 
 ifdef PSP
-CCC  = psp-g++
+CXX  = psp-g++
 CC   = psp-gcc
 NASM = fail
 GASM = fail
@@ -219,28 +220,19 @@ ifdef OPTI
 DEFS     += -DOPTI
 endif
 CPUFLAGS = -mno-fp-exceptions -mno-check-zero-division
-#CPUFLAGS = -march=allegrex -mgp32 -mlong32 -msingle-float -mabi=eabi -mhard-float -mtune=allegrex -mlong-calls -mno-check-zero-division -mno-fp-exceptions #-mfix-r4000
-# http://www.cqpub.co.jp/interface/column/freesoft/2002/200208/08-4.htm
-#OPTIMISE=-O4 -ffreestanding -ffast-math -fschedule-insns2 -fomit-frame-pointer -fno-inline-functions -fno-defer-pop -fforce-addr -fstrict-aliasing -funroll-loops -fdelete-null-pointer-checks -fno-exceptions
-#OPTIMISE=-O2 -G8 -fstrict-aliasing -ffast-math -fsingle-precision-constant
-OPTIMISE=-O2 -ffast-math
+OPTIMISE = -O3 -ffast-math -floop-optimize2 -fbranch-target-load-optimize2 \
+	 -ftree-vectorize -fno-inline-functions -fforce-addr \
+	 -funroll-loops
 ifndef DEBUG
-OPTIMISE += -frename-registers
+OPTIMISE += -fomit-frame-pointer
 endif
 
-# This will make compile times go up, without a lot of performance gain...
 ifdef UBER_OPTIMIZE
-OPTIMISE += --param max-reload-search-insns=100000 --param max-inline-insns-auto=110 \
-            --param max-crossjump-edges=100000 --param max-delay-slot-insn-search=100000 \
-	    --param max-gcse-passes=5 --param max-sched-region-blocks=30 \
-	    --param max-sched-region-insns=10000 --param max-aliased-vops=50000 \
-	    --param max-cse-path-length=10000 --param tracer-max-code-growth=1500 \
-	    --param tracer-min-branch-ratio=50 --param large-function-growth=2000 \
-	    --param max-delay-slot-live-search=10000
 OPTIMISE += -Wdisabled-optimization -Wextra -Wstrict-aliasing=2 #-Wcast-align
+OPTIMISE += -Wpacked -Wpadded #-Wunreachable-code
 endif
 	 
-OPTIMISE_C=$(OPTIMISE)
+OPTIMISE_C= $(OPTIMISE)
 OPTIMISE_CXX=-fno-exceptions -fno-rtti $(OPTIMISE)
 
 
@@ -298,7 +290,7 @@ DEFS += -DUSE_PROFILER -DPROFILE_TILES -DPROFILE_GFX
 #DEFS += -DUSE_PROFILER -DPROFILE_HW
 endif
 
-.SUFFIXES: .o .cpp .c .cc .h .m .i .S .asm .obj .O .CPP .C .ASM
+.SUFFIXES: .log .o .cpp .c .cc .h .m .i .S .asm .obj .O .CPP .C .ASM
 #FIXME: Why is this set statically?
 #LDLIBS = -L/usr/X11R6/lib
 # -L../zlib
@@ -321,7 +313,31 @@ SNES9XBIN=snes9x
 endif
 endif
 
-all: $(SNES9XBIN) EBOOT.PBP
+ifdef LOGGED_BUILD
+ECHO=echo
+TAIL=tail
+
+TAIL_LOG=$(TAIL)
+
+LOG_COMPILE=>> $(COMPILE_LOG) 2>&1
+LOG_COMPILE_EXECUTE=$(LOG_COMPILE)         && exit 0 || \
+	    	$(TAIL_LOG) $(COMPILE_LOG) &&           \
+		echo -e "\n\n *** See $(COMPILE_LOG) for more details... ***\n" && \
+		exit 1
+LOG_LINK=>> $(LINK_LOG) 2>&1
+LOG_LINK_EXECUTE=$(LOG_LINK)            && exit 0 || \
+	 	$(TAIL_LOG) $(LINK_LOG) &&           \
+		echo -e "\n\n *** See $(LINK_LOG) for more details... ***\n" && \
+		exit 1
+
+COMPILE_LOG=compile.log
+LINK_LOG=link.log
+
+LOG_FILES=$(COMPILE_LOG) $(LINK_LOG)
+endif
+
+
+all: $(LOG_FILES) $(SNES9XBIN) EBOOT.PBP
 
 #Makefile.psp: configure Makefile.in
 #	@echo "Makefile is older than configure or in-file. Run configure or touch Makefile."
@@ -358,28 +374,51 @@ PARAM.SFO:
 	mksfo "uo_Snes9x 0.02pd2" $@
 
 #snes9x: $(OBJECTS) unix/x11.o $(AIDOOBJS)
-#	$(CCC) $(INCLUDES) -o $@ $(OBJECTS) $(AIDOOBJS) $(GLIDEOBJS) $(OPENGLOBJS) unix/x11.o $(LDLIBS) $(GLIDELIBS) $(OPENGLLIBS)   -lXext -lX11 $(EXTRALIBS) -lm
+#	$(CXX) $(INCLUDES) -o $@ $(OBJECTS) $(AIDOOBJS) $(GLIDEOBJS) $(OPENGLOBJS) unix/x11.o $(LDLIBS) $(GLIDELIBS) $(OPENGLLIBS)   -lXext -lX11 $(EXTRALIBS) -lm
 
 ssnes9x: $(OBJECTS) unix/svga.o 
-	$(CCC) $(INCLUDES) -o $@ $(OBJECTS) $(GLIDEOBJS) unix/svga.o $(LDLIBS) $(GLIDELIBS)   -lvga -lvgagl $(EXTRALIBS) -lm
+	$(CXX) $(INCLUDES) -o $@ $(OBJECTS) $(GLIDEOBJS) unix/svga.o $(LDLIBS) $(GLIDELIBS)   -lvga -lvgagl $(EXTRALIBS) -lm
 
 gsnes9x: $(OBJECTS) $(GLIDEOBJS)
-	$(CCC) $(INCLUDES) -o $@ $(OBJECTS) $(GLIDEOBJS) $(LDLIBS)   -lglide $(EXTRALIBS) -lm
+	$(CXX) $(INCLUDES) -o $@ $(OBJECTS) $(GLIDEOBJS) $(LDLIBS)   -lglide $(EXTRALIBS) -lm
 
 ggisnes9x: $(OBJECTS) unix/ggi.o
-	$(CCC) $(INCLUDES) -o $@ $(OBJECTS) unix/ggi.o $(LDLIBS)   -lggi $(EXTRALIBS) -lm
+	$(CXX) $(INCLUDES) -o $@ $(OBJECTS) unix/ggi.o $(LDLIBS)   -lggi $(EXTRALIBS) -lm
 
 osnes9x: $(OBJECTS) unix/x11.o $(OPENGLOBJS)
-	$(CCC) $(INCLUDES) -o $@ $(OBJECTS) unix/x11.o $(OPENGLOBJS) $(LDLIBS) $(OPENGLLIBS)   -lXext -lX11 $(EXTRALIBS) -lm
+	$(CXX) $(INCLUDES) -o $@ $(OBJECTS) unix/x11.o $(OPENGLOBJS) $(LDLIBS) $(OPENGLLIBS)   -lXext -lX11 $(EXTRALIBS) -lm
 
 s9xserver: $(SERVER_OBJECTS)
-	$(CCC) $(INCLUDES) -o $@ $(SERVER_OBJECTS)
+	$(CXX) $(INCLUDES) -o $@ $(SERVER_OBJECTS)
+
+
+$(LOG_FILES):
+	@rm -f $(LOG_FILES)
+
 
 .cpp.o:
-	$(CCC) $(INCLUDES) -c $(CXXFLAGS) $(srcdir)/$*.cpp -o $@
+ifdef LOGGED_BUILD
+	@$(ECHO) -e "--------------------------------------------------------------------------------\n" $(LOG_COMPILE)
+	@$(ECHO) -e " *** $< *** \n\n"                          $(LOG_COMPILE)
+	@$(ECHO) -e "  [$(CXX) $(INCLUDES) -c $(CXXFLAGS) $(srcdir)/$*.cpp -o $@]\n\n"  $(LOG_COMPILE)
+	@$(ECHO) " CXX    $<"; $(CXX) $(INCLUDES) -c $(CXXFLAGS) $(srcdir)/$*.cpp -o $@ $(LOG_COMPILE_EXECUTE)
+	@$(ECHO) -e "\n\n *** $< *** \n"                        $(LOG_COMPILE)
+	@$(ECHO) -e "--------------------------------------------------------------------------------\n" $(LOG_COMPILE)
+else
+	$(CXX) $(INCLUDES) -c $(CXXFLAGS) $(srcdir)/$*.cpp -o $@
+endif
 
 .c.o:
+ifdef LOGGED_BUILD
+	@$(ECHO) -e "--------------------------------------------------------------------------------\n" $(LOG_COMPILE)
+	@$(ECHO) -e " *** $< *** \n\n"                          $(LOG_COMPILE)
+	@$(ECHO) -e "  [$(CC) $(INCLUDES) -c $(CFLAGS) $(srcdir)/$*.c -o $@]\n\n"  $(LOG_COMPILE)
+	@$(ECHO) " CC    $<"; $(CC) $(INCLUDES) -c $(CFLAGS) $(srcdir)/$*.c -o $@ $(LOG_COMPILE_EXECUTE)
+	@$(ECHO) -e "\n\n *** $< *** \n"                        $(LOG_COMPILE)
+	@$(ECHO) -e "--------------------------------------------------------------------------------\n" $(LOG_COMPILE)
+else
 	$(CC) $(INCLUDES) -c $(CFLAGS) $(srcdir)/$*.c -o $@
+endif
 
 .cpp.S:
 	$(GASM) $(INCLUDES) -S $(CXXFLAGS) $(srcdir)/$*.cpp -o $@
@@ -408,7 +447,7 @@ s9xserver: $(SERVER_OBJECTS)
 	cp $*.obj $*.o
 
 .CPP.O:
-	$(CCC) $(INCLUDES) -c $(CXXFLAGS) -x c++ $(srcdir)/$*.CPP -o $@
+	$(CXX) $(INCLUDES) -c $(CXXFLAGS) -x c++ $(srcdir)/$*.CPP -o $@
 
 .C.O:
 	$(CC) $(INCLUDES) -c $(CFLAGS) $(srcdir)/$*.C -o $@
@@ -420,7 +459,7 @@ unix/moc_snes9x_gui.cpp: unix/snes9x_gui.h
 	$(MOC) unix/snes9x_gui.h -o $@
 
 clean:
-	-rm -f $(SNES9XBIN) EBOOT.PBP PARAM.SFO $(OBJECTS) $(CPU)/offsets.h offsets.o unix/svga.o unix/aido.o unix/x11.o unix/ggi.o unix/xf86.o unix/glide.o $(UNZIP_OBJECTS)
+	-rm -f $(SNES9XBIN) EBOOT.PBP PARAM.SFO $(OBJECTS) $(CPU)/offsets.h offsets.o unix/svga.o unix/aido.o unix/x11.o unix/ggi.o unix/xf86.o unix/glide.o $(UNZIP_OBJECTS) $(LOG_FILES)
 
 #release: CFLAGS += -DNO_DEBUGGER
 
@@ -485,7 +524,7 @@ verify: snes9x
 #FIXME: Make a auto-self-reference.
 dependencies:
 	@echo "Calculating dependencies..."
-	@$(CCC) $(CXXFLAGS) -MM -MG \
+	@$(CXX) $(CXXFLAGS) -MM -MG \
 	  `find . '(' -name '*.c' -o -name '*.cpp' -o -name '*.S' ')' -print -o -name msdos -prune` \
 	  | sed -e 's@^[^ :]*: *\([^ ]*/\)[^ /]*@\1&@' \
 	  >dependencies
