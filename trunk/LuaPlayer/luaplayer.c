@@ -465,18 +465,18 @@ static int lua_drawLine(lua_State *L)
 	if (y1 < 0) y1 = 0;
 	if (argc == 5) {
 		if (x0 >= SCREEN_WIDTH) x0 = SCREEN_WIDTH - 1;
-		if (x1 >= SCREEN_WIDTH) x0 = SCREEN_WIDTH - 1;
+		if (x1 >= SCREEN_WIDTH) x1 = SCREEN_WIDTH - 1;
 		if (y0 >= SCREEN_HEIGHT) y0 = SCREEN_HEIGHT - 1;
-		if (y1 >= SCREEN_HEIGHT) x0 = SCREEN_HEIGHT - 1;
+		if (y1 >= SCREEN_HEIGHT) y1 = SCREEN_HEIGHT - 1;
 		drawLineScreen(x0, y0, x1, y1, color);
 	} else {
 		int imageHandle = luaL_checkint(L, 6);
 		if (imageHandle < 1 || imageHandle > currentImageHandle) return luaL_error(L, "wrong source image handle");
 		Image* image = images[imageHandle];
 		if (x0 >= image->imageWidth) x0 = image->imageWidth - 1;
-		if (x1 >= image->imageWidth) x0 = image->imageWidth - 1;
+		if (x1 >= image->imageWidth) x1 = image->imageWidth - 1;
 		if (y0 >= image->imageHeight) y0 = image->imageHeight - 1;
-		if (y1 >= image->imageHeight) x0 = image->imageHeight - 1;
+		if (y1 >= image->imageHeight) y1 = image->imageHeight - 1;
 		drawLineImage(x0, y0, x1, y1, color, image);
 	}
 	return 0;
