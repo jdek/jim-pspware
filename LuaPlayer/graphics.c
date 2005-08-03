@@ -50,6 +50,10 @@ static u16* getVramDisplayBuffer()
 	return vram;
 }
 
+void user_warning_fn(png_structp png_ptr, png_const_charp warning_msg)
+{
+}
+
 Image* loadImage(const char* filename)
 {
 	png_structp png_ptr;
@@ -68,6 +72,7 @@ Image* loadImage(const char* filename)
 		fclose(fp);
 		return NULL;;
 	}
+	png_set_error_fn(png_ptr, (png_voidp) NULL, (png_error_ptr) NULL, user_warning_fn);
 	info_ptr = png_create_info_struct(png_ptr);
 	if (info_ptr == NULL) {
 		fclose(fp);

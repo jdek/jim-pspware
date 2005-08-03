@@ -11,7 +11,7 @@ LDFLAGS =
 LIBS= -llua -llualib -lpng -lz -lpspgu -lm
 
 EXTRA_TARGETS = EBOOT.PBP
-PSP_EBOOT_TITLE = Lua Player 0.3 by Shine
+PSP_EBOOT_TITLE = Lua Player 0.6 by Shine
 PSP_EBOOT_ICON = title-icon.png
 
 PSPSDK=$(shell psp-config --pspsdk-path)
