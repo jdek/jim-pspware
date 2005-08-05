@@ -3,23 +3,22 @@ Lua Player 0.6 by Shine
 
 Requirements
 
-  zlib, libpng, liblua, liblualib
+  zlib, libpng, liblua, liblualib, mikmodlib
 
 
 Build
 
   make
+  make kxploit (if you have firmware 1.5)
 
 
 Install on PSP
+Create PSP/GAME/luaplayer/, and place the eboot.psp, script.lua, and Applications folder in there. See the Applications folder for examples.
 
-Copy the EBOOT.PBP, your script.lua and all PNG files in a PSP/GAME/somewhere
-directory to your PSP. See the snake directory for a sample game. To install
-Snake, copy script.lua, background.png and tiles.png into the same directory,
-where EBOOT.PBP is (for the 1.5 version in the directory without the "%"
-letter).
+If you want to distribute your own game with the luaplayer binaries without Lowser (though not recommended), do as above, but do not add the Applications folder, and add your own script instead of the bundled script.lua. See the samples/snake folder for an example of this scenario
+
 
 
 Function reference
 
-See doc/functions.html
+See doc/

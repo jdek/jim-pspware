@@ -1,5 +1,5 @@
 TARGET = luaplayer
-OBJS = main.o graphics.o luaplayer.o
+OBJS = main.o graphics.o luaplayer.o sound.o
 
 INCDIR =
 CFLAGS = -G0 -Wall -O2 -fno-strict-aliasing
@@ -8,10 +8,11 @@ ASFLAGS = $(CFLAGS)
 
 LIBDIR =
 LDFLAGS =
-LIBS= -llua -llualib -lpng -lz -lpspgu -lm
+LIBS= -llua -llualib -lpng -lz -lpspgu -lm -lmikmod -lmmio -lpspaudiolib -lpspaudio
+
 
 EXTRA_TARGETS = EBOOT.PBP
-PSP_EBOOT_TITLE = Lua Player 0.6 by Shine
+PSP_EBOOT_TITLE = Lua Player 0.7b3 by Shine (Unofficial dist)
 PSP_EBOOT_ICON = title-icon.png
 
 PSPSDK=$(shell psp-config --pspsdk-path)
