@@ -1,0 +1,17 @@
+nil Music.playFile( string file, bool loop )
+nil Music.stop()
+bool Music.playing()
+nil Music.volume( number {0-128} )
+
+nil SoundSystem.SFXVolume( number {0-128} )
+nil SoundSystem.reverb( number {0-15} )
+nil SoundSystem.panoramicSeparation( number {0-128} )
+
+Sound Sound.load(filename)
+Voice sound:play()
+
+nil voice:stop()
+nil voice:volume( number [0-25] )
+nil voice:pan( number [0-255] )
+nil voice:frequency( number [0-255] )
+bool voice:playing()
