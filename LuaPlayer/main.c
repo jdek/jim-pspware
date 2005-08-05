@@ -15,10 +15,13 @@
 #include <pspkernel.h>
 #include <pspdebug.h>
 #include <pspdisplay.h>
+#include <pspctrl.h>
 #include <stdlib.h>
 #include <string.h>
+#include <unistd.h>
 
 #include "graphics.h"
+#include "sound.h"
 #include "luaplayer.h"
 
 /* Define the module info section */
@@ -70,6 +73,10 @@ int nullOutput(const char *buff, int size)
 int debugOutput(const char *buff, int size)
 {
 	static int debugInitialized = 0;
+	if(!buff) {
+		debugInitialized = 0;
+		return 0;
+	}
 	if (!debugInitialized) {
 		disableGraphics();
 		pspDebugScreenInit();
@@ -90,16 +97,31 @@ int main(int argc, char** argv)
 {
 	SetupCallbacks();
 
-	// init graphics
+	// init modules
 	initGraphics();
+	initMikmod();
 
 	// install new output handlers	
 	pspDebugInstallStdoutHandler(debugOutput); 
 	pspDebugInstallStderrHandler(debugOutput); 
 
 	// execute Lua script (current directory is where EBOOT.PBP is)
-	runScript("script.lua");
+	char path[256];
+	getcwd(path, 256);
+	while(1) {
+		runScript("script.lua");
+		SceCtrlData pad; int i;
+		sceCtrlReadBufferPositive(&pad, 1); 
+		debugOutput("\nPress start to restart\n", 26);
+		for(i = 0; i < 20; i++) sceDisplayWaitVblankStart();
+		while(!(pad.Buttons&PSP_CTRL_START)) sceCtrlReadBufferPositive(&pad, 1); 
+		chdir(path);
+		debugOutput(0,0);
+		initGraphics();
+	}
 	
+	// Unload modules
+	unloadMikmod();
 	// wait until user ends the program
 	sceKernelSleepThread();
 
