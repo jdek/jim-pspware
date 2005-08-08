@@ -108,6 +108,14 @@ extern void blitAlphaImageToScreen(int sx, int sy, int width, int height, Image*
 extern Image* createImage(int width, int height);
 
 /**
+ * Frees an allocated image.
+ *
+ * @pre image != null
+ * @param image a pointer to an image struct
+ */
+extern void freeImage(Image* image);
+
+/**
  * Initialize all pixels of an image with a color.
  *
  * @pre image != NULL

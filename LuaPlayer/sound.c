@@ -100,7 +100,7 @@ void setVoicePanning(Voice handle, ULONG pan) {
 
 
 void setVoiceFrequency(Voice handle, ULONG freq) {
-	if(freq>44000) freq = 44000;
+	if(freq>88000) freq = 88000;
 	Voice_SetFrequency(handle, freq);
 }
 

@@ -199,6 +199,11 @@ Image* createImage(int width, int height)
 	return image;
 }
 
+void freeImage(Image* image) { //To shine, important: If this is incorrect, DO FIX
+	free(image->data);
+	free(image);
+}
+
 void clearImage(u16 color, Image* image)
 {
 	memset(image->data, color, image->textureWidth * image->textureWidth * 2);
