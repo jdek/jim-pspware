@@ -1,0 +1,79 @@
+Graphics
+========================================
+
+Image Image.createEmpty(width, height)
+Image Image.load( filename )
+
+nil image:blit(x, y, Image source, [sourcex, sourcey, width, height], [alpha = true])
+
+nil image:clear([color = white]) 
+nil image:fillRect(x, y, width, height, [color = black]) 
+nil image:drawLine(x0, y0, x1, y1, [color = black]) 
+Color image:pixel(x, y) --get
+nil image:pixel(x, y, Color) --set
+
+nil image:print(x, y, text, [color = black]) 
+
+Number image:width()
+Number image:height()
+nil Image:save( filename )
+
+global Image screen
+nil screen.flip() -- note the small s; this is a function of the screen
+nil screen.waitVblankStart([count])
+
+
+Color Color.new(r, g, b, [a])
+table[r,g,b,a] color:colors()
+Bool (Color a == Color b)
+
+
+Controls
+========================================
+
+Controls Controls.read()
+Bool controls:select()
+Bool controls:start()
+Bool controls:up()
+Bool controls:right()
+Bool controls:down()
+Bool controls:left()
+Bool controls:l()
+Bool controls:r()
+Bool controls:triangle()
+Bool controls:circle()
+Bool controls:cross()
+Bool controls:square()
+Bool controls:home()
+Bool controls:hold()
+Number controls:analogX() -- ranges from -127 to 128.
+Number controls:analogY() -- same
+
+Bool (Controls a == Controls b) -- note! The analog stick is NOT considered when comparing because of analog fluctuations.
+
+System
+========================================
+String System.currentDirectory() -- get
+String System.currentDirectory( path ) -- set, returns old path.
+table System.listDirectory()
+table System.listDirectory( path )
+
+Sound and music
+========================================
+nil Music.playFile( string file, bool loop )
+nil Music.stop()
+bool Music.playing()
+nil Music.volume( number {0-128} )
+
+nil SoundSystem.SFXVolume( number {0-128} )
+nil SoundSystem.reverb( number {0-15} )
+nil SoundSystem.panoramicSeparation( number {0-128} )
+
+Sound Sound.load(filename)
+Voice sound:play()
+
+nil voice:stop()
+nil voice:volume( number [0-25] )
+nil voice:pan( number [0-255] )
+nil voice:frequency( number [0-255] )
+bool voice:playing()
