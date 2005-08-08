@@ -1,7 +1,6 @@
 // mp3player.c: MP3 Player Implementation in C for Sony PSP
 //
 ////////////////////////////////////////////////////////////////////////////
-
 #include <pspkernel.h>
 #include <pspdebug.h>
 #include <pspiofilemgr.h>
@@ -12,7 +11,6 @@
 #include <errno.h>
 #include <pspaudiolib.h>
 #include "aacplayer.h"
-
 
 #define FALSE 0
 #define TRUE !FALSE
@@ -35,8 +33,9 @@ short AACOutputBuffer[AAC_BUFFER_SIZE];
 #define printf	pspDebugScreenPrintf
 
 u8 *AACSourceBuffer;
-long AACSourceBufferSize;
-long samplesInOutput = 0;
+u8 *readPtr;
+int AACSourceBufferSize;
+
 
 // The following variables are maintained and updated by the tracker during playback
 static int isPlaying;		// Set to true when a mod is being played
@@ -53,7 +52,7 @@ void AACsetStubs(codecStubs * stubs)
 {
     stubs->init = AAC_Init;
     stubs->load = AAC_Load;
-    stubs->play = AAC3_Play;
+    stubs->play = AAC_Play;
     stubs->pause = AAC_Pause;
     stubs->stop = AAC_Stop;
     stubs->end = AAC_End;
@@ -66,56 +65,44 @@ void AACsetStubs(codecStubs * stubs)
 
 static void AACCallback(short *_buf, unsigned long numSamples)
 {
-    unsigned long samplesOut = 0;
+    static short tempmixbuf[PSP_NUM_AUDIO_SAMPLES * 2 * 2] __attribute__ ((aligned(64)));
+    static unsigned long tempmixleft = 0;
     AACFrameInfo aacFrameInfo;
-    int err;
-    int bytesDecoded;
-
-    if (isPlaying == TRUE) {	//  Playing , so mix up a buffer
-	if (samplesInOutput > 0) {
-	    if (samplesInOutput > numSamples) {
-		memcpy((char *) _buf, (char *) AACOutputBuffer, numSamples * 2 * 2);
-		samplesOut = numSamples;
-		samplesInOutput -= numSamples;
+    static int bytesDecoded;
+    if (isPlaying == TRUE) {	// Playing , so mix up a buffer
+	while (tempmixleft < numSamples) {	//  Not enough in buffer, so we must mix more
+	    unsigned long bytesRequired = (numSamples - tempmixleft) * 4;	// 2channels, 16bit = 4 bytes per sample
+	    unsigned long ret = AACDecode(hAACDecoder, &readPtr, &AACSourceBufferSize, &tempmixbuf[tempmixleft * 2]);
+	    if (ret) {
+		printf("decoder threw error %d\n", ret);
 	    } else {
-		memcpy((char *) _buf, (char *) AACOutputBuffer, samplesInOutput * 2 * 2);
-		samplesOut = samplesInOutput;
-		samplesInOutput = 0;
-	    }
+	    	 //get stats from last frame
+	    	AACGetLastFrameInfo(hAACDecoder, &aacFrameInfo);
+	    	bytesDecoded = aacFrameInfo.bitsPerSample / 8 * aacFrameInfo.outputSamps;
+		}
+	    tempmixleft += aacFrameInfo.outputSamps;	// back down to sample num
 	}
-	while (samplesOut < numSamples) {
-	    //decode samples into AACDecodeBuffer
-	    err = AACDecode(hAACDecoder, &readPtr, &bytesLeft, AACDecodeBuffer);
-	    if (err) {
-		printf("decoder threw error %d\n", err);
+	if (tempmixleft >= numSamples) {	//  Buffer has enough, so copy across
+	    int count, count2;
+	    short *_buf2;
+	    for (count = 0; count < numSamples; count++) {
+		count2 = count + count;
+		_buf2 = _buf + count2;
+		// Double up for stereo
+		*(_buf2) = tempmixbuf[count2];
+		*(_buf2 + 1) = tempmixbuf[count2 + 1];
 	    }
-	    //get stats from last frame
-	    AACGetLastFrameInfo(hAACDecoder, &aacFrameInfo);
-	    pirntf("bitspersample: %d (%d bytes), samps: %d\n", aacFrameInfo.bitsPerSample,
-		   aacFrameInfo.bitsPerSample / 8, aacFrameInfo.outputSamps);
-	    bytesDecoded = aacFrameInfo.bitsPerSample / 8, aacFrameInfo.outputSamps;
-	    //move # of requested samples into audio buffer
-	    if (samplesOut + aacFrameInfo.outputSamps <= numSamples * 2) {
-		memcpy(&_buf[samplesOut * 2 * 2], (char *) AACDecodeBuffer, bytesDecoded);
-		samplesOut += aacFrameInfo.outputSamps;
-	    } else {
-		memcpy(&_buf[samplesOut * 2 * 2], (char *) AACDecodeBuffer, (numSamples - samplesOut) * 2 * 2);
-
-		for (i = 0; i < aacFrameInfo.outputSamps - (numSamples - samplesOut); i++)
-		    AACOutputBuffer[i] = AACDecodeBuffer[(numSamples - samplesOut) + i];
-
-		samplesOut += numSamples - samplesOut;
-		samplesInOutput += aacFrameInfo.outputSamps - (numSamples - samplesOut);
-	    }
-
-
+	    //  Move the pointers
+	    tempmixleft -= numSamples;
+	    //  Now shuffle the buffer along
+	    for (count = 0; count < tempmixleft; count++)
+		tempmixbuf[count] = tempmixbuf[numSamples + count];
 	}
+
     } else {			//  Not Playing , so clear buffer
-	{
-	    int count;
-	    for (count = 0; count < numSamples * 2; count++)
-		*(_buf + count) = 0;
-	}
+	int count;
+	for (count = 0; count < numSamples * 2; count++)
+	    *(_buf + count) = 0;
     }
 }
 
@@ -168,12 +155,13 @@ int AAC_Load(char *filename)
     //sceIoGetstat(filename, &pstat);
     if ((fd = sceIoOpen(filename, PSP_O_RDONLY, 0777)) > 0) {
 	//  opened file, so get size now
-	AACSourceBufferSize = sceIoLseek(fd, 0, PSP_SEEK_END);
+	AACSourceBufferSize = sceIoLseek32(fd, 0, PSP_SEEK_END);
 	sceIoLseek(fd, 0, PSP_SEEK_SET);
 	AACSourceBuffer = (unsigned char *) malloc(AACSourceBufferSize + 8);
-	memset(AACSourceBuffer, 0, size + 8);
-	if (ptr != 0) {		// Read file in
+	memset(AACSourceBuffer, 0, AACSourceBufferSize + 8);
+	if (AACSourceBuffer != 0) {		// Read file in
 	    sceIoRead(fd, AACSourceBuffer, AACSourceBufferSize);
+	    readPtr = AACSourceBuffer;
 	} else {
 	    printf("Error allocing\n");
 	    sceIoClose(fd);
@@ -211,8 +199,8 @@ int AAC_Stop()
     isPlaying = FALSE;
 
     //clear buffer
-    memset(OutputBuffer, 0, OUTPUT_BUFFER_SIZE);
-    OutputPtr = (unsigned char *) OutputBuffer;
+//    memset(OutputBuffer, 0, OUTPUT_BUFFER_SIZE);
+    //OutputPtr = (unsigned char *) OutputBuffer;
 
     return TRUE;
 }

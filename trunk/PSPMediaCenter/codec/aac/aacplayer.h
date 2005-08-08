@@ -6,6 +6,8 @@
 #ifndef _AACPLAYER_H_
 #define _AACPLAYER_H_
 
+#define __ALLEGREX__
+
 #include <aacdec.h>
 #include "../../codec.h"
 
