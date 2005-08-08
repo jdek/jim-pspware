@@ -13,6 +13,8 @@
 #include <string.h>
 #include <pspmoduleinfo.h>
 #include <pspaudiolib.h>
+#include <stdio.h>
+#include <psppower.h>
 
 #include "../../codec.h"
 //  These are the headers for the different codecs
@@ -26,10 +28,7 @@
 extern unsigned char banner[];
 extern codecStubs stubs[100];
 extern codecStubs *decoder;
-extern int errno, __errno;
 extern int codecnum;
-
-
 
 unsigned char *load_file(const char *filename, long *size)
 {
@@ -126,70 +125,96 @@ void fillvram(unsigned long color)
 int gui_main(void)
 {
     int i, fd, size, xerr;
-    char buffer[0x500000];
-    char filename[] = "ms0:/xvid.avi";
+    char *buffer;//[0x500000];
+    char filename[] = "ms0:/xvid.avi\0";//"ms0:/test.m4v\0";
     xvid_gbl_init_t xvidInit;
     xvid_dec_create_t xvidDec;
     xvid_dec_frame_t xvidFrame;
-
+    xvid_dec_stats_t xvid_dec_stats;
+    char *mp4_ptr;
+    int useful_bytes;
+    unsigned char *bufPtr;
+    u64 time1, time2;
+    int tickRes;
+    
+    pspDebugScreenInit();
+    pspDebugScreenClear();
+    buffer = memalign(64,5*1024*1024);
     memset(&xvidInit, 0, sizeof(xvid_gbl_init_t));
     memset(&xvidDec, 0, sizeof(xvid_dec_create_t));
-    memset(&xvidFrame, 0, sizeof(xvid_dec_frame_t));
-
+   // memset(&xvidFrame, 0, sizeof(xvid_dec_frame_t));
+	mp4_ptr = buffer;
 
     g_vram_base = (void *) (0x40000000 | sceGeEdramGetAddr());
     g_vram_base_2 = (void *) (g_vram_base + 512 * 272 * 4);
 
     frame = 0;
-
-    sceDisplaySetMode(0, 480, 272);
-    sceDisplaySetFrameBuf(g_vram_base, 512, 3, 1);
+    swapBuffer();
+   
+    //sceDisplaySetMode(0, 480, 272);
+    //sceDisplaySetFrameBuf(g_vram_base, 512, 3, 1);
     printf("starting pspmc\n");
 
-    if ((fd = sceIoOpen(filename, O_RDONLY, 0777)) > 0) {
+    if ((fd = sceIoOpen(filename, PSP_O_RDONLY, 0777)) > 0) {
 	//  opened file, so get size now
 	size = sceIoLseek(fd, 0, SEEK_END);
 	sceIoLseek(fd, 0, SEEK_SET);
 	printf("read %d bytes into buffer\n", sceIoRead(fd, buffer, size));
 	sceIoClose(fd);
     } else {
-	sceKernelExitGame();
+    	printf("could not open file\n");
+    	free(buffer);
+	return 0;
     }
-
+    scePowerSetClockFrequency(333, 333, 166);
     xvidInit.version = XVID_VERSION;
     printf("xvid init returned %d\n", xvid_global(NULL, XVID_GBL_INIT, &xvidInit, NULL));
-    xvidDec.width = 480;
-    xvidDec.height = 272;
+    xvidDec.width = 0;//480;
+    xvidDec.height = 0;//272;
     xvidDec.version = XVID_VERSION;
     printf("creating decoder\n");
     printf("xvid decore create returned %d\n", xvid_decore(NULL, XVID_DEC_CREATE, &xvidDec, NULL));
     printf("created decoder\n");
-    xvidFrame.bitstream = buffer;
-    xvidFrame.length = size;
-    xvidFrame.output.csp = XVID_CSP_ABGR;
-    xvidFrame.output.stride[0] = 512;
-
-    //xvidFrame.stride = 512;
-    //xvidFrame.colorspace = XVID_CSP_ABGR;
-
+    
+    useful_bytes = size;
     i = 0;
+    bufPtr = getVramAddr();
+    tickRes = sceRtcGetTickResolution();
     for (;;) {
-	/*
-	   if (frame == 0)
-	   fillvram(0x00FF0000);
-	   else
-	   fillvram(0x00FF0000);
-	 */
-	//for (i = 0; i < 272; i+=1)
-	//      memset(frame?g_vram_base:g_vram_base_2, i%2==0?0x7F:0x00, 720);
-	xvidFrame.output.plane[0] = getVramAddr();
-	if (i < 5) {
-	    printf("xvid decore returned %d\n", xvid_decore(xvidDec.handle, XVID_DEC_DECODE, &xvidFrame, NULL));
-	    i++;
-	} else
-	    xerr = xvid_decore(xvidDec.handle, XVID_DEC_DECODE, &xvidFrame, NULL);
-	sceDisplayWaitVblankStart();
+    	sceDisplayWaitVblankStart();
+    	do {
+    		memset(&xvidFrame, 0, sizeof(xvid_dec_frame_t));
+    		memset(&xvid_dec_stats,0, sizeof(xvid_dec_stats));
+    		xvid_dec_stats.version = XVID_VERSION;
+    		xvidFrame.bitstream = mp4_ptr;
+    		xvidFrame.length = useful_bytes;
+    		xvidFrame.version = XVID_VERSION;
+    		xvidFrame.output.stride[0] = 512*4;
+		xvidFrame.general = 0;
+		xvidFrame.output.csp = XVID_CSP_RGBA;
+		xvidFrame.output.plane[0] = bufPtr;
+		
+		sceRtcGetCurrentTick(&time1);
+        	xerr = xvid_decore(xvidDec.handle, XVID_DEC_DECODE, &xvidFrame, &xvid_dec_stats);
+        	sceRtcGetCurrentTick(&time2);
+ 	
+        	if (xerr > 0) {
+			mp4_ptr += xerr;
+			useful_bytes -= xerr;
+		}
+		pspDebugScreenSetXY(0, 0);
+        	printf("%d bytes used, type: %d\n", xerr, xvid_dec_stats.type);
+        	printf("tick res: %u\n",  tickRes);
+        	printf("took %llu ticks\n", time2-time1);// (time2-time1)/(float)(tickRes));
+        } while (useful_bytes > 0 && xvid_dec_stats.type == XVID_TYPE_NOTHING);
+        
+	/*if (xerr > 0) {
+		mp4_ptr += xerr;
+		useful_bytes -= xerr;
+	}*/
 	swapBuffer();
+	bufPtr = getVramAddr();
     }
+    free(buffer);
     return 0;
 }
