@@ -31,7 +31,6 @@ void runScript(const char* filename)
 	luaGraphics_init(L);
 	luaSystem_init(L);
 	
-
 	int s = luaL_loadfile(L, filename);
 	if (s == 0) {
 		s = lua_pcall(L, 0, LUA_MULTRET, 0);

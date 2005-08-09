@@ -6,8 +6,8 @@ Image Image.load( filename )
 
 nil image:blit(x, y, Image source, [sourcex, sourcey, width, height], [alpha = true])
 
-nil image:clear([color = white]) 
-nil image:fillRect(x, y, width, height, [color = black]) 
+nil image:clear([color = transparent-black]) 
+nil image:fillRect(x, y, width, height, [color = transparent-black]) 
 nil image:drawLine(x0, y0, x1, y1, [color = black]) 
 Color image:pixel(x, y) --get
 nil image:pixel(x, y, Color) --set
@@ -23,7 +23,7 @@ nil screen.flip() -- note the small s; this is a function of the screen
 nil screen.waitVblankStart([count])
 
 
-Color Color.new(r, g, b, [a])
+Color Color.new(r, g, b, [a=255])
 table[r,g,b,a] color:colors()
 Bool (Color a == Color b)
 
@@ -57,6 +57,8 @@ String System.currentDirectory() -- get
 String System.currentDirectory( path ) -- set, returns old path.
 table System.listDirectory()
 table System.listDirectory( path )
+nil usbActivate()
+nil usbDeactivate()
 
 Sound and music
 ========================================

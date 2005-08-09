@@ -3,6 +3,7 @@
 
 #include <psptypes.h>
 
+#define	PSP_LINE_SIZE 512
 #define SCREEN_WIDTH 480
 #define SCREEN_HEIGHT 272
 
@@ -197,29 +198,6 @@ extern u16 getPixelScreen(int x, int y);
 extern u16 getPixelImage(int x, int y, Image* image);
 
 /**
- * Print a 7 segment digit.
- *
- * @pre x < SCREEN_WIDTH - 4 && y < SCREEN_HEIGHT - 5 && digit >= 0 && digit <= 9
- * @param x - left position of digit
- * @param y - top position of digit
- * @param digit - the digit to print
- * @param color - new color for the pixels
- */
-extern void print7SegmentScreen(int x, int y, int digit, u32 color);
-
-/**
- * Print a 7 segment digit.
- *
- * @pre x < SCREEN_WIDTH - 4 && y < SCREEN_HEIGHT - 5 && digit >= 0 && digit <= 9 && image != NULL
- * @param x - left position of digit
- * @param y - top position of digit
- * @param digit - the digit to print
- * @param color - new color for the pixels
- * @param image - image
- */
-extern void print7SegmentImage(int x, int y, int digit, u32 color, Image* image);
-
-/**
  * Print a text (pixels out of the screen or image are clipped).
  *
  * @param x - left position of text
@@ -241,12 +219,16 @@ extern void printTextScreen(int x, int y, const char* text, u32 color);
 extern void printTextImage(int x, int y, const char* text, u32 color, Image* image);
 
 /**
- * Save a screenshot in TGA format.
+ * Save an image or the screen in TGA format.
  *
  * @pre filename != NULL
  * @param filename - filename of the TGA image
+ * @param data - start of u16 pixel data (can be getVramDisplayBuffer())
+ * @param width - logical width of the image or SCREEN_WIDTH
+ * @param height - height of the image or SCREEN_HEIGHT
+ * @param lineSize - physical width of the image or PSP_LINE_SIZE
  */
-extern void screenshot(const char* filename);
+extern void saveImage(const char* filename, u16* data, int width, int height, int lineSize);
 
 /**
  * Exchange display buffer and drawing buffer.
@@ -285,6 +267,20 @@ void drawLineScreen(int x0, int y0, int x1, int y1, int color);
  * @param x1 - x line end position
  * @param y1 - y line end position
  */
-void drawLineImage(int x0, int y0, int x1, int y1, int color, Image* image);
+extern void drawLineImage(int x0, int y0, int x1, int y1, int color, Image* image);
+
+/**
+ * Get the current draw buffer for fast unchecked access.
+ *
+ * @return the start address of the current draw buffer
+ */
+extern u16* getVramDrawBuffer();
+
+/**
+ * Get the current display buffer for fast unchecked access.
+ *
+ * @return the start address of the current display buffer
+ */
+extern u16* getVramDisplayBuffer();
 
 #endif

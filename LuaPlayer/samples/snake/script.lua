@@ -3,12 +3,20 @@ Snake, Copyright (c) 2005 Frank Buss <fb@frank-buss.de> (aka Shine)
 
    artworks by Gundrosen
    coding by Shine
+   background music: Jeroen Tel, Maniacs of Noise
 ]]
 
+-- start music
+Music.playFile("stranglehold.xm", true)
+
 -- load images
-background = loadImage("background.png")
-tiles = loadImage("tiles.png")
-snake = createImage(480, 272)
+background = Image.load("background.png")
+tiles = Image.load("tiles.png")
+snake = Image.createEmpty(480, 272)
+
+-- load sounds
+explode = Sound.load("explode.wav")
+clack = Sound.load("clack.wav")
 
 -- define tile positions
 tailR = { x = 0, y = 0 }
@@ -78,19 +86,19 @@ function createRandomTarget()
 end
 
 function clearTileInSnakeImage(x, y)
-	fillRect(0, 16*x, 16*y, 16, 16, snake)
+	snake:fillRect(16*x, 16*y, 16, 16)
 end
 
 function drawTileToOffscreen(tile, x, y)
-	blitAlphaImageRect(16*tile.x, 16*tile.y, 16, 16, tiles, 16*x, 16*y)
+	screen:blit(16*x, 16*y, tiles, 16*tile.x, 16*tile.y, 16, 16)
 end
 
 function drawTileToSnakeImage(tile, x, y)
-	blitAlphaImageRect(16*tile.x, 16*tile.y, 16, 16, tiles, 16*x, 16*y, snake)
+	snake:blit(16*x, 16*y, tiles, 16*tile.x, 16*tile.y, 16, 16)
 end	
 
 function newGame()
-	clear(0, snake)
+	snake:clear()
 	dx = 0
 	dy = 0
 	x = 12
@@ -111,22 +119,22 @@ function newGame()
 end
 
 function keyboardControl()
-	waitVblankStart()
-	pad = ctrlRead()
-	if isCtrlUp(pad) then
+	screen.waitVblankStart()
+	pad = Controls.read()
+	if pad:up() then
 		dx = 0
 		dy = -1
-	elseif isCtrlDown(pad) then
+	elseif pad:down() then
 		dx = 0
 		dy = 1
-	elseif isCtrlLeft(pad) then
+	elseif pad:left() then
 		dx = -1
 		dy = 0
-	elseif isCtrlRight(pad) then
+	elseif pad:right() then
 		dx = 1
 		dy = 0
-	elseif isCtrlCircle(pad) then
-		-- screenshot()
+	elseif pad:circle() then
+		screen:save("screenshot.tga")
 	end
 end
 
@@ -189,6 +197,7 @@ function move()
 	if cellHead.x == target.x and cellHead.y == target.y then
 		createRandomTarget()
 		score = score + 1
+		clack:play()
 	else
 		-- remove tail
 		clearTileInSnakeImage(cellTail.x, cellTail.y)
@@ -240,18 +249,19 @@ while true do
 		keyboardControl()
 	end
 	move()
-	blitImage(0, 0, background)
-	blitAlphaImage(0, 0, snake)
+	screen:blit(0, 0, background, 0, 0, background:width(), background:height(), false)
+	screen:blit(0, 0, snake)
 	drawTileToOffscreen(targetImage, target.x, target.y)
 	if score > high then
 		high = score
 	end
-	printDecimal(410, 81, score, 0)
-	printDecimal(429, 129, high, 0)
-	waitVblankStart()
-	flipScreen()
+	screen:print(410, 81, score)
+	screen:print(429, 128, high)
+	screen.waitVblankStart()
+	screen.flip()
 	if isGameOver() then
-		waitVblankStart(50)
+		explode:play()
+		screen.waitVblankStart(50)
 		newGame()
 	end
 end

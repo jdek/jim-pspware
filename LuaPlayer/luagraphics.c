@@ -37,38 +37,40 @@ static int lua_flipScreen(lua_State *L)
 
 /// Utility
 /// ====================
-static int adjustBlitRectangle( // returns 0, if nothing to blit
-   int sourceWidth, int sourceHeight, 
-   int destinationWidth, int destinationHeight, 
-   int* sx, int* sy, 
-   int* width, int* height, 
-   int* dx, int* dy) 
+
+// returns 0, if nothing to blit
+static int adjustBlitRectangle(
+	int sourceWidth, int sourceHeight, 
+	int destinationWidth, int destinationHeight, 
+	int* sx, int* sy, 
+	int* width, int* height, 
+	int* dx, int* dy) 
 { 
-   if (*width <= 0 || *height <= 0) return 0;  // zero area, nothing to blit 
-   if (*sx < 0 || *sy < 0) return 0;  // illegal, source is not clipped 
-   if (*dx < 0) { 
-      *width += *dx; 
-      if (*width <= 0) return 0; 
-      *sx -= *dx; 
-      *dx = 0; 
-      if (*sx >= destinationWidth) return 0; 
-   } 
-   if (*dy < 0) { 
-      *height += *dy; 
-      if (*height <= 0) return 0; 
-      *sy -= *dy; 
-      *dy = 0; 
-      if (*sy >= destinationHeight) return 0; 
-   } 
-   if (*dx + *width > destinationWidth) { 
-      *width = destinationWidth - *dx; 
-      if (*width <= 0) return 0; 
-   } 
-   if (*dy + *height > destinationHeight) { 
-      *height = destinationHeight - *dy; 
-      if (*height <= 0) return 0; 
-   } 
-   return 1; 
+	if (*width <= 0 || *height <= 0) return 0;  // zero area, nothing to blit 
+	if (*sx < 0 || *sy < 0) return 0;  // illegal, source is not clipped 
+	if (*dx < 0) { 
+		*width += *dx; 
+		if (*width <= 0) return 0; 
+		*sx -= *dx; 
+		*dx = 0; 
+		if (*sx >= destinationWidth) return 0; 
+	} 
+	if (*dy < 0) { 
+		*height += *dy; 
+		if (*height <= 0) return 0; 
+		*sy -= *dy; 
+		*dy = 0; 
+		if (*sy >= destinationHeight) return 0; 
+	} 
+	if (*dx + *width > destinationWidth) { 
+		*width = destinationWidth - *dx; 
+		if (*width <= 0) return 0; 
+	} 
+	if (*dy + *height > destinationHeight) { 
+		*height = destinationHeight - *dy; 
+		if (*height <= 0) return 0; 
+	} 
+	return 1; 
 } 	
 
 
@@ -97,7 +99,16 @@ static int Image_load (lua_State *L) {
 
 
 
-#define SETDEST 	Image *dest = NULL; { int type = lua_type(L, 1); if( type == LUA_TTABLE ) lua_remove(L, 1); else if(type == LUA_TUSERDATA) { dest = *toImage(L, 1); lua_remove(L, 1); } else return luaL_error(L, "Method must be called with a colon!"); }
+#define SETDEST \
+	Image *dest = NULL; \
+	{ \
+		int type = lua_type(L, 1); \
+		if (type == LUA_TTABLE) lua_remove(L, 1); \
+		else if (type == LUA_TUSERDATA) { \
+			dest = *toImage(L, 1); \
+			lua_remove(L, 1); \
+		} else return luaL_error(L, "Method must be called with a colon!"); \
+	}
 
 
 static int Image_blit (lua_State *L) {
@@ -136,7 +147,7 @@ static int Image_blit (lua_State *L) {
 static int Image_clear (lua_State *L) {
 	int argc = lua_gettop(L);
 	if(argc != 1 && argc != 2) return luaL_error(L, "Argument error: Image:clear([color]) zero or one argument.");
-	unsigned color = (argc==2)?*toColor(L, 2):65535;
+	unsigned color = (argc==2)?*toColor(L, 2):0;
 
 	SETDEST
 	if(dest)
@@ -202,7 +213,7 @@ static int Image_drawLine (lua_State *L) {
 	int y0 = luaL_checkint(L, 2); 
 	int x1 = luaL_checkint(L, 3); 
 	int y1 = luaL_checkint(L, 4); 
-	int color = (argc==6)?luaL_checkint(L, 5):0; 
+	int color = (argc==6) ? *toColor(L, 5) : 0;
 	
 	// TODO: better clipping
 	if (x0 < 0) x0 = 0;
@@ -263,7 +274,7 @@ static int Image_print (lua_State *L) {
 	int x = luaL_checkint(L, 1);
 	int y = luaL_checkint(L, 2);
 	const char* text = luaL_checkstring(L, 3);
-	int color = (argc == 5)?*toColor(L, 4):0;
+	int color = (argc == 5)?*toColor(L, 4):0x8000;
 	if (!dest) {
 		printTextScreen(x, y, text, color);
 	} else {
@@ -289,10 +300,13 @@ static int Image_height (lua_State *L) {
 }
 static int Image_save (lua_State *L) {
 	if (lua_gettop(L) != 2) return luaL_error(L, "wrong number of arguments");
+	const char *filename = luaL_checkstring(L, 2);
 	SETDEST
-	if(dest) luaL_error(L, "Sorry, can only save screen to disk in this version. Complain to the developers if you need to save an Image ;)");
-	const char *filename = luaL_checkstring(L, 1);
-	screenshot(filename);
+	if (dest) {
+		saveImage(filename, dest->data, dest->imageWidth, dest->imageHeight, dest->textureWidth);
+	} else {
+		saveImage(filename, getVramDisplayBuffer(), SCREEN_WIDTH, SCREEN_HEIGHT, PSP_LINE_SIZE);
+	}
 	return 0;
 }
 
@@ -336,7 +350,6 @@ UserdataRegister(Image, Image_methods, Image_meta)
 
 
 
-// UserdataStubs(Color, Color) //==========================
 static int Color_new (lua_State *L) {
 	int argc = lua_gettop(L); 
 	if (argc != 3 && argc != 4) return luaL_error(L, "Argument error: Color.new(r, g, b, [a]) takes either three color arguments or three color arguments and an alpha value."); 
@@ -346,10 +359,14 @@ static int Color_new (lua_State *L) {
 	unsigned r = CLAMP(luaL_checkint(L, 1), 0, 255); 
 	unsigned g = CLAMP(luaL_checkint(L, 2), 0, 255); 
 	unsigned b = CLAMP(luaL_checkint(L, 3), 0, 255);
-	unsigned a = CLAMP(((argc == 4)?luaL_checkint(L, 4):255), 0, 255); a=a;
-	
-	// Shine, this needs to take the alpha into consideration...
-	*color = ((b>>3)<<10) | ((g>>3)<<5) | (r>>3) | 0x8000;
+	unsigned a;
+	if (argc == 4) {
+		a = CLAMP(luaL_checkint(L, 3), 0, 255);
+	} else {
+		a = 255;
+	}
+
+	*color = ((b>>3)<<10) | ((g>>3)<<5) | (r>>3) | (a == 255 ? 0x8000 : 0);
 	
 	return 1;
 }
@@ -394,8 +411,8 @@ static const luaL_reg Color_methods[] = {
 	{0,0}
 };
 static const luaL_reg Color_meta[] = {
-  {"__tostring", Color_tostring},
-  {"__eq", Color_equal},
+	{"__tostring", Color_tostring},
+	{"__eq", Color_equal},
 	{0,0}
 };
 UserdataRegister(Color, Color_methods, Color_meta)
