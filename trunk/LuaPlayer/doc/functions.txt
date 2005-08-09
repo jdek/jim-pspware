@@ -57,8 +57,8 @@ String System.currentDirectory() -- get
 String System.currentDirectory( path ) -- set, returns old path.
 table System.listDirectory()
 table System.listDirectory( path )
-nil usbActivate()
-nil usbDeactivate()
+nil System.usbActivate()
+nil System.usbDeactivate()
 
 Sound and music
 ========================================
