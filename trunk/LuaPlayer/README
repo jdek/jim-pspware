@@ -1,4 +1,4 @@
-Lua Player 0.7
+Lua Player
 by Shine and Nevyn
 
 
@@ -14,9 +14,14 @@ Build
 
 
 Install on PSP
-Create PSP/GAME/luaplayer/, and place the eboot.psp, script.lua, and Applications folder in there. See the Applications folder for examples.
 
-If you want to distribute your own game with the luaplayer binaries without Lowser (though not recommended), do as above, but do not add the Applications folder, and add your own script instead of the bundled script.lua. See the samples/snake folder for an example of this scenario
+Create PSP/GAME/luaplayer/, and place the eboot.psp, script.lua, and 
+Applications folder in there. See the Applications folder for examples.
+
+If you want to distribute your own game with the luaplayer binaries without 
+Lowser (though not recommended), do as above, but do not add the Applications 
+folder, and add your own script instead of the bundled script.lua. See the 
+samples/snake folder for an example of this scenario
 
 
 

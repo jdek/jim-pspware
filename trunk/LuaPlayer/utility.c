@@ -1,13 +1,8 @@
-#include "stdlib.h"
+#include <string.h>
+#include <stdlib.h>
 #include "lua.h"
 #include "lualib.h"
 #include "lauxlib.h"
-
-void mystrcat(char * s, const char * b) {
-	while(*s != 0) s++;
-	while(*b != 0) *(s++) = *(b++);
-	*s = 0;
-}
 
 void stackDump (lua_State *L) {
   int i;

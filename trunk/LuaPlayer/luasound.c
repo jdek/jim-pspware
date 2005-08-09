@@ -1,3 +1,4 @@
+#include <string.h>
 #include <stdlib.h>
 #include <unistd.h>
 #include "luaplayer.h"
@@ -27,8 +28,8 @@ static int lua_loadAndPlayMusicFile(lua_State *L)
 	
 	char fullpath[512];
 	getcwd(fullpath, 256);
-	mystrcat(fullpath, "/");
-	mystrcat(fullpath, path);
+	strcat(fullpath, "/");
+	strcat(fullpath, path);
 	
 	loadAndPlayMusicFile(fullpath, loop);
 	
@@ -136,8 +137,8 @@ static int Sound_new(lua_State *L) {
 	const char *path = luaL_checkstring(L, 1);
 	if(!path) return luaL_error(L, "Argument must be a file path.");
 	getcwd(fullpath, 256);
-	mystrcat(fullpath, "/");
-	mystrcat(fullpath, path);
+	strcat(fullpath, "/");
+	strcat(fullpath, path);
 	
 	// Create the user object
 	Sound** newsound = pushSound(L);

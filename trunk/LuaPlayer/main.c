@@ -16,6 +16,7 @@
 #include <pspdebug.h>
 #include <pspdisplay.h>
 #include <pspctrl.h>
+#include <pspsdk.h>
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
@@ -88,6 +89,8 @@ int debugOutput(const char *buff, int size)
 __attribute__((constructor)) void stdoutInit() 
 { 
 	pspKernelSetKernelPC();
+	pspSdkInstallNoDeviceCheckPatch();
+	pspDebugInstallKprintfHandler(NULL);
 
 	// ignore startup messages from kernel, but install the tty driver in kernel mode
 	pspDebugInstallStdoutHandler(nullOutput); 

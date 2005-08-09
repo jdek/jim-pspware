@@ -11,10 +11,10 @@ UserdataStubs(Controls, Controls)
 
 static int Controls_tostring (lua_State *L)
 {
-  char buff[32];
-  sprintf(buff, "%d", toControls(L, 1)->Buttons);
-  lua_pushfstring(L, "Controls (%s)", buff);
-  return 1;
+	char buff[32];
+	sprintf(buff, "%d", toControls(L, 1)->Buttons);
+	lua_pushfstring(L, "Controls (%s)", buff);
+	return 1;
 }
 
 static int Controls_read(lua_State *L)

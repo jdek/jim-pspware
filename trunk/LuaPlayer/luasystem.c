@@ -1,9 +1,12 @@
 #include <stdlib.h>
 #include <pspkernel.h>
+#include <pspusb.h>
+#include <pspusbstor.h>
 #include "luaplayer.h"
 
 #include <unistd.h>
 
+static int usbActivated = 0;
 
 
 static int lua_getCurrentDirectory(lua_State *L)
@@ -81,9 +84,78 @@ static int lua_dir(lua_State *L)
 	return 1;  /* table is already on top */
 }
 
+static int LoadStartModule(char *path)
+{
+    u32 loadResult;
+    u32 startResult;
+    int status;
+
+    loadResult = sceKernelLoadModule(path, 0, NULL);
+    if (loadResult & 0x80000000)
+	return -1;
+    else
+	startResult =
+	    sceKernelStartModule(loadResult, 0, NULL, &status, NULL);
+
+    if (loadResult != startResult)
+	return -2;
+
+    return 0;
+}
+
+static int lua_usbActivate(lua_State *L)
+{
+	if (lua_gettop(L) != 0) return luaL_error(L, "wrong number of arguments");
+	if (usbActivated) return 0;
+	
+	static int modulesLoaded = 0;
+	if (!modulesLoaded) {
+		//start necessary drivers 
+		LoadStartModule("flash0:/kd/semawm.prx"); 
+		LoadStartModule("flash0:/kd/usbstor.prx"); 
+		LoadStartModule("flash0:/kd/usbstormgr.prx"); 
+		LoadStartModule("flash0:/kd/usbstorms.prx"); 
+		LoadStartModule("flash0:/kd/usbstorboot.prx"); 
+	
+		//setup USB drivers 
+		int retVal = sceUsbStart(PSP_USBBUS_DRIVERNAME, 0, 0); 
+		if (retVal != 0) { 
+			printf("Error starting USB Bus driver (0x%08X)\n", retVal); 
+			sceKernelSleepThread(); 
+		}
+		retVal = sceUsbStart(PSP_USBSTOR_DRIVERNAME, 0, 0); 
+		if (retVal != 0) { 
+			printf("Error starting USB Mass Storage driver (0x%08X)\n", retVal); 
+			sceKernelSleepThread(); 
+		} 
+		retVal = sceUsbstorBootSetCapacity(0x800000); 
+		if (retVal != 0) { 
+			printf("Error setting capacity with USB Mass Storage driver (0x%08X)\n", retVal); 
+			sceKernelSleepThread(); 
+		} 
+		retVal = 0; 
+		modulesLoaded = 1;
+	}
+	sceUsbActivate(0x1c8);
+	usbActivated = 1;
+	return 0;
+}
+
+static int lua_usbDeactivate(lua_State *L)
+{
+	if (lua_gettop(L) != 0) return luaL_error(L, "wrong number of arguments");
+	if (!usbActivated) return 0;
+
+	sceUsbDeactivate();
+	usbActivated = 0;
+	return 0;
+}
+
 static const luaL_reg System_functions[] = {
   {"currentDirectory",          lua_curdir},
   {"listDirectory",           	lua_dir},
+  {"usbActivate",           	lua_usbActivate},
+  {"usbDeactivate",           	lua_usbDeactivate},
   {0, 0}
 };
 void luaSystem_init(lua_State *L) {

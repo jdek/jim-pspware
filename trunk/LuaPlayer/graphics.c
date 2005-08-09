@@ -7,7 +7,6 @@
 
 #include "graphics.h"
 
-#define	PSP_LINE_SIZE 512
 #define IS_ALPHA(color) ((color)&0x8000?0:1)
 #define FRAMEBUFFER_SIZE (PSP_LINE_SIZE*SCREEN_HEIGHT*2)
 #define MAX(X, Y) ((X) > (Y) ? (X) : (Y))
@@ -36,14 +35,14 @@ static void setWidthToNextPower2(Image* image)
 	if (image->textureWidth == 2 * width) image->textureWidth >>= 1;
 }
 
-static u16* getVramDrawBuffer()
+u16* getVramDrawBuffer()
 {
 	u16* vram = (u16*) VRAM_BASE;
 	if (dispBufferNumber == 0) vram += FRAMEBUFFER_SIZE / 2;
 	return vram;
 }
 
-static u16* getVramDisplayBuffer()
+u16* getVramDisplayBuffer()
 {
 	u16* vram = (u16*) VRAM_BASE;
 	if (dispBufferNumber == 1) vram += FRAMEBUFFER_SIZE / 2;
@@ -199,7 +198,8 @@ Image* createImage(int width, int height)
 	return image;
 }
 
-void freeImage(Image* image) { //To shine, important: If this is incorrect, DO FIX
+void freeImage(Image* image)
+{
 	free(image->data);
 	free(image);
 }
@@ -266,100 +266,6 @@ u16 getPixelImage(int x, int y, Image* image)
 	return image->data[x + y * image->textureWidth];
 }
 
-static const char digitFont[] = {
-	1,1,1,1,
-	1,0,0,1,
-	1,0,0,1,
-	1,0,0,1,
-	1,1,1,1,
-	
-	0,0,0,1,
-	0,0,0,1,
-	0,0,0,1,
-	0,0,0,1,
-	0,0,0,1,
-	
-	1,1,1,1,
-	0,0,0,1,
-	1,1,1,1,
-	1,0,0,0,
-	1,1,1,1,
-	
-	1,1,1,1,
-	0,0,0,1,
-	1,1,1,1,
-	0,0,0,1,
-	1,1,1,1,
-	
-	1,0,0,1,
-	1,0,0,1,
-	1,1,1,1,
-	0,0,0,1,
-	0,0,0,1,
-	
-	1,1,1,1,
-	1,0,0,0,
-	1,1,1,1,
-	0,0,0,1,
-	1,1,1,1,
-	
-	1,1,1,1,
-	1,0,0,0,
-	1,1,1,1,
-	1,0,0,1,
-	1,1,1,1,
-	
-	1,1,1,1,
-	0,0,0,1,
-	0,0,0,1,
-	0,0,0,1,
-	0,0,0,1,
-	
-	1,1,1,1,
-	1,0,0,1,
-	1,1,1,1,
-	1,0,0,1,
-	1,1,1,1,
-
-	1,1,1,1,
-	1,0,0,1,
-	1,1,1,1,
-	0,0,0,1,
-	1,1,1,1};
-
-void print7SegmentScreen(int x, int y, int digit, u32 color)
-{
-	if (!initialized) return;
-	u16* vram = getVramDrawBuffer();
-	int xo, yo;
-	int i = digit * 5*4;
-	for (yo = 0; yo < 5; yo++) {
-		for (xo = 0; xo < 4; xo++) {
-			if (digitFont[i]) {
-				vram[xo + x + (yo + y) * PSP_LINE_SIZE] = color;
-			}
-			i++;
-		}
-	}
-	sceKernelDcacheWritebackInvalidateAll();
-}
-
-void print7SegmentImage(int x, int y, int digit, u32 color, Image* image)
-{
-	if (!initialized) return;
-	int xo, yo;
-	int i = digit * 5*4;
-	for (yo = 0; yo < 5; yo++) {
-		for (xo = 0; xo < 4; xo++) {
-			if (digitFont[i]) {
-				image->data[xo + x + (yo + y) * image->textureWidth] = color;
-			}
-			i++;
-		}
-	}
-	sceKernelDcacheWritebackInvalidateAll();
-}
-
 void printTextScreen(int x, int y, const char* text, u32 color)
 {
 	int c, i, j, l;
@@ -416,32 +322,33 @@ void printTextImage(int x, int y, const char* text, u32 color, Image* image)
 	sceKernelDcacheWritebackInvalidateAll();
 }
 
-void screenshot(const char* filename)
+void saveImage(const char* filename, u16* data, int width, int height, int lineSize)
 {
 	const char tgaHeader[] = {0, 0, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0};
-	u16 lineBuffer[SCREEN_WIDTH];
-	u16* vram = getVramDisplayBuffer();
+	u16* lineBuffer = (u16*) malloc(width * 2);
+	if (!lineBuffer) return;
 	int x, y;
 	FILE* file = fopen(filename, "wb");
 	if (!file) return;
 	fwrite(tgaHeader, sizeof(tgaHeader), 1, file);
-	fputc(SCREEN_WIDTH & 0xff, file);
-	fputc(SCREEN_WIDTH >> 8, file);
-	fputc(SCREEN_HEIGHT & 0xff, file);
-	fputc(SCREEN_HEIGHT >> 8, file);
+	fputc(width & 0xff, file);
+	fputc(width >> 8, file);
+	fputc(height & 0xff, file);
+	fputc(height >> 8, file);
 	fputc(16, file);
 	fputc(0, file);
-	for (y = SCREEN_HEIGHT - 1; y >= 0; y--) {
-		for (x = 0; x < SCREEN_WIDTH; x++) {
-			u16 color = vram[y * PSP_LINE_SIZE + x];
+	for (y = height - 1; y >= 0; y--) {
+		for (x = 0; x < width; x++) {
+			u16 color = data[y * lineSize + x];
 			int red = color & 0x1f;
 			int green = (color >> 5) & 0x1f;
 			int blue = (color >> 10) & 0x1f;
 			lineBuffer[x] = blue | (green<<5) | (red<<10);
 		}
-		fwrite(lineBuffer, SCREEN_WIDTH, 2, file);
+		fwrite(lineBuffer, width, 2, file);
 	}
 	fclose(file);
+	free(lineBuffer);
 }
 
 void flipScreen()
