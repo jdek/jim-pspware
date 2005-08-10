@@ -33,10 +33,10 @@ static DATATYPE* push##HANDLE(lua_State *L) { \
 
 #define UserdataRegister(HANDLE, METHODS, METAMETHODS) \
 int HANDLE##_register(lua_State *L) { \
-	luaL_newmetatable(L, #HANDLE); \
-	lua_pushstring(L, "__index"); \
-	lua_pushvalue(L, -2); \
-	lua_settable(L, -3); \
+	luaL_newmetatable(L, #HANDLE);  /* create new metatable for file handles */ \
+	lua_pushliteral(L, "__index"); \
+	lua_pushvalue(L, -2);  /* push metatable */ \
+	lua_rawset(L, -3);  /* metatable.__index = metatable */ \
 	\
 	luaL_openlib(L, 0, METAMETHODS, 0); \
 	luaL_openlib(L, #HANDLE, METHODS, 0); \
