@@ -246,7 +246,7 @@ static int Image_pixel (lua_State *L) {
 	if(dest) {
 		if (x >= 0 && y >= 0 && x < dest->imageWidth && y < dest->imageHeight) {
 			if(argc==3) {
-				lua_pushnumber(L, getPixelImage(x, y, dest));
+				*pushColor(L) = getPixelImage(x, y, dest);
 				return 1;
 			} else {
 				putPixelImage(color, x, y, dest);
@@ -256,7 +256,7 @@ static int Image_pixel (lua_State *L) {
 	} else {
 		if (x >= 0 && y >= 0 && x < SCREEN_WIDTH && y < SCREEN_HEIGHT) {
 			if(argc==3) {
-				lua_pushnumber(L, getPixelScreen(x, y));
+				*pushColor(L) = getPixelScreen(x, y);
 				return 1;
 			} else {
 				putPixelScreen(color, x, y);

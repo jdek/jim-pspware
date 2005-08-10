@@ -276,7 +276,7 @@ void printTextScreen(int x, int y, const char* text, u32 color)
 	if (!initialized) return;
 
 	for (c = 0; c < strlen(text); c++) {
-		if (x < 0 || x + 8 >= SCREEN_WIDTH || y < 0 || y + 8 >= SCREEN_HEIGHT) break;
+		if (x < 0 || x + 8 > SCREEN_WIDTH || y < 0 || y + 8 > SCREEN_HEIGHT) break;
 		char ch = text[c];
 		vram = getVramDrawBuffer() + x + y * PSP_LINE_SIZE;
 		
@@ -304,7 +304,7 @@ void printTextImage(int x, int y, const char* text, u32 color, Image* image)
 	if (!initialized) return;
 
 	for (c = 0; c < strlen(text); c++) {
-		if (x < 0 || x + 8 >= image->imageWidth || y < 0 || y + 8 >= image->imageHeight) break;
+		if (x < 0 || x + 8 > image->imageWidth || y < 0 || y + 8 > image->imageHeight) break;
 		char ch = text[c];
 		data = image->data + x + y * image->textureWidth;
 		
