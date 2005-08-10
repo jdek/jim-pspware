@@ -6,16 +6,16 @@ keys = {
 	{ "1", "2", "3", "+" },
 	{ "0", "+/-", ".", "=" } }
 
-color = getColorNumber(0, 255, 0)
+color = Color.new(0, 255, 0)
 
 function drawRect(x0, y0, w, h)
-	drawLine(x0, y0, x0+w, y0, color)
-	drawLine(x0, y0, x0, y0+h, color)
-	drawLine(x0+w, y0, x0+w, y0+h, color)
-	drawLine(x0+w, y0+h, x0, y0+h, color)
+	screen:drawLine(x0, y0, x0+w, y0, color)
+	screen:drawLine(x0, y0, x0, y0+h, color)
+	screen:drawLine(x0+w, y0, x0+w, y0+h, color)
+	screen:drawLine(x0+w, y0+h, x0, y0+h, color)
 end
 
-oldPad = 0
+oldPad = Controls.read()
 x = 1
 y = 1
 text = "0"
@@ -26,41 +26,36 @@ value = ""
 number = 0
 
 while true do
-	pad = ctrlRead()
+	pad = Controls.read()
 	if pad ~= oldPad then
-		if isCtrlTriangle(pad) then
-			screenshot("calculator.tga")
+		if pad:triangle() then
+			screen:save("calculator.tga")
 		end
-		
-		if isCtrlStart(pad) then
-			break
-		end
-
-		if isCtrlLeft(pad) then
+		if pad:left() then
 			x = x - 1
 			if x == 0 then
 				x = 4
 			end
 		end
-		if isCtrlRight(pad) then
+		if pad:right() then
 			x = x + 1
 			if x == 5 then
 				x = 1
 			end
 		end
-		if isCtrlUp(pad) then
+		if pad:up() then
 			y = y - 1
 			if y == 0 then
 				y = 6
 			end
 		end
-		if isCtrlDown(pad) then
+		if pad:down() then
 			y = y + 1
 			if y == 7 then
 				y = 1
 			end
 		end
-		if isCtrlCross(pad) then
+		if pad:cross() then
 			value = keys[y][x]
 			number = tonumber(text)
 			if value == "C" then
@@ -110,29 +105,32 @@ while true do
 				end
 			end
 		end
+		if pad:start() then
+			break
+		end
 		oldPad = pad
 	end
 	
-	clear(0)
+	screen:clear()
 	yk = 0
 	w = 40
 	h = 30
 	drawRect(w, 0, w * 4, h-2)
-	printText(w+4, 4, text, color)
+	screen:print(w+4, 4, text, color)
 	for yindex,line in keys do
 		for xindex,key in line do
 			x0 = xindex * w
 			y0 = yindex * h
 			drawRect(x0, y0, w, h)
 			if xindex == x and yindex == y then
-				fillRect(color, x0, y0, w, h)
-				foreground = 0
+				screen:fillRect(x0, y0, w, h, color)
+				foreground = Color.new(0, 0, 0)
 			else
 				foreground = color
 			end
-			printText(x0 + 5, y0 + 5, key, foreground)
+			screen:print(x0 + 5, y0 + 5, key, foreground)
 		end
 	end
-	waitVblankStart()
-	flipScreen()
+	screen.waitVblankStart()
+	screen.flip()
 end

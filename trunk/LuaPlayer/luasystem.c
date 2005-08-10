@@ -37,12 +37,14 @@ static int lua_curdir(lua_State *L) {
 }
 
 
-
+// Move g_dir to the stack and MEET CERTAIN DOOM! If the SceIoDirent is found on the STACK instead of among the globals, the PSP WILL CRASH IN A VERY WEIRD WAY. You have been WARNED.
+SceIoDirent g_dir;
 
 static int lua_dir(lua_State *L)
 {
 	int argc = lua_gettop(L);
 	if (argc != 0 && argc != 1) return luaL_error(L, "Argument error: System.listDirectory([path]) takes zero or one argument.");
+	
 
 	const char *path = "";
 	if (argc == 0) {
@@ -51,7 +53,7 @@ static int lua_dir(lua_State *L)
 		path = luaL_checkstring(L, 1);
 	}
 	int fd = sceIoDopen(path);
-	SceIoDirent g_dir;
+
 	if (fd < 0) {
 		lua_pushnil(L);  /* return nil */
 		return 1;
@@ -62,19 +64,17 @@ static int lua_dir(lua_State *L)
 		lua_pushnumber(L, i++);  /* push key for file entry */
 
 		lua_newtable(L);
-
-		lua_pushstring(L, "name");
-		lua_pushstring(L, g_dir.d_name);
-		lua_settable(L, -3);
-
-		lua_pushstring(L, "size");
-		lua_pushnumber(L, g_dir.d_stat.st_size);
-		lua_settable(L, -3);
-
-		lua_pushstring(L, "directory");
-
-		lua_pushboolean(L, g_dir.d_stat.st_attr & FIO_SO_IFDIR);
-		lua_settable(L, -3);
+			lua_pushstring(L, "name");
+			lua_pushstring(L, g_dir.d_name);
+			lua_settable(L, -3);
+	
+			lua_pushstring(L, "size");
+			lua_pushnumber(L, g_dir.d_stat.st_size);
+			lua_settable(L, -3);
+	
+			lua_pushstring(L, "directory");
+			lua_pushboolean(L, g_dir.d_stat.st_attr & FIO_SO_IFDIR);
+			lua_settable(L, -3);
 
 		lua_settable(L, -3);
 	}
@@ -92,9 +92,9 @@ static int LoadStartModule(char *path)
 
     loadResult = sceKernelLoadModule(path, 0, NULL);
     if (loadResult & 0x80000000)
-	return -1;
+		return -1;
     else
-	startResult =
+		startResult =
 	    sceKernelStartModule(loadResult, 0, NULL, &status, NULL);
 
     if (loadResult != startResult)

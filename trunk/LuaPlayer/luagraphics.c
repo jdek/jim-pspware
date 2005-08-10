@@ -16,12 +16,13 @@ UserdataStubs(Color, Color)
 /// ====================
 static int lua_waitVblankStart(lua_State *L)
 {
-	int argc = lua_gettop(L);
-	if (argc != 0 && argc != 1) return luaL_error(L, "wrong number of arguments");
-	if (argc == 0) {
+	int argc = lua_gettop(L), t = 0;
+	if (argc != 0 && argc != 1 && argc != 2) return luaL_error(L, "wrong number of arguments"); // can be called as both screen.wait...() and screen:wait...()
+	if (argc) t = lua_type(L, 1);
+	if (argc == 0 || t != LUA_TNUMBER) {
 		sceDisplayWaitVblankStart();
 	} else {
-		int count = luaL_checkint(L, 1);
+		int count = (t == LUA_TNUMBER)?luaL_checkint(L, 1):luaL_checkint(L, 2);
 		int i;
 		for (i = 0; i < count; i++) sceDisplayWaitVblankStart();
 	}
@@ -30,7 +31,6 @@ static int lua_waitVblankStart(lua_State *L)
 
 static int lua_flipScreen(lua_State *L)
 {
-	if (lua_gettop(L) != 0) return luaL_error(L, "wrong number of arguments");
 	flipScreen();
 	return 0;
 }
