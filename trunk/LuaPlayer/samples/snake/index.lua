@@ -244,7 +244,7 @@ math.randomseed(os.time())
 newGame()
 
 -- game loop
-while !Controls.read():start() do
+while not Controls.read():start() do
 	for i=0,4 do
 		keyboardControl()
 	end
