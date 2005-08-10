@@ -19,7 +19,7 @@ static int lua_waitVblankStart(lua_State *L)
 	int argc = lua_gettop(L), t = 0;
 	if (argc != 0 && argc != 1 && argc != 2) return luaL_error(L, "wrong number of arguments"); // can be called as both screen.wait...() and screen:wait...()
 	if (argc) t = lua_type(L, 1);
-	if (argc == 0 || t != LUA_TNUMBER) {
+	if (argc == 0 || t != LUA_TNUMBER) {
 		sceDisplayWaitVblankStart();
 	} else {
 		int count = (t == LUA_TNUMBER)?luaL_checkint(L, 1):luaL_checkint(L, 2);
