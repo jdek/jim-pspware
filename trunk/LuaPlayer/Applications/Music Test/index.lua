@@ -22,7 +22,7 @@ pan, vol, freq = 128, 255, 22000
 
 Music.playFile("music.xm", true)
 
-local sound = Sound.load("sound.wav", true) -- MUST be mono!
+local sound = Sound.load("sound.wav") -- MUST be mono!
 
 local pApp = Image.load("bg.png")
 
