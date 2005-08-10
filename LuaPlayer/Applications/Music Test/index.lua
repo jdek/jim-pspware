@@ -153,5 +153,3 @@ while true do
 	screen.waitVblankStart()
 end
 
-System.currentDirectory("ms0:/PSP/")
-print(System.currentDirectory())

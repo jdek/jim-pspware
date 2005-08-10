@@ -36,7 +36,7 @@ end
 background:print(4, 4, "os.date: ", color)
 background:print(4, 14, "digital: ", color)
 
-while !Controls.read():start() do
+while not Controls.read():start() do
 	screen:blit(0, 0, background, 0, 0, background:width(), background:height(), false)
 	time = os.time()
 	dateString = os.date("%c", time)
