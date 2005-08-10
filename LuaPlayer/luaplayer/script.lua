@@ -22,7 +22,7 @@ pan, vol, freq = 128, 255, 22000
 
 Music.playFile("music.xm", true)
 
-local sound = Sound.load("sound.wav") -- MUST be mono!
+local sound = Sound.load("sound.wav", true) -- MUST be mono!
 
 local pApp = Image.load("bg.png")
 
@@ -80,9 +80,16 @@ while true do
 			voice:stop()
 		end
 		
-		if keyin:hold() then -- crash.
-			local a = nil
-			local b = "hej"..a
+		if keyin:hold() then
+			voice:resume(sound)
+		end
+		
+		if keyin:select() then
+			if Music.playing() then
+				Music.pause()
+			else
+				Music.resume()
+			end
 		end
 	end
 	
@@ -121,8 +128,8 @@ while true do
 	
 	if keyin:left() then
 		freq = freq - 500
-		if freq < 500 then
-			freq = 500
+		if freq < 0 then
+			freq = 0
 		end
 		voice:frequency(freq)
 	elseif keyin:right() then
@@ -136,10 +143,7 @@ while true do
 	if keyin:start() then
 		break
 	end
-	
-	if keyin:select() then
-		print("X: "..keyin:analogX()..", Y: "..keyin:analogY())
-	end
+
 	
 	
 	lastkeyin = keyin

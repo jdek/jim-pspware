@@ -45,10 +45,11 @@ void unloadMikmod() {
 }
 
 // For external Lua use
+static unsigned oldvol = 0;
 
 void loadAndPlayMusicFile(char* filename, BOOL loop) {
 	if(musichandle) stopAndUnloadMusic();
-	
+	if(oldvol) md_musicvolume = oldvol;
 	musichandle = MikMod_LoadSong(filename, MAX_MUSIC_CHAN);
 	musichandle->loop = loop;
 	Player_Start(musichandle);
@@ -59,6 +60,18 @@ void stopAndUnloadMusic() {
 	MikMod_FreeSong(musichandle);
 	musichandle = NULL;
 }
+
+void musicPause() {
+	oldvol = md_musicvolume;
+	md_musicvolume = 0;
+	MP_HandleTick();
+	Player_Stop();
+}
+void musicResume() {
+	Player_Start(musichandle);
+	md_musicvolume = oldvol;
+}
+
 
 Sound* loadSound(char* filename) {
 	return WAV_LoadFN(filename);
@@ -79,10 +92,43 @@ Voice playSound(Sound* handle) {
 	return 0;
 }
 
-
 void stopSound(Voice handle) {
 	Voice_Stop(handle);
 }
+
+void resumeSound(Voice handle, Sound* soundhandle) {
+	printf("Sample resuming crashes. To spare you the pain, it has been disabled.\n");
+	//Voice_Play(handle, soundhandle, Voice_GetPosition(handle));
+}
+
+
+void setSoundLooping(Sound *handle, int loopmode, unsigned long loopstart, unsigned long loopend) { // loopmode: 0 - no loop, 1 - loop start to end, 2 - take arguments
+	if(!handle) return;
+	if(loopmode == 0) {
+		handle->loopstart = 0;
+		handle->loopend = 0;
+		return;
+	} else if(loopmode == 1) {
+		handle->loopstart = 0;
+		handle->loopend = handle->length;
+	} else if(loopmode == 2) {
+		handle->loopstart = loopstart;
+		handle->loopend = loopend;
+	}
+	handle->flags |= SF_LOOP | SFX_CRITICAL;
+}
+
+unsigned long getSoundLengthInSamples(Sound *handle) {
+	if(!handle) return 0;
+	return handle->length;
+}
+
+unsigned long getSoundSampleSpeed(Sound *handle) {
+	if(!handle) return 0;
+	return handle->speed;
+}
+
+
 
 
 
@@ -100,7 +146,7 @@ void setVoicePanning(Voice handle, ULONG pan) {
 
 
 void setVoiceFrequency(Voice handle, ULONG freq) {
-	if(freq>88000) freq = 88000;
+	if(freq>100000) freq = 100000;
 	Voice_SetFrequency(handle, freq);
 }
 
@@ -109,23 +155,35 @@ extern BOOL musicIsPlaying() {
 }
 
 extern BOOL voiceIsPlaying(Voice handle) {
-	return Voice_Stopped(handle);
+	return !Voice_Stopped(handle);
 }
 
 
-extern void setMusicVolume(unsigned arg) {
-	if(arg>128) arg = 128;
-	md_musicvolume = arg;
+extern unsigned setMusicVolume(unsigned arg) {
+	if(arg!= 9999) {
+		if(arg>128) arg = 128;
+		md_musicvolume = arg;
+	}
+	return md_musicvolume;
 }
-extern void setSFXVolume(unsigned arg) {
-	if(arg>128) arg = 128;
-	md_sndfxvolume = arg;
+extern unsigned setSFXVolume(unsigned arg) {
+	if(arg!= 9999) {
+		if(arg>128) arg = 128;
+		md_sndfxvolume = arg;
+	}
+	return md_sndfxvolume;
 }
-extern void setReverb(unsigned arg) {
-	if(arg>15) arg = 15;
-	md_reverb = arg;
+extern unsigned setReverb(unsigned arg) {
+	if(arg!= 9999) {
+		if(arg>15) arg = 15;
+		md_reverb = arg;
+	}
+	return md_reverb;
 }
-extern void setPanSep(unsigned arg) {
-	if(arg>128) arg = 128;
-	md_pansep = arg;
+extern unsigned setPanSep(unsigned arg) {
+	if(arg!= 9999) {
+		if(arg>128) arg = 128;
+		md_pansep = arg;
+	}
+	return md_pansep;
 }

@@ -154,8 +154,8 @@ static int lua_usbDeactivate(lua_State *L)
 static const luaL_reg System_functions[] = {
   {"currentDirectory",          lua_curdir},
   {"listDirectory",           	lua_dir},
-  {"usbActivate",           	lua_usbActivate},
-  {"usbDeactivate",           	lua_usbDeactivate},
+  {"usbDiskModeActivate",       lua_usbActivate},
+  {"usbDiskModeDeactivate",    	lua_usbDeactivate},
   {0, 0}
 };
 void luaSystem_init(lua_State *L) {

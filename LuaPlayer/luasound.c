@@ -17,7 +17,7 @@ static Voice* pushVoice(lua_State *L);
 // Music
 // ------------------------------
 
-static int lua_loadAndPlayMusicFile(lua_State *L)
+static int Music_loadAndPlay(lua_State *L)
 {
 	int argc = lua_gettop(L);
 	if(argc != 1 && argc != 2) return luaL_error(L, "wrong number of arguments");
@@ -36,7 +36,7 @@ static int lua_loadAndPlayMusicFile(lua_State *L)
 	return 0;
 }
 
-static int lua_stopAndUnloadMusic(lua_State *L)
+static int Music_StopAndUnload(lua_State *L)
 {
 	int argc = lua_gettop(L);
 	if(argc != 0 ) return luaL_error(L, "wrong number of arguments");
@@ -46,7 +46,7 @@ static int lua_stopAndUnloadMusic(lua_State *L)
 	return 0;
 }
 
-static int lua_musicIsPlaying(lua_State *L)
+static int Music_playing(lua_State *L)
 {
 	int argc = lua_gettop(L);
 	if(argc != 0 ) return luaL_error(L, "wrong number of arguments");
@@ -57,23 +57,42 @@ static int lua_musicIsPlaying(lua_State *L)
 	return 1;
 }
 
-static int lua_setMusicVolume(lua_State *L)
+static int Music_pause(lua_State *L)
 {
 	int argc = lua_gettop(L);
-	if(argc != 1 ) return luaL_error(L, "wrong number of arguments");
-	int arg = luaL_checknumber(L, 1);
-
-	setMusicVolume(arg);
-
+	if(argc != 0 ) return luaL_error(L, "wrong number of arguments");
+	musicPause();
+	return 0;
+}
+static int Music_resume(lua_State *L)
+{
+	int argc = lua_gettop(L);
+	if(argc != 0 ) return luaL_error(L, "wrong number of arguments");
+	musicResume();
 	return 0;
 }
 
 
+static int Music_volume(lua_State *L)
+{
+	int argc = lua_gettop(L);
+	if(argc != 1 && argc != 0 ) return luaL_error(L, "wrong number of arguments");
+	if(argc)
+		lua_pushnumber(L, setMusicVolume(luaL_checknumber(L, 1)));
+	else
+		lua_pushnumber(L, setMusicVolume(9999));
+
+	return 1;
+}
+
+
 static const luaL_reg Music_functions[] = {
-  {"playFile",          lua_loadAndPlayMusicFile},
-  {"stop",           	lua_stopAndUnloadMusic},
-  {"playing", 		lua_musicIsPlaying},
-  {"volume", 			lua_setMusicVolume},
+  {"playFile",          Music_loadAndPlay},
+  {"stop",           	Music_StopAndUnload},
+  {"pause",		 		Music_pause},
+  {"resume",	 		Music_resume},
+  {"playing", 			Music_playing},
+  {"volume", 			Music_volume},
   {0, 0}
 };
 
@@ -127,10 +146,10 @@ static const luaL_reg SoundSystem_functions[] = {
 
 UserdataStubs(Sound, Sound*)
 
-static int Sound_new(lua_State *L) {
+static int Sound_load(lua_State *L) {
 	int argc = lua_gettop(L);
-	if(argc != 1 )
-		return luaL_error(L, "Need a file path argument as only argument.");
+	if(argc != 1 && argc != 2)
+		return luaL_error(L, "Argument error: Sound.load(filename, [bool loop]) takes one or two arguments.");
 	
 	// Load variables
 	char fullpath[512];
@@ -139,10 +158,12 @@ static int Sound_new(lua_State *L) {
 	getcwd(fullpath, 256);
 	strcat(fullpath, "/");
 	strcat(fullpath, path);
+	BOOL doloop = (argc==2)?lua_toboolean(L, 2):false;
 	
 	// Create the user object
 	Sound** newsound = pushSound(L);
 	*newsound = loadSound(fullpath);
+	if(doloop) setSoundLooping(*newsound, 1, 0, 0);
 	
 	if (!*newsound) return luaL_error(L, "error loading sound");
 	
@@ -183,8 +204,10 @@ static int Sound_play(lua_State *L)
 
 
 
+
+
 static const luaL_reg Sound_methods[] = {
-  {"load",          Sound_new},
+  {"load",          Sound_load},
   {"play", 			Sound_play},
   {0, 0}
 };
@@ -218,6 +241,18 @@ static int Voice_stop(lua_State *L)
 	unsigned handle = *toVoice(L, 1);
 
 	stopSound(handle);
+
+	return 0;
+}
+
+static int Voice_resume(lua_State *L)
+{
+	int argc = lua_gettop(L);
+	if(argc != 2 ) return luaL_error(L, "Voice:resume(Sound) one argument. Also, call it with a colon, not a dot.");
+	
+	unsigned handle = *toVoice(L, 1);
+	Sound* soundhandle = *toSound(L, 1);
+	resumeSound(handle, soundhandle);
 
 	return 0;
 }
@@ -283,6 +318,7 @@ static int Voice_playing(lua_State *L)
 
 static const luaL_reg Voice_methods[] = {
   {"stop",          Voice_stop},
+  {"resume",		Voice_resume},
   {"volume", 		Voice_setVolume},
   {"pan", 			Voice_setPanning},
   {"frequency", 	Voice_setFrequency},
