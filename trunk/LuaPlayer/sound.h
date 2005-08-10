@@ -86,6 +86,12 @@ extern Voice playSound(Sound* handle);
  */
 extern void stopSound(Voice handle);
 
+extern void resumeSound(Voice handle, Sound* soundhandle);
+
+void setSoundLooping(Sound *handle, int loopmode, unsigned long loopstart, unsigned long loopend);
+unsigned long getSoundLengthInSamples(Sound *handle);
+unsigned long getSoundSampleSpeed(Sound *handle);
+
 
 /**
  * Sets the volume of the specified voice.
@@ -134,37 +140,43 @@ extern BOOL voiceIsPlaying(Voice handle);
 /**
  * Sets the music volume.
  * 
- * @pre arg > 0 && arg < 128
+ * @pre (arg > 0 && arg < 128) || arg==9999
  * @param arg is the volume
+ * @return new arg
  */
-extern void setMusicVolume(unsigned arg);
+extern unsigned setMusicVolume(unsigned arg);
 
 /**
  * Sets the sample/SFX/wav volume.
  * 
- * @pre arg > 0 && arg < 128
+ * @pre (arg > 0 && arg < 128) || arg==9999
  * @param arg is the volume
+ * @return new arg
  */
-extern void setSFXVolume(unsigned arg);
+extern unsigned setSFXVolume(unsigned arg);
 
 /**
  * Sets the reverb.
  * 
- * @pre arg > 0 && arg < 15
+ * @pre (arg > 0 && arg < 15) || arg==9999
  * @param arg is the amount of reverb.
+ * @return new arg
  */
-extern void setReverb(unsigned arg);
+extern unsigned setReverb(unsigned arg);
 
 /**
  * Sets panoramic separation. 0: mono. 128: full separation.
  * 
- * @pre arg > 0 && arg < 128
+ * @pre (arg > 0 && arg < 128) || arg==9999
  * @param arg is the separation
+ * @return new arg
  */
-extern void setPanSep(unsigned arg);
+extern unsigned setPanSep(unsigned arg);
 
 
 
+extern void musicPause();
+extern void musicResume();
 
 
 #endif
