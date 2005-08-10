@@ -2,7 +2,7 @@
 Lowser, Copyright (c) 2005 Joachim Bengtsson <joachimb@gmail.com> (aka Nevyn)
 http://ncoder.nevyn.nu/
 
-VERSION 0003 (v0.1)
+VERSION 0010 (v0.15)
 ]]
 
 LowserView = {  
@@ -10,23 +10,24 @@ LowserView = {
 	drawStartIndex = 1,
 	status = "Welcome to Lowser! (c) nCoder 2005, ncoder.nevyn.nu",
 	res = {
-		genericFolderIcon = loadImage("img/folder.png"),
-		genericAppIcon = loadImage("img/app.png"),
-		genericIcon = loadImage("img/plain.png"),
+		genericFolderIcon = Image.load("img/folder.png"),
+		genericAppIcon = Image.load("img/app.png"),
+		genericIcon = Image.load("img/plain.png"),
 		pspAppIcon = genericAppIcon,
-		arrowIcon = loadImage("img/arrow.png"),
+		arrowIcon = Image.load("img/arrow.png"),
 		
-		backgroundImage = loadImage("img/bg.png")
+		backgroundImage = Image.load("img/bg.png")
 	},
 	colors = {
-		bg = getColorNumber(255,255,255),
-		text = getColorNumber(0,0,64)
+		bg = Color.new(255,255,255),
+		text = Color.new(0,0,64)
 	},
 	contents = {},
 	cwd = ""
 }
 
-function LowserView:new() -- This is just a copypaste of Shines code...
+
+function LowserView:new()
    c = {} 
    setmetatable(c, self) 
    self.__index = self 
@@ -34,11 +35,12 @@ function LowserView:new() -- This is just a copypaste of Shines code...
 end
 
 function LowserView:renderIconsForCurrentDirectory()
-	self.contents = dir()
-	self.cwd = getCurrentDirectory()
+
+	self.contents = System.listDirectory()
+	self.cwd = System.currentDirectory()
 	
 	table.sort(self.contents, function (a, b) return a.name < b.name end)
-	
+
 	done = false
 	while not done do -- filter out unwanted files
 		for idx,file in self.contents do
@@ -51,18 +53,19 @@ function LowserView:renderIconsForCurrentDirectory()
 			end
 		end
 	end
-	
+
 	for idx, file in self.contents do
 		-- defaults
 		file.icon = nil
 		file.render = nil
 		file.ftype = "none"
-		
+
+
 		-- set icon
 		if file.directory then
 			-- traverse and assign correct icon and type
-			setCurrentDirectory(file.name)
-			subdirconts = dir()
+			System.currentDirectory(file.name)
+			subdirconts = System.listDirectory()
 			
 			for subidx, subfile in subdirconts do
 				if string.lower(subfile.name) == "index.lua" then
@@ -72,10 +75,10 @@ function LowserView:renderIconsForCurrentDirectory()
 			end
 			for subidx, subfile in subdirconts do
 				if string.lower(subfile.name) == "icon.png" then
-					file.icon = loadImage(subfile.name)
+					file.icon = Image.load(subfile.name)
 				end
 			end
-			setCurrentDirectory(self.cwd)
+			System.currentDirectory(self.cwd)
 			
 			if file.icon == nil then
 				file.icon = self.res.genericFolderIcon
@@ -98,12 +101,12 @@ function LowserView:renderIconsForCurrentDirectory()
 		
 		-- render
 		
-		file.render = createImage(192, 32)
-		clear(self.colors.bg, file.render)
+		file.render = Image.createEmpty(192, 32)
+		file.render:clear(self.colors.bg)
 		
-		blitAlphaImage(0,0,file.icon, file.render)
-
-		printText(32+4, 32/2-8/2, file.name, self.colors.text, file.render)
+		file.render:blit(0,0,file.icon)
+		
+		file.render:print(32+4, 32/2-8/2, file.name, self.colors.text)
 		
 	end -- loop through dir()
 end -- function call
@@ -111,8 +114,8 @@ end -- function call
 function LowserView:cd(newdir)
 	self.currentIndex = 1
 	self.drawStartIndex = 1
-	setCurrentDirectory(newdir)
-	self.cwd = getCurrentDirectory()
+	System.currentDirectory(newdir)
+	self.cwd = System.currentDirectory()
 	self:renderIconsForCurrentDirectory() -- (hopefully expected) side effect.
 end
 function LowserView:render()
@@ -120,26 +123,25 @@ function LowserView:render()
 	local y = 8
 	local dirName = string.gsub(string.sub(self.cwd,5), "/", " > ")
 	
-	--clear(self.colors.bg)
-	blitImage(0,0,self.res.backgroundImage)
+	screen:blit(0,0,self.res.backgroundImage)
 	
-	printText(x,y, dirName, self.colors.text)
+	screen:print(x,y, dirName, self.colors.text)
 	y = y + 8 + 14
 
 	for i=self.drawStartIndex, math.min(self.drawStartIndex + (272-12)/36 -2, table.getn(self.contents)) do
 		curfile = self.contents[i]
 		if i == self.currentIndex then
-			blitAlphaImage(x,y+32/2-16/2,self.res.arrowIcon)
+			screen:blit(x,y+32/2-16/2,self.res.arrowIcon)
 		end
-		blitAlphaImage(x+16+4, y, curfile.render)
+		screen:blit(x+16+4, y, curfile.render)
 		
 		y = y + 32 + 4
 	end
 	
-	printText(10,272-12, self.status, self.colors.text)
+	screen:print(10,272-12, self.status, self.colors.text)
 	
 	
-	flipScreen()
+	screen.flip()
 end
 
 function LowserView:action(entry)
@@ -149,10 +151,10 @@ function LowserView:action(entry)
 		
 	elseif entry.ftype == "appdir" then
 		self.status = "Running bundle index "..entry.name.."/index.lua".."..."
-		setCurrentDirectory(entry.name)
+		System.currentDirectory(entry.name)
 		dofile("index.lua")
 		waitVblankStart(10)
-		setCurrentDirectory("..")
+		System.currentDirectory("..")
 		self:render()
 		
 	elseif entry.ftype == "app" then
@@ -171,13 +173,13 @@ end
 
 function LowserView:event(e)
 	keyin = e.value
-	if isCtrlUp(keyin) then
+	if keyin:up() then
 		if self.currentIndex > 1 then
 			self.currentIndex = self.currentIndex - 1
 			self.drawStartIndex = math.min(self.currentIndex, self.drawStartIndex)
 		end
 		self:render(contents)
-	elseif isCtrlDown(keyin) then
+	elseif keyin:down() then
 		if self.currentIndex < table.getn(self.contents) then
 			self.currentIndex = self.currentIndex + 1
 			if (self.currentIndex - self.drawStartIndex) > ((272-12)/36 -2) then
@@ -185,18 +187,40 @@ function LowserView:event(e)
 			end
 		end
 		self:render(contents)
-	elseif isCtrlCircle(keyin) then
+	elseif keyin:circle() then
 		self:filemenu(lowser.contents[self.currentIndex])
-	elseif isCtrlRight(keyin) then
+	elseif keyin:right() then
 		if self.contents[self.currentIndex].ftype == "dir" then
 			self:action(self.contents[self.currentIndex])
 		else
 			self:filemenu(self.contents[self.currentIndex])
 		end
-	elseif isCtrlLeft(keyin) or isCtrlCross(keyin) then
+	elseif keyin:left() or keyin:cross() then
 		self:cd("..")
 		self:render()
 		
+	elseif keyin:l() then
+		isDiskMode = true
+		screen.waitVblankStart(40)
+		while isDiskMode do
+			System.usbDiskModeActivate()
+			screen:clear(Color.new(20, 126, 180))
+			screen:print(screen:width()-screen:width()/2-130, screen:height()/2-24, "Disk mode active. Press L to exit.", Color.new(219, 219, 250))
+			datef = os.date("*t", os.time())
+			f = function(s) 
+				if s < 10 then
+					return "0"..s
+				else return s end
+			end
+			screen:print(screen:width()-70, 5, f(datef.hour)..":"..f(datef.min)..":"..f(datef.sec))
+			diskmodekey = Controls.read()
+			isDiskMode = not diskmodekey:l()
+			screen.waitVblankStart()
+			screen:flip()
+		end
+		System.usbDiskModeDeactivate()
+		self:render()
+		screen.waitVblankStart(40)
 	end
 
 end
@@ -229,7 +253,6 @@ end
 -- ================================
 -- 			   Main app
 -- ================================
-
 lowser = LowserView:new() 
 lowser:cd(appsDir)
 lowser:render()
@@ -239,28 +262,27 @@ controller:addResponder(function (e) lowser.status = "No responder! message:"..e
 controller:addResponder(function (e) lowser:event(e); end)
 
 
-
-local lastkeyin = ctrlRead()
+local lastkeyin = Controls.read()
 while true do
-	keyin = ctrlRead()
+	keyin = Controls.read()
 	if keyin ~= lastkeyin then
 		event = { type="key", value=keyin }
 		controller:dispatchEvent(event)
 		
-		if(isCtrlStart(keyin)) then
-			waitVblankStart(40)
-			if isCtrlStart(ctrlRead()) then
+		if keyin:start() then
+			screen.waitVblankStart(40)
+			if Controls.read():start() then
 				lowser.status = "Bye!"
 				lowser:render()
 				break
 			end
 		end
-		if isCtrlTriangle(keyin) then
-			screenshot(appsDir.."/../".."lowserShot.png")
+		if keyin:triangle() then
+			screen:save(appsDir.."/../".."lowserShot.png")
 		end
 	end
 	lastkeyin = keyin
-	waitVblankStart()
+	screen.waitVblankStart()
 end
 
 

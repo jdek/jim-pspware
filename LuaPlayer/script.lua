@@ -1,11 +1,5 @@
-clear(getColorNumber(0,0,0))
-printText(4,4,"LuaPlayer started. Loading Lowser...", getColorNumber(255,255,255))
+System.currentDirectory("Applications")
+appsDir = System.currentDirectory()
 
-setCurrentDirectory("Applications")
-appsDir = getCurrentDirectory()
-
-setCurrentDirectory("Lowser")
+System.currentDirectory("Lowser")
 dofile("index.lua")
-
-clear(getColorNumber(0,0,0))
-printText(4,4,"Exiting LuaPlayer", getColorNumber(255,255,255))
