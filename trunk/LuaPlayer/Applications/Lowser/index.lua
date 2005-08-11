@@ -153,14 +153,14 @@ function LowserView:action(entry)
 		self.status = "Running bundle index "..entry.name.."/index.lua".."..."
 		System.currentDirectory(entry.name)
 		dofile("index.lua")
-		waitVblankStart(10)
+		screen.waitVblankStart(10)
 		System.currentDirectory("..")
 		self:render()
 		
 	elseif entry.ftype == "app" then
 		self.status = "Running script "..entry.name.."..."
 		dofile(entry.name)
-		waitVblankStart(10)
+		screen.waitVblankStart(10)
 		self:render()
 	else
 		self.status = "Can't do anything with this file, sorry."

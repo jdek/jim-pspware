@@ -1,0 +1,29 @@
+Lua Player
+by Shine and Nevyn
+
+
+Install on PSP
+============================
+
+For 1.5 firmware
+	Copy the luaplayer and luaplayer% folders to your (memorystick)/PSP/GAME/
+	
+For 1.0 firmware
+	Create the folder (memorystick)/PSP/GAME/luaplayer. Place EBOOT.PBP in it.
+	Copy all files but the EBOOT.PBP from the luaplayer folder into the
+	luaplayer folder on your stick.
+	
+
+Writing Lua software for PSP
+============================
+Lua is an interpreted language. This means that all applications are distributed in source form, which in turn means that you can look at other people's code. Just go to the Applications folder, and then look at the index.lua inside the applications. There's also documentation inside the doc/ folder, and a 'samples' folder.
+
+
+Obtaining the source
+============================
+% svn co svn://svn.pspdev.org/pspware/trunk/LuaPlayer
+
+
+Function reference
+============================
+See doc/
