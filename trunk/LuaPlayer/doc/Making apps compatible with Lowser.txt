@@ -1,13 +1,9 @@
 Making your app play nicely with Lowser is very simple.
 1. The main script file should be called "index.lua". Place it, with all its resources in a folder with the application's name (spaces and everything is allowed; make the name nice: "Foobar's Magical Quest", not "foobar_game")
 2. Instruct your downloaders to install your game in memorystick:/PSP/GAME/luaplayer/Applications/ . Of course, they also need Lowser in the Applications folder, and they need the Lowser-specific script.lua in the luaplayer folder, but these are bundled with the official LuaPlayer release.
-3. Make your game *exitable*, please. Just make sure that the end of the file is reachable. (Your main loop would look something like this:
+3. Make your game *exitable*, please. Just make sure that the end of the file is reachable. (Your main loop could look something like this:
 
-while true do
-	pad = ctrlRead()
-	if(isCtrlStart(pad) then
-		break
-	end
+while not Controls.read():start() do
 	[ your app's code ]
 end)
 

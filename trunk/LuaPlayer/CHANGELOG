@@ -1,0 +1,11 @@
+v0.7
+==========
+ - Added sound and music through mikmodlib
+ - Redesigned the API (note: apps made for =<0.6 will need to be rewritten)
+ - Updated Lowser to 0.15
+ - Added functions for USB disk mode
+ - Added samples for music, rotation, fractal
+ 
+v0.6 and earlier
+========
+(Undocumented)
