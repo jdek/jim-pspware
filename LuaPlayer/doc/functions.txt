@@ -58,8 +58,17 @@ String System.currentDirectory() -- get
 String System.currentDirectory( path ) -- set, returns old path.
 table System.listDirectory()
 table System.listDirectory( path )
+
 nil System.usbDiskModeActivate()
+
+Activates the USB mode. Attention: When writing from USB to the memory stick, you must not
+write from within your Lua script to the memory stick, until you disable USB, otherwise
+the filesystem of your memory stick gets corrupted and you have to reformat your
+memmory stick.
+
 nil System.usbDiskModeDeactivate()
+
+Deactivates the USB mode.
 
 Sound and music
 ========================================
