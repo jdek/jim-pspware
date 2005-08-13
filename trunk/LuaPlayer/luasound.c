@@ -161,11 +161,11 @@ static int Sound_load(lua_State *L) {
 	BOOL doloop = (argc==2)?lua_toboolean(L, 2):false;
 	
 	// Create the user object
-	Sound** newsound = pushSound(L);
-	*newsound = loadSound(fullpath);
-	if(doloop) setSoundLooping(*newsound, 1, 0, 0);
-	
-	if (!*newsound) return luaL_error(L, "error loading sound");
+	Sound* newsound = loadSound(fullpath);;
+	if (!newsound) return luaL_error(L, "error loading sound");
+	Sound** luaNewsound = pushSound(L);
+	*luaNewsound = newsound;
+	if (doloop) setSoundLooping(newsound, 1, 0, 0);
 	
 	// Note: a userdata object has already been pushed.
 	return 1;
