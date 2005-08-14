@@ -1,0 +1,44 @@
+Abandoned Bricks
+
+Abandoned Bricks is cross-platform tetris-like game written in C++ using SDL library
+
+Features
+- Single player and duel mode
+- Nice music
+- Runs on Linux, Windows and probably more platforms
+- Hiscore list
+- Different game modes
+- Open Source (GPL Licence)
+
+For installation instructions, read file INSTALL
+Visit http://abrick.sourceforge.net to get up-to-date information.
+
+If you have any questions, or you wish to help the development, contact me at:
+mbabuskov@yahoo.com
+
+Have fun playing ;)
+
+
+Abandoned Bricks is free, but if you really like it and want to support further development,
+you can send $10 or EURO (or any other amount). Contact me by e-mail for details.
+
+
+Licencing information:
+
+Source code of Abandoned Bricks is covered by GNU GPL licence.
+See file COPYING for details.
+
+This game uses SDL and SDL_mixer libraries.
+
+The Simple DirectMedia Layer (SDL for short) is a cross-platfrom library
+designed to make it easy to write multi-media software, such as games and
+emulators.
+
+The Simple DirectMedia Layer library source code is available from:
+http://www.libsdl.org/
+
+The source of SDL_mixer is available from the libraries page at the SDL website:
+http://www.libsdl.org/
+
+All these libraries are distributed under the terms of the GNU LGPL license:
+http://www.gnu.org/copyleft/lesser.html
