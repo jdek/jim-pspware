@@ -6,11 +6,11 @@
 #include <pspgu.h>
 
 #include "graphics.h"
+#include "framebuffer.h"
 
 #define IS_ALPHA(color) ((color)&0x8000?0:1)
 #define FRAMEBUFFER_SIZE (PSP_LINE_SIZE*SCREEN_HEIGHT*2)
 #define MAX(X, Y) ((X) > (Y) ? (X) : (Y))
-#define VRAM_BASE (0x40000000 | 0x04000000)
 
 typedef struct 
 {
@@ -37,14 +37,14 @@ static void setWidthToNextPower2(Image* image)
 
 u16* getVramDrawBuffer()
 {
-	u16* vram = (u16*) VRAM_BASE;
+	u16* vram = (u16*) g_vram_base;
 	if (dispBufferNumber == 0) vram += FRAMEBUFFER_SIZE / 2;
 	return vram;
 }
 
 u16* getVramDisplayBuffer()
 {
-	u16* vram = (u16*) VRAM_BASE;
+	u16* vram = (u16*) g_vram_base;
 	if (dispBufferNumber == 1) vram += FRAMEBUFFER_SIZE / 2;
 	return vram;
 }
@@ -461,7 +461,7 @@ void initGraphics()
 
 	dispBufferNumber = 0;
 	sceDisplayWaitVblankStart();
-	sceDisplaySetFrameBuf((void*) VRAM_BASE, PSP_LINE_SIZE, 1, 1);
+	sceDisplaySetFrameBuf((void*) g_vram_base, PSP_LINE_SIZE, 1, 1);
 
 	sceGuInit();
 
