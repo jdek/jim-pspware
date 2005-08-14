@@ -1,5 +1,5 @@
 TARGET = luaplayer
-OBJS = main.o graphics.o sound.o luaplayer.o luacontrols.o luagraphics.o luasound.o luasystem.o utility.o
+OBJS = main.o graphics.o sound.o luaplayer.o luacontrols.o luagraphics.o luasound.o luasystem.o utility.o framebuffer.o
 
 INCDIR =
 CFLAGS = -G0 -Wall -O2 -fno-strict-aliasing

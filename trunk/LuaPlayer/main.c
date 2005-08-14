@@ -112,6 +112,9 @@ int main(int argc, char** argv)
 	char path[256];
 	getcwd(path, 256);
 	while(1) {
+		clearScreen(0);
+		flipScreen();
+		clearScreen(0);
 		runScript("script.lua");
 		SceCtrlData pad; int i;
 		sceCtrlReadBufferPositive(&pad, 1); 
