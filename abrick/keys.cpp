@@ -2,6 +2,29 @@
 #include <sstream>
 #include "sutils.h"
 #include "keys.h"
+
+#ifdef JOY_YES
+#ifdef PSP
+#define JOY_CIRCLE 1
+#define JOY_CROSS 2
+#define JOY_START 11
+#define JOY_A JOY_CIRCLE	
+#define JOY_B JOY_CROSS		
+#define JOY_DOWN 6
+#define JOY_LEFT 7
+#define JOY_UP 8
+#define JOY_RIGHT 9
+/* The PSP needs a bigger deadzone than the default. */
+#define JOY_DEADZONE (256 * 16)
+#else
+#define JOY_DEADZONE (256)
+#define JOY_A 0
+#define JOY_B 1
+#endif /* PSP */
+#define JOY_X 0
+#define JOY_Y 1
+#endif
+
 //-----------------------------------------------------------------------------
 bool Keyboard::isKeyDown(SDLKey k)
 {
@@ -18,12 +41,14 @@ void Keyboard::setKeyDown(SDLKey k, bool state)
 //-----------------------------------------------------------------------------
 SDLKey Keyboard::update(bool updateRepeated)
 {
+	SDLKey k;
 	SDL_Event event;
 	while (SDL_PollEvent(&event))
 	{
+#ifndef PSP
 		if (event.type == SDL_KEYDOWN)
 		{
-			SDLKey k = event.key.keysym.sym;
+			k = event.key.keysym.sym;
 			if (keysM.find(k) == keysM.end())
 				keysM.insert(std::pair<SDLKey,char>(k, 1));
 			else
@@ -37,6 +62,42 @@ SDLKey Keyboard::update(bool updateRepeated)
 		}
 		if (event.type == SDL_QUIT)
 			throw Exiter("Close button of window clicked");
+#endif
+#ifdef JOY_YES
+		/* fake a keyboard */
+		switch (event.jbutton.button) 
+		{
+			case JOY_B:
+				k = SDLK_SPACE;
+				break;
+			case JOY_LEFT:
+				k = SDLK_LEFT;
+				break;
+			case JOY_RIGHT:
+				k = SDLK_RIGHT;
+				break;
+			case JOY_DOWN:
+				k = SDLK_DOWN;
+				break;
+			case JOY_A:
+			case JOY_UP:
+				k = SDLK_UP;
+				break;
+			default:
+				k = SDLK_RETURN;
+				break;
+		}
+	  	if (event.type == SDL_JOYBUTTONDOWN)
+		{
+			if (keysM.find(k) == keysM.end())
+				keysM.insert(std::pair<SDLKey,char>(k, 1));
+			else
+				keysM[k] = 1;
+			return k;
+		} else if (event.type == SDL_JOYBUTTONUP) {
+			keysM[k] = 0;
+		}
+#endif
 	}
 
 	// update already pressed keys

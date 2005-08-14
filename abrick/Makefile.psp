@@ -1,0 +1,15 @@
+TARGET = abrick
+PSPSDK = $(shell psp-config --pspsdk-path)
+PSPBIN = $(PSPSDK)/../bin
+
+OBJS = game.o player.o shape.o main.o allmenus.o njamfont.o sutils.o menu.o hiscore.o effects.o config.o music.o sound.o keys.o
+
+JOY = YES
+CFLAGS = -Wall -Wno-long-long -O2 -G0 -DJOY_$(JOY)
+CFLAGS += $(shell $(PSPBIN)/sdl-config --cflags)
+
+LIBS = -lstdc++ -lSDL_mixer $(shell $(PSPBIN)/sdl-config --libs) 
+
+EXTRA_TARGETS = EBOOT.PBP
+
+include $(PSPSDK)/lib/build.mak

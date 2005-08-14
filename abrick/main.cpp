@@ -13,7 +13,11 @@
 SDL_Surface *Screen;		// global object
 //-----------------------------------------------------------------------------
 //! initialize SDL, and start main menu
+#ifndef PSP
 int main(int argc, char **argv)
+#else
+extern "C" int SDL_main(int argc, char **argv)
+#endif
 {
 	Screen = 0;
  	bool Fullscreen = false;	// defaults
@@ -44,11 +48,24 @@ int main(int argc, char **argv)
 	}
 
  	printf("Initializing SDL: VIDEO & AUDIO...");
-	if ( SDL_Init(SDL_INIT_VIDEO|SDL_INIT_AUDIO|SDL_INIT_TIMER ) < 0 )
+#ifdef JOY_YES
+	if ( SDL_Init(SDL_INIT_VIDEO|SDL_INIT_AUDIO|SDL_INIT_TIMER|SDL_INIT_JOYSTICK) < 0 )
+#else
+	if ( SDL_Init(SDL_INIT_VIDEO|SDL_INIT_AUDIO|SDL_INIT_TIMER) < 0 )
+#endif
 	{
 		fprintf(stderr, "Error initializing SDL: %s\n", SDL_GetError());
 		return 1;
 	}
+
+#ifdef JOY_YES
+          /* Open joystick: */
+          if (SDL_JoystickOpen(0) == NULL)
+              fprintf(stderr,
+                      "\nWarning: Could not open joystick 1.\n"
+                      "The Simple DirectMedia error that occured was:\n"
+                      "%s\n\n", SDL_GetError());
+#endif
 
 	SDL_Surface *icon = 0;
 
