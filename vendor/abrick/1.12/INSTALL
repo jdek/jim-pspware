@@ -1,0 +1,44 @@
+Abandoned Bricks
+
+Instalation instructions
+
+If you downloaded the Windows setup.exe just run it and follow the
+instructions. It's a good idea to first uninstall any existing
+instalation on Abandoned Bricks.
+
+If you downloaded the Windows binary (zip file),
+just unpack to some directory and run ab.exe.
+
+If you downloaded the Linux binary (tar.gz file), unpack to some
+directory and run ./abrick. If you wish you can "install" it with:
+"make install" option. After that, you can run the game just by typing abrick
+anywhere. You may have to check which version on SDL library you have and,
+if the game doesn't work, download the latest version.
+This version of Abandoned Bricks is compiled against SDL version 1.2.5.
+
+If the game runs too slow, try running it with "Abandoned Bricks -h".
+
+If you downloaded the source code, you must have the development versions of
+the following libraries installed:
+SDL
+SDL_mixer (optional for music/sfx)
+
+If you don't, you can get it at:
+http://www.libsdl.org
+
+When ready, unpack the source to any folder, and run:
+make
+
+It uses sdl-config for configuration options, so you shouldn't have any
+problems. This makefile uses g++ on GNU/Linux.
+
+File makefile.b32 is makefile for Borland's Free C++ Compiler (BCC). Follow the
+instructions on www.libsdl.org website to create development environment
+for BCC, edit the makefile to fit your paths and run:
+make -f makefile.b32
+
+Other compilers aren't supported, but feel free to try: just compile all
+.cpp files and link. If your system is supported by SDL library,
+it should work. It should work on MacOSX, FreeBSD and OpenBSD.
+
+If you have any questions, contact me at: mbabuskov@yahoo.com
