@@ -159,10 +159,20 @@ SDLKey NjamGetch(bool Wait)
 		SDL_Event event;
 		while (SDL_PollEvent(&event))
 		{
+#ifndef JOY_YES
 			if (event.type == SDL_KEYDOWN)
 				return event.key.keysym.sym;
 			if (event.type == SDL_QUIT)
 				throw Exiter("Close button of window clicked");
+#else
+			/* C++ programmers and their "keyboard" classes, bah! */ 
+			if (event.type == SDL_JOYBUTTONDOWN) {
+				if(event.jbutton.button == 8) return SDLK_UP;
+				if(event.jbutton.button == 6) return SDLK_DOWN;
+				if(event.jbutton.button == 2) return SDLK_RETURN;
+				if(event.jbutton.button == 1) return SDLK_ESCAPE;
+			}
+#endif
 		}
     }
     while (Wait);
