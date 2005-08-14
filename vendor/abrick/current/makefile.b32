@@ -1,0 +1,56 @@
+#
+# Copyright 2004 Milan Babuskov
+#
+# This file is part of Abandoned Bricks game
+#
+# Abandoned Bricks is free software; you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation; either version 2 of the License, or
+# (at your option) any later version.
+#
+# Abandoned Bricks game is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with Abandoned Bricks in file COPYING; if not, write to the Free Software
+# Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+#
+# Set the variables.
+# Invoke make with:		make -f makefile.b32 -a -c
+#
+INCLUDE_PATH = c:\work\sdl\include
+LIB_PATH = c:\work\sdl\lib
+BCC_PATH = c:\borland\bcc55
+
+OBJECTS = 	game.obj player.obj shape.obj main.obj allmenus.obj njamfont.obj sutils.obj menu.obj \
+			hiscore.obj effects.obj config.obj music.obj sound.obj keys.obj sdl_main.obj
+PROGRAM = abrick
+
+all:	$(PROGRAM)
+
+$(PROGRAM):   $(OBJECTS) $(PROGRAM).res
+	$(BCC_PATH)\bin\ilink32 -L$(LIB_PATH) -L$(BCC_PATH)\LIB -aa -Tpe -c $(OBJECTS) \
+	sdl_main.obj, $(PROGRAM), , sdl.lib import32.lib c0w32.obj cw32.lib sdl_mixer.lib , , $(PROGRAM).res
+
+.cpp.obj:
+	$(BCC_PATH)\bin\bcc32 -DWIN32 -tW -I$(INCLUDE_PATH) -c $<
+
+sdl_main.obj:
+	$(BCC_PATH)\bin\bcc32 -M -DWIN32 -tW -w-par -w-aus -I$(INCLUDE_PATH) -c sdl_main.c
+
+.rc.res:
+	brcc32 -r $<
+
+clean:
+	del *.obj
+	del *.exe
+	del *.res
+	del *.map
+	del *.tds
+	del *.rws
+	del *.il?
+
+run:	all
+		$(PROGRAM) -w
