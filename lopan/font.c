@@ -1,3 +1,4 @@
+#include <stdio.h>
 #include <stdlib.h>
 #include "font.h"
 #include "gfx.h"
@@ -7,7 +8,7 @@ unsigned char *fontready;
 #define FONTWIDTH 6
 #define FONTHEIGHT 13
 
-unsigned char fontdata[96][13]={
+unsigned char fontdata[96 * 13]={
 0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,
 0x00,0x04,0x04,0x04,0x04,0x04,0x04,0x04,0x00,0x04,0x00,0x00,0x00,
 0x00,0x0a,0x0a,0x0a,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,
@@ -119,7 +120,7 @@ unsigned short *ps,*ps2;
 	red=maprgb(255,0,0);
 	fontready=malloc(2*96*6*2*13);
 	if(!fontready) return;
-	p=&fontdata[0][0];
+	p=&fontdata[0];
 	ps=(void *)fontready;
 	ps2=(void *)(fontready+96*6*2*13);
 	for(i=0;i<96*13;++i)
@@ -167,7 +168,7 @@ int i,j,k;
 	{
 		for(i=0;i<FONTWIDTH;++i)
 		{
-			if(k=ps[i])
+			if((k=ps[i]))
 				pd[i]=k;
 		}
 		pd+=stride;
@@ -180,7 +181,7 @@ void drawprintfxy(unsigned int x,unsigned int y,char *str,...)
 char tbuff[256],*s,ch;
 	vsprintf(tbuff,str,&str+1);
 	s=tbuff;
-	while(ch=*s++)
+	while((ch=*s++))
 	{
 		drawcharxy(x,y,ch);
 		x+=FONTWIDTH;
