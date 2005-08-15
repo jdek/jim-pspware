@@ -89,3 +89,4 @@ void lightenrect(int x,int y,int sizex,int sizey);
 void transformrect(int x,int y,int sizex,int sizey,unsigned short *trans);
 void freegs(surface *gs);
 int maprgb(int r,int g,int b);
+void applyshadowplane(unsigned char *plane);

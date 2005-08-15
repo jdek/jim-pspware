@@ -1,4 +1,6 @@
+#include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 #include <sys/time.h>
 #include <unistd.h>
 
@@ -144,9 +146,9 @@ int layout[]={
 
 void setfreebits(void)
 {
-int i,j,k,tc,x,y;
-unsigned char bitmap[40][40];
-struct tile *at;
+	int k,tc,x,y;
+	unsigned char bitmap[40][40];
+	struct tile *at;
 
 	memset(bitmap,0,sizeof(bitmap));
 	at=tiles;
@@ -201,11 +203,11 @@ int match(int a,int b)
 	return a>=40 && a<=43 && b>=40 && b<=43;
 }
 
-scanlayout(int *p)
+void scanlayout(int *p)
 {
-int i,j,k,h,a,b;
-int shuffle[144];
-int pairs[144];
+	int i,j,k,h,a,b;
+	int shuffle[144];
+	int pairs[144];
 
 	for(i=0;i<144;++i)
 	{
@@ -237,7 +239,7 @@ int pairs[144];
 
 	p=layout;
 	tilecount=0;
-	while(h=*p++)
+	while((h=*p++))
 	{
 		i=*p++;
 		j=*p++;
@@ -292,16 +294,16 @@ retry:
 	backed=0; // change this to 72 to have solution visible on startup...
 }
 
-clearshadowplane()
+void clearshadowplane()
 {
 	memset(shadowplane,0,(vxsize+7)*vysize>>3);
 }
 
-shadowdot(unsigned int x,unsigned int y,int onoff)
+void shadowdot(unsigned int x,unsigned int y,int onoff)
 {
-unsigned char *p,bit;
+	unsigned char *p,bit;
 	if(x>=vxsize || y>=vysize) return;
-	p=shadowplane+(x>>3)+y*(vxsize+7>>3);
+	p=shadowplane+(x>>3)+y*((vxsize+7)>>3);
 	bit=1<<(x&7);
 	if(onoff)
 		*p|=bit;
@@ -309,9 +311,9 @@ unsigned char *p,bit;
 		*p&=~bit;
 }
 
-shadowrect(int x,int y,int sizex,int sizey,int onoff)
+void shadowrect(int x,int y,int sizex,int sizey,int onoff)
 {
-int i;
+	int i;
 	if(y<0)
 	{
 		sizey+=y;
@@ -342,10 +344,10 @@ void shadowsolidrect(int x,int y,int xsize,int ysize,int rgb)
 }
 #define BORDER 0x303030
 
-doit()
+void doit()
 {
-int i,j,k,h,*p,h2;
-int x,y,flags;
+	int i,j,k,h,h2;
+	int x,y,flags;
 
 	copyfromback(0);
 	drawprintfxy(vxsize-140,vysize-80,msg);
@@ -437,11 +439,11 @@ int x,y,flags;
 	applyshadowplane(shadowplane);
 }
 
-newbgset()
+void newbgset()
 {
-int i,j,sx,sy;
-char temp[64];
-surface bgset;
+	int i,j,sx,sy;
+	char temp[64];
+	surface bgset;
 
 	for(;;)
 	{
@@ -475,7 +477,7 @@ surface bgset;
 		}
 	}
 }
-newtileset()
+int newtileset()
 {
 char temp[64];
 int err;
@@ -535,14 +537,13 @@ int i,j,x,y;
 	return 1;
 }
 
-main()
+void main()
 {
-int i,j,k;
+int i,j;
 int code;
 int exitflag=0;
 unsigned char redraw;
 int backup;
-surface bgset;
 
 	bgsetnumber=tilesetnumber=-1;
 	randomize();
@@ -554,7 +555,7 @@ surface bgset;
 	atexit(closedisplay);
 	initfont();
 	tilesgs.pic=0;
-	if(newtileset())
+	if((i=newtileset()))
 	{
 		printf("Failed to load a tile set, code %d\n",i);
 		exit(2);

@@ -1,6 +1,8 @@
 #include <stdio.h>
+#include <unistd.h>
 #include <fcntl.h>
 #include <stdlib.h>
+#include <string.h>
 #include <SDL.h>
 #include <math.h>
 #include "gfx.h"
@@ -144,9 +146,12 @@ SDLK_RSHIFT,MYSHIFTR,MYSHIFTR,
 ENDMARK
 };
 
+extern void fakemouse_event(SDL_Event ev);
+extern void nomem(int code);
+
 void mapkey(int code,int qual,int *mapped)
 {
-int *list;
+	int *list;
 	list=sdlinout;
 	while(*list!=ENDMARK)
 	{
@@ -167,16 +172,17 @@ int *list;
 }
 int nextcode(void)
 {
-int code;
+	int code;
 	if(codeput==codetake) return -1;
 	code=codelist[codetake];
 	codetake=(codetake+1)&(MAXCODES-1);
 	return code;
 }
-addcode(int code)
+
+void addcode(int code)
 {
-int new;
-	new=codeput+1&MAXCODES-1;
+	int new;
+	new=(codeput+1)&(MAXCODES-1);
 	if(new==codetake) return;
 	lastcode=code;
 	codelist[codeput]=code;
@@ -184,9 +190,9 @@ int new;
 }
 void markkey(int code,int mod,int status)
 {
-int i,j;
-int *ip;
-int mapped[2];
+	int i;
+	int *ip;
+	int mapped[2];
 
 	mapkey(code,mod,mapped);
 	code=mapped[1];
@@ -229,12 +235,11 @@ int *p,i;
 
 void scaninput(void)
 {
-SDL_Event event;
-int key,mod;
-static int bs=0;
-int newtime;
+	SDL_Event event;
+	int key,mod;
+	int newtime;
 #ifdef JOY_YES
-int joybut_stat = 1;
+	int joybut_stat = 1;
 #endif
 
 #ifdef PSP
@@ -266,7 +271,8 @@ int joybut_stat = 1;
 #ifdef JOY_YES
 #ifdef FAKEMOUSE_YES
 		case SDL_JOYAXISMOTION:
-			fakemouse_event(event);
+			if ((event.jaxis.value < -JOY_DEADZONE) || (event.jaxis.value > JOY_DEADZONE))
+				fakemouse_event(event);
 			break;
 #endif
 		case SDL_JOYBUTTONUP:
@@ -384,7 +390,7 @@ unsigned char r,g,b;
 		SDL_GetRGB(i,thescreen->format,&r,&g,&b);
 		darker[i]=SDL_MapRGB(thescreen->format,r*3>>2,g*3>>2,b*3>>2);
 		if(r>128 && g>128 && b>128)
-			lighter[i]=SDL_MapRGB(thescreen->format,r+255>>1,g+255>>1,b+255>>1);
+			lighter[i]=SDL_MapRGB(thescreen->format,(r+255)>>1,(g+255)>>1,(b+255)>>1);
 		else
 			lighter[i]=i;
 	}
@@ -421,7 +427,7 @@ char *p;
 	return;
 
 	scrlock();
-	p=videomem;
+	p=(char *)videomem;
 	i=vysize;
 	while(i--)
 	{
@@ -473,9 +479,8 @@ int xs,ys;
 int i,j,k,n,t;
 int totalsize;
 int width,height;
-int x,y;
+int y;
 unsigned char *bm,*lp;
-char tname[256];
 int r,g,b;
 int numbpp;
 unsigned char map48[48];
@@ -595,7 +600,7 @@ void gstoback(int destx,int desty,surface *gs,int sourcex,int sourcey,int sizex,
 {
 unsigned short *ps;
 unsigned char *p;
-int i,j;
+int i;
 
 	if(destx>=vxsize || desty>=vysize) return;
 	if(destx<0)
@@ -663,7 +668,7 @@ unsigned char *p;
 #ifndef PSP
 	p=videomem+stride*y+(x<<1);
 #else
-	p=videomem+stride*y+x;
+	p=(unsigned char *)(videomem+stride*y+x);
 #endif
 	sizex<<=1;
 	while(sizey-->0)
@@ -787,7 +792,7 @@ unsigned char *p1,*p2;
 		if(!backbuffers[n]) nomem(25);
 	}
 	p1=backbuffers[n];
-	p2=videomem;
+	p2=(unsigned char *)videomem;
 	i=vysize;
 	while(i--)
 	{
@@ -802,7 +807,7 @@ int i;
 unsigned char *p1,*p2;
 	if(n>=MAXBACKBUFFERS || !backbuffers[n]) return;
 	p1=backbuffers[n];
-	p2=videomem;
+	p2=(unsigned char *)videomem;
 	i=vysize;
 	while(i--)
 	{
