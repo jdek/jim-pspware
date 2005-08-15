@@ -8,7 +8,35 @@
 #define REPT_DELAY 250
 #define REPT_RATE 33
 
+#ifdef JOY_YES
+#ifdef PSP
+#define JOY_CIRCLE 1
+#define JOY_CROSS 2
+#define JOY_START 11
+#define JOY_A JOY_CIRCLE	/* Thrust. */
+#define JOY_B JOY_CROSS		/* Fire. */
+#define JOY_DOWN 6
+#define JOY_LEFT 7
+#define JOY_UP 8
+#define JOY_RIGHT 9
+#define JOY_LTRIGGER 4
+#define JOY_RTRIGGER 5
+/* The PSP needs a bigger deadzone than the default. */
+#define JOY_DEADZONE (256 * 16)
+#else
+#define JOY_DEADZONE (256)
+#define JOY_A 0
+#define JOY_B 1
+#endif /* PSP */
+#define JOY_X 0
+#define JOY_Y 1
+#endif
+
+#ifndef PSP
 #define MAXBACKBUFFERS 8
+#else
+#define MAXBACKBUFFERS 1
+#endif
 #define KEYMAX 32
 int numdown;
 int downcodes[KEYMAX];
@@ -21,7 +49,11 @@ int vxsize,vysize;
 
 SDL_Surface *thescreen;
 int stride;
+#ifndef PSP
 unsigned char *videomem;
+#else
+unsigned short *videomem;
+#endif
 unsigned char locked=0;
 unsigned short *darker,*lighter;
 int downtime;
@@ -138,7 +170,7 @@ int nextcode(void)
 int code;
 	if(codeput==codetake) return -1;
 	code=codelist[codetake];
-	codetake=codetake+1&MAXCODES-1;
+	codetake=(codetake+1)&(MAXCODES-1);
 	return code;
 }
 addcode(int code)
@@ -201,6 +233,14 @@ SDL_Event event;
 int key,mod;
 static int bs=0;
 int newtime;
+#ifdef JOY_YES
+int joybut_stat = 1;
+#endif
+
+#ifdef PSP
+	// a kludge like this only improves this code
+	SDL_UpdateRects(thescreen, 0, 0);
+#endif
 
 //	mousedown=0;
 	while(SDL_PollEvent(&event))
@@ -222,13 +262,40 @@ int newtime;
 			addcode(MYMOUSE1UP);
 			addcode(event.button.x);
 			addcode(event.button.y);
+			break;
+#ifdef JOY_YES
+#ifdef FAKEMOUSE_YES
+		case SDL_JOYAXISMOTION:
+			fakemouse_event(event);
+			break;
+#endif
+		case SDL_JOYBUTTONUP:
+			joybut_stat = 0;
+			stilldown=0;
+		case SDL_JOYBUTTONDOWN:
+			/* fake a keyboard */
+			switch (event.jbutton.button) 
+			{
+#ifdef PSP
+				case JOY_RTRIGGER:
+					markkey(SDLK_F1,0,joybut_stat);
+					break;
+				case JOY_LTRIGGER:
+					markkey(SDLK_F2,0,joybut_stat);
+					break;
+				default:
+					fakemouse_event(event);
+					break;
+#endif
+			}
+			break;
+#endif
 /*
 			bs&=~(1<<event.button.button-1);
 			mousex=event.button.x;
 			mousey=event.button.y;
 			mouseb=bs;
 */
-			break;
 		case SDL_MOUSEBUTTONDOWN:
 			addcode(MYMOUSE1DOWN);
 			addcode(event.button.x);
@@ -275,11 +342,25 @@ unsigned char r,g,b;
 	darker=malloc(65536*sizeof(unsigned short));
 	lighter=malloc(65536*sizeof(unsigned short));
 	if(!darker || !lighter) nomem(5);
+#ifdef JOY_YES
+	if ( SDL_Init(SDL_INIT_VIDEO|SDL_INIT_JOYSTICK) < 0 )
+#else
 	if ( SDL_Init(SDL_INIT_VIDEO) < 0 )
+#endif
 	{
 		fprintf(stderr, "Couldn't initialize SDL: %s\n",SDL_GetError());
 		exit(1);
 	}
+
+#ifdef JOY_YES
+          /* Open joystick: */
+          if (SDL_JoystickOpen(0) == NULL)
+              fprintf(stderr,
+                      "\nWarning: Could not open joystick 1.\n"
+                      "The Simple DirectMedia error that occured was:\n"
+                      "%s\n\n", SDL_GetError());
+#endif
+
 	videoflags = SDL_SWSURFACE;
 
 	thescreen = SDL_SetVideoMode(vxsize, vysize, 16, videoflags);
@@ -290,9 +371,13 @@ unsigned char r,g,b;
 		SDL_Quit();
 		exit(5);
 	}
+#ifndef PSP
 	stride=thescreen->pitch;
+#else
+	stride=thescreen->pitch / 2;
+#endif
 	videomem=(void *)thescreen->pixels;
-//	SDL_ShowCursor(0);
+	SDL_ShowCursor(1);
 
 	for(i=0;i<65536;++i)
 	{
@@ -332,6 +417,9 @@ void clear(void)
 {
 int i;
 char *p;
+
+	return;
+
 	scrlock();
 	p=videomem;
 	i=vysize;
@@ -527,20 +615,32 @@ int i,j;
 	if(desty+sizey>vysize)
 		sizey=vysize-desty;
 	p=gs->pic+sourcex+sourcey*gs->xsize;
+#ifndef PSP
 	ps=(void *)(videomem+stride*desty+(destx<<1));
+#else
+	ps=(void *)(videomem+stride*desty+destx);
+#endif
 	while(sizey--)
 	{
 		i=sizex;
 		while(i--)
 			*ps++=gs->rgb[*p++];
-		((unsigned char *)ps)+=stride-sizex-sizex;
+#ifndef PSP
+		ps+=stride-sizex-sizex;
+#else
+		ps+=stride-sizex;
+#endif
 		p+=gs->xsize-sizex;
 	}
 }
 void rgbdot(unsigned int x,unsigned int y,unsigned char r,unsigned char g,unsigned char b)
 {
 	if(x<vxsize && y<vysize)
+#ifndef PSP
 		*(unsigned short *)(videomem+y*stride+x+x)=
+#else
+		*(unsigned short *)(videomem+y*stride+x)=
+#endif
 			SDL_MapRGB(thescreen->format,r,g,b);
 }
 void eraserect(int x,int y,int sizex,int sizey)
@@ -560,7 +660,11 @@ unsigned char *p;
 		sizex=vxsize-x;
 	if(y+sizey>vysize)
 		sizey=vysize-y;
+#ifndef PSP
 	p=videomem+stride*y+(x<<1);
+#else
+	p=videomem+stride*y+x;
+#endif
 	sizex<<=1;
 	while(sizey-->0)
 	{
@@ -587,13 +691,17 @@ int i;
 		sizex=vxsize-x;
 	if(y+sizey>vysize)
 		sizey=vysize-y;
+#ifndef PSP
 	p=(void *)(videomem+stride*y+(x<<1));
+#else
+	p=(void *)(videomem+stride*y+x);
+#endif
 	while(sizey-->0)
 	{
 		i=sizex;
 		while(i-->0)
 			p[i]=trans[p[i]];
-		((unsigned char *)p)+=stride;
+		p+=stride;
 	}
 }
 void darkenrect(int x,int y,int sizex,int sizey)
@@ -624,13 +732,17 @@ int c;
 		sizex=vxsize-x;
 	if(y+sizey>vysize)
 		sizey=vysize-y;
+#ifndef PSP
 	p=(void *)(videomem+stride*y+(x<<1));
-	while(sizey-->0)
+#else
+	p=(void *)(videomem+stride*y+x);
+#endif
+	while((sizey--)>0)
 	{
 		i=sizex;
-		while(i-->0)
+		while((i--)>0)
 			p[i]=c;
-		((unsigned char *)p)+=stride;
+		p+=stride;
 	}
 }
 
@@ -640,12 +752,14 @@ unsigned short *p,*p2;
 int i,j,k;
 unsigned char c;
 
+	return;
+
 	p=(void *)videomem;
 	for(j=0;j<vysize;++j)
 	{
 		i=vxsize;
 		p2=p;
-		((unsigned char *)p)+=stride;
+		p+=stride;
 		while(i>0)
 		{
 			i-=8;

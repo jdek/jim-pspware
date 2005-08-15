@@ -1,0 +1,22 @@
+TARGET = lopan
+PSPSDK=$(shell psp-config --pspsdk-path)
+PSPBIN = $(PSPSDK)/../bin
+SDL_CONFIG = $(PSPBIN)/sdl-config
+
+OBJS = lopan.o gfx.o font.o SDL_fakemouse.o
+
+INCDIR = 
+JOY = YES
+FAKEMOUSE = YES
+CFLAGS = -O2 -G0 -DFAKEMOUSE_$(FAKEMOUSE) -DJOY_$(JOY) -Wall $(shell $(SDL_CONFIG) --cflags)
+CXXFLAGS = $(CFLAGS) -fno-exceptions -fno-rtti
+ASFLAGS = $(CFLAGS)
+
+LIBDIR =
+LDFLAGS =
+LIBS = $(shell $(SDL_CONFIG) --libs)
+
+EXTRA_TARGETS = EBOOT.PBP
+PSP_EBOOT_TITLE = Lopan
+
+include $(PSPSDK)/lib/build.mak

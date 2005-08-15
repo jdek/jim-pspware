@@ -546,7 +546,11 @@ surface bgset;
 
 	bgsetnumber=tilesetnumber=-1;
 	randomize();
+#ifndef PSP
 	opendisplay(640,400);
+#else
+	opendisplay(640,480);
+#endif
 	atexit(closedisplay);
 	initfont();
 	tilesgs.pic=0;
@@ -558,14 +562,12 @@ surface bgset;
 	shadowplane=malloc((vxsize+7)*vysize>>3);
 	if(!shadowplane) nomem(20);
 
-/*
 	for(j=0;j<vysize;++j)
 		for(i=0;i<vxsize;++i)
 			if((rand()&255)<64)
 				rgbdot(i,j,0x51,0x71,0x10);
 			else
 				rgbdot(i,j,0x00,0x71,0x00);
-*/
 	solidrect(0,0,vxsize,vysize,0x3c,0x54,0x0c);
 	msg=clickonatile;
 

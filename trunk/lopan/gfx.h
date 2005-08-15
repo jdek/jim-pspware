@@ -55,7 +55,11 @@ typedef struct surface
 #define MYALTED 0x200
 #define MYMOUSE 0x400
 
+#ifndef PSP
 extern unsigned char *videomem;
+#else
+extern unsigned short *videomem;
+#endif
 extern int stride;
 
 void updatemap(void);
