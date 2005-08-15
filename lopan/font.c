@@ -156,7 +156,11 @@ void drawcharxy(unsigned int x,unsigned int y,unsigned char c)
 unsigned short *ps,*pd;
 int i,j,k;
 
+#ifndef PSP
 	pd=(void *)(videomem+(y*stride)+(x<<1));
+#else
+	pd=(void *)(videomem+(y*stride)+x);
+#endif
 	ps=(void *)fonts[c];
 
 	for(j=0;j<13;++j)
@@ -166,8 +170,8 @@ int i,j,k;
 			if(k=ps[i])
 				pd[i]=k;
 		}
-		((unsigned char *)pd)+=stride;
-		((unsigned char *)ps)+=12;
+		pd+=stride;
+		ps+=12;
 	}
 }
 
