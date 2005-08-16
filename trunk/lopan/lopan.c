@@ -547,11 +547,7 @@ int backup;
 
 	bgsetnumber=tilesetnumber=-1;
 	randomize();
-#ifndef PSP
 	opendisplay(640,400);
-#else
-	opendisplay(640,480);
-#endif
 	atexit(closedisplay);
 	initfont();
 	tilesgs.pic=0;
