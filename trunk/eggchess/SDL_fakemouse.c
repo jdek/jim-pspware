@@ -13,7 +13,7 @@
 
 #ifdef PSP
 /* The PSP needs a bigger deadzone than the default. */
-#define JOY_DEADZONE (256 * 8)
+#define JOY_DEADZONE (256 * 16)
 #else
 #define JOY_DEADZONE (256)
 #endif
