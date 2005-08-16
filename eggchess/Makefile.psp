@@ -8,7 +8,7 @@ OBJS = eggchess.o SDL_fakemouse.o
 INCDIR = sge
 JOY = YES
 FAKEMOUSE = YES
-CFLAGS = -O2 -G0 -DFAKEMOUSE_$(FAKEMOUSE) -DJOY_$(JOY) -Wall $(shell $(SDL_CONFIG) --cflags)
+CFLAGS = -O2 -DFAKEMOUSE_$(FAKEMOUSE) -DJOY_$(JOY) -Wall $(shell $(SDL_CONFIG) --cflags)
 CXXFLAGS = $(CFLAGS) -fno-exceptions -fno-rtti
 ASFLAGS = $(CFLAGS)
 

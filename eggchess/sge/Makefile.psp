@@ -10,7 +10,7 @@ OBJS = sge_surface.o sge_primitives.o sge_tt_text.o sge_bm_text.o sge_misc.o  \
 
 INCDIR = $(PSPDIR)/include \
 	$(PSPDIR)/include/freetype2
-CFLAGS = -O2 -G0 -Wall $(shell $(SDL_CONFIG) --cflags)
+CFLAGS = -O2 -Wall $(shell $(SDL_CONFIG) --cflags)
 CXXFLAGS = $(CFLAGS) -fno-exceptions -fno-rtti
 ASFLAGS = $(CFLAGS)
 
