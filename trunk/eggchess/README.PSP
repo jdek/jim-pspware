@@ -1,0 +1,26 @@
+Notes:
+   Eggchess is a sample game that demonstrates use of the SDL
+   Graphics Extension library (SGE).  SGE is included.  The website
+   for SGE is http://www.digitalfanatics.org/cal/sge/index.html
+
+Prerequisites:
+
+   Eggchess depends on the following libraries which can be found in the psp
+   Subversion repository at svn://svn.pspdev.org/psp/:
+
+   SDL, SDL_ttf, Freetype
+   
+To build:
+
+   make -C sge -f Makefile.psp
+   make -f Makefile.psp
+
+To install (assuming your psp is mounted to /psp):
+
+   mkdir /psp/PSP/GAME/eggchess
+   cp EBOOT.PBP /psp/PSP/GAME/eggchess
+   cp -R gfx /psp/PSP/GAME/eggchess
+
+--
+Matthew H <matthewh@webone.com.au>
+

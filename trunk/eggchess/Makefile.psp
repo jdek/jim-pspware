@@ -1,0 +1,25 @@
+TARGET = eggchess
+PSPSDK=$(shell psp-config --pspsdk-path)
+PSPBIN = $(PSPSDK)/../bin
+SDL_CONFIG = $(PSPBIN)/sdl-config
+
+OBJS = eggchess.o SDL_fakemouse.o
+
+INCDIR = sge
+JOY = YES
+FAKEMOUSE = YES
+CFLAGS = -O2 -G0 -DFAKEMOUSE_$(FAKEMOUSE) -DJOY_$(JOY) -Wall $(shell $(SDL_CONFIG) --cflags)
+CXXFLAGS = $(CFLAGS) -fno-exceptions -fno-rtti
+ASFLAGS = $(CFLAGS)
+
+LIBDIR = sge
+LDFLAGS = 
+LIBS = $(shell $(SDL_CONFIG) --libs) -lSGE -lz -lstdc++
+
+EXTRA_TARGETS = EBOOT.PBP
+PSP_EBOOT_TITLE = Eggchess
+
+all: $(OBJS)
+	$(CXX) $(LDFLAGS) -o $@ $(OBJS) $(LIBS) -lz
+
+include $(PSPSDK)/lib/build.mak

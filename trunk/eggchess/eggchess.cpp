@@ -33,6 +33,35 @@
 #include <stdio.h>
 #include <stdlib.h>
 
+#ifdef JOY_YES
+#ifdef PSP
+#define JOY_CIRCLE 1
+#define JOY_CROSS 2
+#define JOY_START 11
+#define JOY_A JOY_CIRCLE
+#define JOY_B JOY_CROSS
+#define JOY_DOWN 6
+#define JOY_LEFT 7
+#define JOY_UP 8
+#define JOY_RIGHT 9
+#define JOY_LTRIGGER 4
+#define JOY_RTRIGGER 5
+/* The PSP needs a bigger deadzone than the default. */
+#define JOY_DEADZONE (256 * 16)
+#else
+#define JOY_DEADZONE (256)
+#define JOY_A 0
+#define JOY_B 1
+#endif /* PSP */
+#define JOY_X 0
+#define JOY_Y 1
+#endif
+
+
+#ifdef FAKEMOUSE_YES
+extern "C" void fakemouse_event(SDL_Event ev);
+#endif
+
 const Sint32 side=100;
 const Sint32 xcoords[]={0,side,2*side,3*side+5};
 const Sint32 ycoords[]={0,side,2*side};
@@ -65,13 +94,30 @@ void show_info(void);
 //==================================================================================
 // Main
 //==================================================================================
+#ifndef PSP
 int main(int argc, char *argv[])
+#else
+extern "C" int SDL_main(int argc, char *argv[])
+#endif
 {
   /* Init SDL */
+#ifdef JOY_YES
+	if ( SDL_Init(SDL_INIT_TIMER|SDL_INIT_VIDEO|SDL_INIT_JOYSTICK) < 0 ) {
+#else
 	if ( SDL_Init(SDL_INIT_TIMER|SDL_INIT_VIDEO) < 0 ) {
+#endif
 		fprintf(stderr, "Couldn't load SDL: %s\n", SDL_GetError());
 		exit(1);
 	}
+
+#ifdef JOY_YES
+          /* Open joystick: */
+          if (SDL_JoystickOpen(0) == NULL)
+              fprintf(stderr,
+                      "\nWarning: Could not open joystick 1.\n"
+                      "The Simple DirectMedia error that occured was:\n"
+                      "%s\n\n", SDL_GetError());
+#endif
 
 	/* Clean up on exit */
 	atexit(SDL_Quit);
@@ -80,7 +126,12 @@ int main(int argc, char *argv[])
 	SDL_WM_SetCaption("Egg Chess", "EggChess");
 
 	/* Initialize the display */
+#ifndef PSP
 	screen = SDL_SetVideoMode(410, 330, 16, SDL_SWSURFACE);
+#else
+	screen = SDL_SetVideoMode(416, 352, 16, SDL_SWSURFACE);
+	SDL_ShowCursor(1);
+#endif
 	if ( screen == NULL ) {
 		fprintf(stderr, "Couldn't set video mode: %s\n", SDL_GetError());
 		exit(1);
@@ -108,12 +159,23 @@ int main(int argc, char *argv[])
 	SDL_Event event;
 	do{
 		SDL_WaitEvent(&event);
+#ifdef JOY_YES
+#ifdef FAKEMOUSE_YES
+		if ((event.type == SDL_JOYBUTTONDOWN) && (event.jbutton.button == JOY_B))
+			show_info();	
+		else
+			fakemouse_event(event);
+#endif
+#endif
 		if(event.type==SDL_KEYDOWN && event.key.keysym.sym==SDLK_ESCAPE) break;
 		if(event.type==SDL_QUIT) break;
 		if(event.type==SDL_MOUSEBUTTONDOWN) 
 			check_click(event.button.x,event.button.y);
 		if(event.type==SDL_KEYDOWN && event.key.keysym.sym==SDLK_SPACE) 
 			show_info();
+#ifdef PSP
+		SDL_UpdateRect(screen, 0,0,0,0);
+#endif
 	}while(true);
 	
 	byebye(0);
@@ -523,9 +585,17 @@ void show_info(void)
 	SDL_Event event;
 	do{
 		SDL_WaitEvent(&event);
+#ifdef JOY_YES
+#ifdef FAKEMOUSE_YES
+		fakemouse_event(event);
+#endif
+#endif
 		if(event.type==SDL_KEYDOWN) break;
 		if(event.type==SDL_QUIT) break;
 		if(event.type==SDL_MOUSEBUTTONDOWN) break;
+#ifdef PSP
+		SDL_UpdateRect(screen, 0,0,0,0);
+#endif
 	}while(true);
 	
 	sge_Blit(buffer,screen,0,0,0,0, screen->w, screen->h);

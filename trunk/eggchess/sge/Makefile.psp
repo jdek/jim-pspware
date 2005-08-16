@@ -1,0 +1,28 @@
+TARGET_LIB = libSGE.a
+PSPSDK=$(shell psp-config --pspsdk-path)
+PSPDIR=$(shell psp-config --psp-prefix)
+PSPBIN = $(PSPSDK)/../bin
+SDL_CONFIG = $(PSPBIN)/sdl-config
+
+OBJS = sge_surface.o sge_primitives.o sge_tt_text.o sge_bm_text.o sge_misc.o  \
+	sge_textpp.o sge_blib.o sge_rotation.o sge_collision.o sge_shape.o
+
+
+INCDIR = $(PSPDIR)/include \
+	$(PSPDIR)/include/freetype2
+CFLAGS = -O2 -G0 -Wall $(shell $(SDL_CONFIG) --cflags)
+CXXFLAGS = $(CFLAGS) -fno-exceptions -fno-rtti
+ASFLAGS = $(CFLAGS)
+
+LIBDIR = $(PSPDIR)/lib
+LDFLAGS =
+LIBS = $(shell $(SDL_CONFIG) --libs)
+
+all: $(TARGET_LIB)
+
+install: libSGE.a
+	@echo "Installing libSGE into $(PSPDIR)"
+	@cp libSGE.a $(PSPDIR)/lib
+	@mkdir -p $(PSPDIR)/include $(PSPDIR)/lib
+
+include $(PSPSDK)/lib/build.mak

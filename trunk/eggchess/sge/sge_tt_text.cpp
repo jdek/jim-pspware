@@ -27,7 +27,9 @@
 #include <SDL/SDL.h>
 #include <stdlib.h>
 #include <malloc.h>
+#ifndef PSP
 #include <memory.h>
+#endif
 #include <string.h>
 #include <stdarg.h>
 #include <math.h>
