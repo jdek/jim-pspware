@@ -1,0 +1,171 @@
+SDL Graphics Extension (SGE)
+====================================================================================
+http://www.etek.chalmers.se/~e8cal1/sge/index.html
+http://home.swipnet.se/cal_home/sge/index.html
+
+
+1. Intro
+2. Requirements
+3. Compiling
+4. Makefile options
+   4.1 Using pure C with SGE
+   4.2 FreeType
+   4.3 The SDL_Img library
+   4.4 C++ classes
+5. Cross compiling SGE to W32
+6. Compiling SGE under W32 with MS VisC/C++
+7. Misc.
+
+
+====================================================================================
+1. Intro
+
+This is a package with some useful functions if you're using the Simple
+DirectMedia Layer (SDL) - http://www.libsdl.org/. 
+
+This is free software (LGPL), read LICENSE for details.
+
+SGE has the following parts:
+[sge_surface]    Pixel operations, blitting and some pallete stuff.
+[sge_primitives] Drawing primitives. 
+[sge_tt_text]    TrueType font support.
+[sge_bm_text]    Bitmapfont and SFont support.
+[sge_textpp]     Classes for handling and rendering text.
+[sge_shape]      Classes for blitting and sprites.
+[sge_collision]  Basic collision detection.
+[sge_rotation]   Rotation and scaling of surfaces.
+[sge_blib]       Normal, filled, gourand shaded and texture mapped triangles.
+[sge_misc]       Random number and delay functions.
+
+
+SGE requires SDL 1.1.x, but SDL 1.2.x is highly recommended (get it now!).
+
+Read docs/index.html for API information.
+*Always check WhatsNew for important (API) changes!*
+
+This package is tested on Intel Linux (always) and Intel Win32 machines (sometimes).
+I use Mandrake 8.0 on a P3 machine right now, so if this is your setup SGE should 
+run fine :-)
+
+
+====================================================================================
+2. Requirements
+
+-GNU Make.
+-SDL 1.1+, but SDL 1.2+ is recommended.
+-An ANSI/ISO C++ compiler. SGE should conform to ANSI/ISO C++.
+-Optional:
+ -FreeType 2+
+ -SDL_Img (see 4.3)
+-Some SDL knowledge.
+
+First you need SDL (http://www.libsdl.org/) and the FreeType (2.x) library 
+at http://www.freetype.org/ (you only need the FreeType library if you want 
+to use SGE's truetype font routines, see below). The FreeType library is 
+included in most Linux distributions (RPM users: install the freetype dev rpm
+package from the install cd). 
+
+After installing SDL and FreeType, don't forget to check that the dynamic
+linker can find them (check /etc/ld.so.conf and run ldconfig).
+
+You must also have a good C++ compiler (should be able to handle templates). Recent 
+versions of GNU c++ works fine. SGE will use gcc/g++ as default, but this can be 
+changed in Makefile.conf.
+
+
+====================================================================================
+3. Compiling
+
+Before compiling you can change some Makefile.conf options, see below.
+
+Just do 'make' to build libSGE.a and then link your SDL program with -lSGE (and 
+-lttf if you're using freetype - give the path to libSGE.a with -Lpath) and 
+include the header (sge.h). 
+
+Check the makefile in the examples directory for details on how to compile and
+link applications.
+
+If you want to build a shared library, do 'make shared'. This will build a dynamic 
+loadable library (libSGE.so). Put libSGE.so somewhere ld can find it. Link with 
+-lSGE. If you use a shared version you don't really need to link to any other 
+library (SDL, ttf, ...) than SGE (but it's no-ops).
+
+Make install will install SGE to the same place as SDL. You can change this by
+editing the PREFIX line in Makefile.conf.
+
+
+====================================================================================
+4. Makefile options
+
+Edit Makefile.conf to turn on/off these options.
+
+
+4.1 Using pure C with SGE
+ 
+If you plan to use SGE with a pure C project you can try to edit Makefile.conf and
+uncomment the line 'C_ONLY = y'. This will force the compiler to export all 
+references to the linker as C functions. *THIS IS NOT WELL TESTED* If you do, you
+will be able to link SGE to C code, BUT you will not be able to use any of the 
+overloaded functions (only the Uint32 color version of the overloaded functions 
+will be available) or C++ classes.
+
+
+4.2 FreeType
+
+If you don't need the TT font routines or just don't want do depend on FreeType,
+uncomment 'NOTTF = y' in Makefile.conf.
+
+
+4.3 The SDL_Img library
+
+If you have installed the SDL_Img library 
+(http://www.libsdl.org/projects/SDL_image/index.html) you can uncomment the 
+'USE_IMG = y' build option in Makefile.conf. This enables SGE to load png images and 
+to use Karl Bartel's very nice SFont bitmapfonts (http://www.linux-games.com/sfont/). 
+If you build a static version (libSGE.a) of SGE you MUST link your code with SDL_Img 
+(-lSDL_image), if you're using the shared version (libSGE.so) this is done by the 
+dynamic linker at runtime. 
+Use SDL_image-1.0.10 or newer if you have SDL 1.1.5 or newer.
+
+
+4.4 C++ classes
+SGE have some C++ classes ([sge_shape & sge_textpp]), but if you dislike/hate/don't 
+understand/have problems with classes or the STL you can disable them by setting 
+NO_CLASSES = y in Makefile.conf.
+
+
+====================================================================================
+5. Cross compiling SGE to W32
+
+SGE can be compiled by a win32 crosscompiler. You need a crosscompiled version of 
+SDL and FreeType. Check SDL's documentation (README.Win32) on how to get and setup 
+a cross-compiler.
+
+A crosscompiler and a precompiled version of the FreeType library can be found on 
+http://www.libsdl.org/Xmingw32/index.html. This crosscompiler seems to need the 
+flag '-lstdc++' when linking C++ code: edit Makefile.conf and change the SGE_LIBS 
+line to read 'SGE_LIBS =$(shell sdl-config --libs) -lstdc++'. This crosscompiler 
+also uses the new MS C-Run-time library "msvcrt.dll", you can get it from 
+www.microsoft.com/downloads (do a keyword search for "libraries update") if you 
+don't already have it.
+
+If you want to build a dll ('cross-make dll' or 'dll-strip') then you might want to
+do 'ln -s ../../bin/i386-mingw32msvc-dllwrap dllwrap' in 
+/usr/local/cross-tools/i386-mingw32msvc/bin.
+
+
+====================================================================================
+6. Compiling SGE under W32 with MS VisC/C++
+
+Should work. Check the download page on SGEs homepage for project files (these are 
+untested by me and are often outdated but may be of some help).
+
+
+====================================================================================
+7. Misc.
+
+Read the html documentation and study the examples. 
+
+
+
+/Anders Lindström - cal@swipnet.se
