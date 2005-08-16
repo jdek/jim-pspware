@@ -24,7 +24,7 @@
 #define JOY_LTRIGGER 4
 #define JOY_RTRIGGER 5
 /* The PSP needs a bigger deadzone than the default. */
-#define JOY_DEADZONE (256 * 16)
+#define JOY_DEADZONE (256 * 8)
 #else
 #define JOY_DEADZONE (256)
 #define JOY_A 0
