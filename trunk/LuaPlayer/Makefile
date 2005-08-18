@@ -12,7 +12,7 @@ LIBS= -llua -llualib -lpng -lz -lpspgu -lm -lmikmod -lmmio -lpspaudiolib -lpspau
 
 
 EXTRA_TARGETS = EBOOT.PBP
-PSP_EBOOT_TITLE = Lua Player 0.7
+PSP_EBOOT_TITLE = Lua Player 0.8
 PSP_EBOOT_ICON = title-icon.png
 
 PSPSDK=$(shell psp-config --pspsdk-path)
