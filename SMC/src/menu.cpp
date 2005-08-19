@@ -956,9 +956,11 @@ void cMainMenu :: FreeImages( void )
 
 void cMainMenu :: UpdateGeneric( cMenuHandler *handler )
 {
+#ifndef PSP
 	keys = SDL_GetKeyState( NULL );
 
 	pMouseCursor->Update_Position();
+#endif
 
 	while( SDL_PollEvent( &event ) )
 	{
@@ -997,10 +999,17 @@ void cMainMenu :: UpdateGeneric( cMenuHandler *handler )
 		{
 			handler->Update_Mouse();
 		}
+#ifndef PSP
 		else if( KeyPressed( KEY_ENTER ) || ( event.type == SDL_MOUSEBUTTONUP && pMouseCursor->CollsionCheck( &handler->Get_Active_Item()->rect ) ) ) // Button
 		{
 			action = 1;
 		}
+#else
+		else if( event.type == SDL_JOYBUTTONDOWN ) // Button
+		{
+			action = 1;
+		}
+#endif
 		else if( event.key.keysym.sym == SDLK_l ) 
 		{
 			KeyDown( SDLK_l );
@@ -1350,6 +1359,7 @@ void cMainMenu :: SubControls_Action( cMenuHandler *handler )
 	{
 		while( SDL_PollEvent( &event ) )
 		{
+#ifndef PSP
 			if( event.type == SDL_KEYDOWN )
 			{
 				if( event.key.keysym.sym == SDLK_ESCAPE || event.key.keysym.sym == SDLK_BACKSPACE )
@@ -1403,6 +1413,12 @@ void cMainMenu :: SubControls_Action( cMenuHandler *handler )
 
 				sub_done = 1;
 			}
+#else
+			if( event.type == SDL_JOYBUTTONDOWN ) // Button
+			{
+				sub_done = 1;
+			}
+#endif
 		}	
 	}
 }

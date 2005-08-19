@@ -18,7 +18,11 @@
 #include "include/globals.h"
 #include "include/main.h"
 
+#ifndef PSP
 int main( int argc, char *argv[] )
+#else
+extern "C" int SDL_main( int argc, char *argv[] )
+#endif
 {
 	if( argc >= 2 )
 	{
@@ -110,7 +114,11 @@ void StartGame( string level_name )
 	
 	if( pPreferences->Fullscreen )
 	{
+#ifndef PSP
 		screen = SDL_SetVideoMode( pPreferences->Screen_W, pPreferences->Screen_H, pPreferences->Bpp, SDL_SWSURFACE | SDL_HWACCEL | SDL_RLEACCEL | SDL_FULLSCREEN );
+#else
+		screen = SDL_SetVideoMode( pPreferences->Screen_W, pPreferences->Screen_H, pPreferences->Bpp, SDL_SWSURFACE | SDL_FULLSCREEN );
+#endif
 	}
 	else
 	{

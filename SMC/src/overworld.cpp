@@ -821,7 +821,11 @@ void cOverWorld :: Enter( void )
 			{
 				Entered = 2;
 			}
+#ifndef PSP
 			else if( KeyPressed( KEY_ENTER ) )
+#else
+			else if( event.type == SDL_JOYBUTTONDOWN ) // Button
+#endif
 			{
 				if( Current_Waypoint >= 0 && Maryo->direction == -1 )
 				{

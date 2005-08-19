@@ -186,7 +186,7 @@ void cPreferences :: Default( void )
 
 	Screen_H = 600;
 	Screen_W = 800;
-	
+
 	Bpp = 32;
 
 	Music = 1;
