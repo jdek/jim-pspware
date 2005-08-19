@@ -1,0 +1,7 @@
+#define MUSIC_DIR "data/music"
+#define SOUNDS_DIR "data/sounds"
+#define PIXMAPS_DIR "data/pixmaps"
+#define FONT_DIR "data/font"
+#define OVERWORLD_DIR "data/world"
+#define SAVE_DIR "data/save"
+#define VERSION "0.97"
