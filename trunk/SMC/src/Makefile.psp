@@ -1,0 +1,28 @@
+TARGET = smc
+PSPSDK=$(shell psp-config --pspsdk-path)
+PSPBIN = $(PSPSDK)/../bin
+SDL_CONFIG = $(PSPBIN)/sdl-config
+
+OBJS = active.o animation.o audio.o banzai_bill.o box.o \
+cloud.o collision.o dialog.o enemy.o \
+globals.o goldpiece.o goomba.o hud.o \
+img_manager.o joystick.o jpiranha.o level.o \
+leveleditor.o levelexit.o main.o menu.o \
+mouse.o overworld.o player.o powerup.o \
+preferences.o rex.o savegame.o sprite.o \
+turtle.o video.o 
+
+INCDIR =
+CFLAGS = -O2 -G0 -Wall $(shell $(SDL_CONFIG) --cflags) -DHAVE_CONFIG_H 
+CXXFLAGS = $(CFLAGS) -fno-exceptions -fno-rtti -Wpointer-arith 
+ASFLAGS = $(CFLAGS)
+
+LIBDIR =
+LDFLAGS = 
+LIBS = -lstdc++ -lSDL_ttf -lfreetype -lSDL_mixer -lSDL_image -lpng -lz -ljpeg \
+	-lSDL_gfx -lm $(shell $(SDL_CONFIG) --libs) 
+
+EXTRA_TARGETS = EBOOT.PBP
+PSP_EBOOT_TITLE = Secret Maryo Chronicles
+
+include $(PSPSDK)/lib/build.mak

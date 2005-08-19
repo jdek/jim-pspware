@@ -322,4 +322,14 @@ string int_to_string( int number );
 // Returns the string as a number
 int string_to_int( string str );
 
+#if 0
+#ifdef PSP
+#include <pspdebug.h>
+
+#define fprintf(x, args...) pspDebugScreenPrintf(args)
+#define printf(args...) pspDebugScreenPrintf(args)
+#endif /* PSP */
+#endif
+
+
 #endif

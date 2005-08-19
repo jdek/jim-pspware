@@ -1,0 +1,35 @@
+Prerequisites:
+
+   Super Maryo Chronicles depends on the following libraries which can be found 
+   in the psp Subversion repository at svn://svn.pspdev.org/psp/:
+
+   zlib, libpng, jpeg, SDL, SDL_image, SDL_mixer, SDL_gfx, SDL_ttf, freetype2
+   
+To build:
+
+   cd src
+   make -f Makefile.psp
+
+To install (assuming your psp is mounted to /psp):
+
+   mkdir /psp/PSP/GAME/SMC
+   cp EBOOT.PBP /psp/PSP/GAME/SMC
+   cp preferences.ini /psp/PSP/GAME/SMC
+
+   Download the data files from http://smclone.sourceforge.net/
+   Rename the images in the subdirectory data/pixmaps/menu/ from 800* to 640*, eg:
+
+for f in audio.png audio_bw.png controls.png controls_bw.png game.png game_bw.png \
+load.png load_bw.png music.png music_bw.png off.png off_bw.png on.png \
+on_bw.png options.png options_bw.png quit.png quit_bw.png save.png \
+save_bw.png sound.png sound_bw.png start.png start_bw.png video.png video_bw.png 
+do
+        mv 800$f 640$f 
+done
+
+   cp -R data /psp/PSP/GAME/SMC
+
+Note: I'm a 1.0 user.  The target directory may differ if using kxploit.
+
+--
+Matthew H <matthewh@webone.com.au>
