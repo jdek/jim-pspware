@@ -12,7 +12,7 @@
 #define FRAMEBUFFER_SIZE (PSP_LINE_SIZE*SCREEN_HEIGHT*2)
 #define MAX(X, Y) ((X) > (Y) ? (X) : (Y))
 
-typedef struct 
+typedef struct
 {
 	unsigned short u, v;
 	unsigned short color;
@@ -130,26 +130,28 @@ Image* loadImage(const char* filename)
 	png_read_end(png_ptr, info_ptr);
 	png_destroy_read_struct(&png_ptr, &info_ptr, png_infopp_NULL);
 	fclose(fp);
-	sceKernelDcacheWritebackInvalidateAll();
 	return image;
 }
 
 void blitImageToImage(int sx, int sy, int width, int height, Image* source, int dx, int dy, Image* destination)
 {
+	u16* destinationData = &destination->data[destination->textureWidth * dy + dx];
+	int destinationSkipX = destination->textureWidth - width;
+	u16* sourceData = &source->data[source->textureWidth * sy + sx];
+	int sourceSkipX = source->textureWidth - width;
 	int x, y;
-	for (y = 0; y < height; y++) {
-		for (x = 0; x < width; x++) {
-			destination->data[destination->textureWidth * (y + dy) + x + dx] =
-				source->data[source->textureWidth * (y + sy) + x + sx];
+	for (y = 0; y < height; y++, destinationData += destinationSkipX, sourceData += sourceSkipX) {
+		for (x = 0; x < width; x++, destinationData++, sourceData++) {
+			*destinationData = *sourceData;
 		}
 	}
-	sceKernelDcacheWritebackInvalidateAll();
 }
 
 void blitImageToScreen(int sx, int sy, int width, int height, Image* source, int dx, int dy)
 {
 	if (!initialized) return;
 	u16* vram = getVramDrawBuffer();
+	sceKernelDcacheWritebackInvalidateAll();
 	sceGuStart(GU_DIRECT,list);
 	sceGuCopyImage(GU_PSM_5551, sx, sy, width, height, source->textureWidth, source->data, dx, dy, PSP_LINE_SIZE, vram);
 	sceGuFinish();
@@ -158,22 +160,24 @@ void blitImageToScreen(int sx, int sy, int width, int height, Image* source, int
 
 void blitAlphaImageToImage(int sx, int sy, int width, int height, Image* source, int dx, int dy, Image* destination)
 {
+	u16* destinationData = &destination->data[destination->textureWidth * dy + dx];
+	int destinationSkipX = destination->textureWidth - width;
+	u16* sourceData = &source->data[source->textureWidth * sy + sx];
+	int sourceSkipX = source->textureWidth - width;
 	int x, y;
-	for (y = 0; y < height; y++) {
-		for (x = 0; x < width; x++) {
-			u16 color = source->data[source->textureWidth * (y + sy) + x + sx];
-			if (!IS_ALPHA(color)) {
-				destination->data[destination->textureWidth * (y + dy) + x + dx] = color;
-			}
+	for (y = 0; y < height; y++, destinationData += destinationSkipX, sourceData += sourceSkipX) {
+		for (x = 0; x < width; x++, destinationData++, sourceData++) {
+			u16 color = *sourceData;
+			if (!IS_ALPHA(color)) *destinationData = color;
 		}
 	}
-	sceKernelDcacheWritebackInvalidateAll();
 }
 
 void blitAlphaImageToScreen(int sx, int sy, int width, int height, Image* source, int dx, int dy)
 {
 	if (!initialized) return;
 
+	sceKernelDcacheWritebackInvalidateAll();
 	sceGuStart(GU_DIRECT, list);
 	sceGuTexImage(0, source->textureWidth, source->textureWidth, source->textureWidth, (void*) source->data);
 	float w = 1.0f / ((float)source->textureWidth);
@@ -214,7 +218,6 @@ Image* createImage(int width, int height)
 	image->data = (u16*) memalign(16, image->textureWidth * image->textureWidth * 2);
 	if (!image->data) return NULL;
 	memset(image->data, 0, image->textureWidth * image->textureWidth * 2);
-	sceKernelDcacheWritebackInvalidateAll();
 	return image;
 }
 
@@ -226,53 +229,51 @@ void freeImage(Image* image)
 
 void clearImage(u16 color, Image* image)
 {
-	memset(image->data, color, image->textureWidth * image->textureWidth * 2);
-	sceKernelDcacheWritebackInvalidateAll();
+	int i;
+	int size = image->textureWidth * image->textureWidth;
+	u16* data = image->data;
+	for (i = 0; i < size; i++, data++) *data = color;
 }
 
 void clearScreen(u16 color)
 {
 	if (!initialized) return;
-	memset(getVramDrawBuffer(), color, PSP_LINE_SIZE * SCREEN_HEIGHT * 2);
-	sceKernelDcacheWritebackInvalidateAll();
+	int i;
+	int size = PSP_LINE_SIZE * SCREEN_HEIGHT;
+	u16* data = getVramDrawBuffer();
+	for (i = 0; i < size; i++, data++) *data = color;
 }
 
 void fillImageRect(u16 color, int x0, int y0, int width, int height, Image* image)
 {
+	int skipX = image->textureWidth - width;
 	int x, y;
-	for (y = 0; y < height; y++) {
-		for (x = 0; x < width; x++) {
-			image->data[x + x0 + (y + y0) * image->textureWidth] = color;
-		}
+	u16* data = image->data + x0 + y0 * image->textureWidth;
+	for (y = 0; y < height; y++, data += skipX) {
+		for (x = 0; x < width; x++, data++) *data = color;
 	}
-	sceKernelDcacheWritebackInvalidateAll();
 }
 
 void fillScreenRect(u16 color, int x0, int y0, int width, int height)
 {
-	sceKernelDcacheWritebackInvalidateAll();
 	if (!initialized) return;
-	u16* vram = getVramDrawBuffer();
+	int skipX = PSP_LINE_SIZE - width;
 	int x, y;
-	for (y = 0; y < height; y++) {
-		for (x = 0; x < width; x++) {
-			vram[PSP_LINE_SIZE * (y + y0) + x + x0] = color;
-		}
+	u16* data = getVramDrawBuffer() + x0 + y0 * PSP_LINE_SIZE;
+	for (y = 0; y < height; y++, data += skipX) {
+		for (x = 0; x < width; x++, data++) *data = color;
 	}
-	sceKernelDcacheWritebackInvalidateAll();
 }
 
 void putPixelScreen(u16 color, int x, int y)
 {
 	u16* vram = getVramDrawBuffer();
 	vram[PSP_LINE_SIZE * y + x] = color;
-	sceKernelDcacheWritebackInvalidateAll();
 }
 
 void putPixelImage(u16 color, int x, int y, Image* image)
 {
 	image->data[x + y * image->textureWidth] = color;
-	sceKernelDcacheWritebackInvalidateAll();
 }
 
 u16 getPixelScreen(int x, int y)
@@ -311,7 +312,6 @@ void printTextScreen(int x, int y, const char* text, u32 color)
 		}
 		x += 8;
 	}
-	sceKernelDcacheWritebackInvalidateAll();
 }
 
 void printTextImage(int x, int y, const char* text, u32 color, Image* image)
@@ -339,7 +339,6 @@ void printTextImage(int x, int y, const char* text, u32 color, Image* image)
 		}
 		x += 8;
 	}
-	sceKernelDcacheWritebackInvalidateAll();
 }
 
 void saveImage(const char* filename, u16* data, int width, int height, int lineSize)
@@ -382,65 +381,39 @@ void flipScreen()
 
 static void drawLine(int x0, int y0, int x1, int y1, int color, u16* destination, int width)
 {
-	#define SWAP(a, b) tmp = a; a = b; b = tmp;
-	int x, y, e, dx, dy, tmp;
-	if (x0 > x1) {
-		SWAP(x0, x1);
-		SWAP(y0, y1);
-	}
-	e = 0;
-	x = x0;
-	y = y0;
-	dx = x1 - x0;
-	dy = y1 - y0;
-	if (dy >= 0) {
-		if (dx >= dy) {
-			for (x = x0; x <= x1; x++) {
-				destination[x + y * width] = color;
-				if (2 * (e + dy) < dx) {
-					e += dy;
-				} else {
-					y++;
-					e += dy - dx;
-				}
+	int dy = y1 - y0;
+	int dx = x1 - x0;
+	int stepx, stepy;
+	
+	if (dy < 0) { dy = -dy;  stepy = -width; } else { stepy = width; }
+	if (dx < 0) { dx = -dx;  stepx = -1; } else { stepx = 1; }
+	dy <<= 1;
+	dx <<= 1;
+	
+	y0 *= width;
+	y1 *= width;
+	destination[x0+y0] = color;
+	if (dx > dy) {
+		int fraction = dy - (dx >> 1);
+		while (x0 != x1) {
+			if (fraction >= 0) {
+				y0 += stepy;
+				fraction -= dx;
 			}
-		} else {
-			for (y = y0; y <= y1; y++) {
-				destination[x + y * width] = color;
-				if (2 * (e + dx) < dy) {
-					e += dx;
-				} else {
-					x++;
-					e += dx - dy;
-				}
-			}
+			x0 += stepx;
+			fraction += dy;
+			destination[x0+y0] = color;
 		}
 	} else {
-		if (dx >= -dy) {
-			for (x = x0; x <= x1; x++) {
-				destination[x + y * width] = color;
-				if (2 * (e + dy) > -dx) {
-					e += dy;
-				} else {
-					y--;
-					e += dy + dx;
-				}
+		int fraction = dx - (dy >> 1);
+		while (y0 != y1) {
+			if (fraction >= 0) {
+				x0 += stepx;
+				fraction -= dy;
 			}
-		} else {   	
-			SWAP(x0, x1);
-			SWAP(y0, y1);
-			x = x0;
-			dx = x1 - x0;
-			dy = y1 - y0;
-			for (y = y0; y <= y1; y++) {
-				destination[x + y * width] = color;
-				if (2 * (e + dx) > -dy) {
-					e += dx;
-				} else {
-					x--;
-					e += dx + dy;
-				}
-			}
+			y0 += stepy;
+			fraction += dx;
+			destination[x0+y0] = color;
 		}
 	}
 }
