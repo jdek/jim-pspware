@@ -130,7 +130,8 @@ public:
 	void CheckPath( unsigned int csize = 25 );
 
 	// Returns the foot pixel Position for Walking Checks
-	void GetPosition( double *xpos, double *ypos );
+	double GetPositionX();
+	double GetPositionY();
 
 	/* Automatically corrects Maryos position to the Layer walkable Area
 	 * with the given size and the minimal distance to unwalkable area

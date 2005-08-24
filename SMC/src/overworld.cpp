@@ -421,7 +421,8 @@ void cWorld_Maryo :: CheckPath( unsigned int csize /* = 10  */ )
 {
 	double xpos;
 	double ypos;
-	GetPosition( &xpos, &ypos );
+	xpos = GetPositionX();
+	ypos = GetPositionY();
 
 	// counts the temp length
 	unsigned int counter = 0;
@@ -486,10 +487,14 @@ void cWorld_Maryo :: CheckPath( unsigned int csize /* = 10  */ )
 	}
 }
 
-void cWorld_Maryo :: GetPosition( double *xpos, double *ypos )
+double cWorld_Maryo :: GetPositionX()
 {
-	*xpos = posx + (double)( images[0]->w/2 );
-	*ypos = posy + (double)( images[0]->h/1.25 );
+	return posx + (double)( images[0]->w/2 );
+}
+
+double cWorld_Maryo :: GetPositionY()
+{
+	return posy + (double)( images[0]->h/1.25 );
 }
 
 void cWorld_Maryo :: Auto_correct( double size /* = 1.7 */, unsigned int min_distance /* = 5 */ )
@@ -1055,7 +1060,8 @@ bool cOverWorld :: SetMaryoDirection( ObjectDirection direction )
 		SDL_LockSurface( Layer->image );
 		
 		double px, py;
-		Maryo->GetPosition( &px, &py );
+		px = Maryo->GetPositionX();
+		py = Maryo->GetPositionY();
 		
 		if( Compare_LayerPixel( (int)px + checkx, (int)py + checky, Layer->col_walk ) )
 		{
@@ -1834,7 +1840,8 @@ void cOverWorld :: MaryoWalk( double xspeed, double yspeed )
 {
 	double xpos;
 	double ypos;
-	Maryo->GetPosition( &xpos, &ypos );
+	xpos = Maryo->GetPositionX();
+	ypos = Maryo->GetPositionY();
 
 	if( Compare_LayerPixel( (Sint16)( xpos + ( xspeed * 2.5 ) ), (Sint16)( ypos + ( yspeed * 2.5 ) ), Layer->col_blocked ) )
 	{

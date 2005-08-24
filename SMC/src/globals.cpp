@@ -37,16 +37,16 @@ vector<cSprite*> PassiveObjects;
 vector<cSprite*> ActiveObjects;
 vector<cSprite*> EnemyObjects;
 
-cPlayer *pPlayer = NULL;
-cLevel *pLevel = NULL;
-cOverWorld *pOverWorld = NULL;
-cMainMenu *pMenu = NULL;
+cPlayer *pPlayer __attribute__((aligned(16))) = NULL;
+cLevel *pLevel __attribute__((aligned(16))) = NULL;
+cOverWorld *pOverWorld __attribute__((aligned(16))) = NULL;
+cMainMenu *pMenu __attribute__((aligned(16))) = NULL;
 
-cAudio *pAudio = NULL;
-cPreferences *pPreferences = NULL;
-cMouseCursor *pMouseCursor = NULL;
-cLevelEditor *pLeveleditor = NULL;
-cSavegame *pSavegame = NULL;
+cAudio *pAudio __attribute__((aligned(16))) = NULL;
+cPreferences *pPreferences __attribute__((aligned(16))) = NULL;
+cMouseCursor *pMouseCursor __attribute__((aligned(16))) = NULL;
+cLevelEditor *pLeveleditor __attribute__((aligned(16))) = NULL;
+cSavegame *pSavegame __attribute__((aligned(16))) = NULL;
 
 cPlayerPoints *pointsdisplay = NULL;
 cDebugDisplay *debugdisplay = NULL;

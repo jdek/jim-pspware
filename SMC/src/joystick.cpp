@@ -23,11 +23,7 @@ cJoystick :: cJoystick( void )
 	Joystick = NULL;
 
 	Opened = 0;
-#ifndef PSP
 	Threshold = 3000;
-#else
-	Threshold = 256 * 16;
-#endif
 
 	cur_stick = 0;
 	num_buttons = 0;
