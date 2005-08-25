@@ -26,6 +26,7 @@
 
 cFramerate Framerate( DESIRED_FPS );
 
+FPSmanager fpsmgr;
 cImageManager *pImageManager = NULL;
 cHudManager *pHudManager = NULL;
 cAnimationManager *pAnimationManager = NULL;
