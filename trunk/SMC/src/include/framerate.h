@@ -21,10 +21,14 @@
 #ifndef __EP_FRAMERATE_H__
 #define __EP_FRAMERATE_H__
 
+#include <SDL_framerate.h>
+
+extern FPSmanager fpsmgr; // fight crapware with crapware
+
 class cFramerate
 {
 public:
-	cFramerate( double tfps )
+	cFramerate( int tfps )
 	{
 		speedfactor = 1;
 		fps = 0;
@@ -36,11 +40,14 @@ public:
 		//
 	}
 	
-	void Init( double tfps )
+	void Init( int tfps )
 	{
 		targetfps = tfps;
 		maxspeedfactor = tfps/5;
 		framedelay = SDL_GetTicks();
+
+		SDL_initFramerate(&fpsmgr);
+		SDL_setFramerate(&fpsmgr, tfps);
 	}
 
 	void Update( void )
@@ -86,14 +93,7 @@ public:
 /* Fixed framerate method */
 inline void CorrectFrameTime( unsigned int fps = 32 )
 {
-	static Uint32 stime = 0;
-	
-	while( SDL_GetTicks () - stime < 1000 / fps )
-	{
-		SDL_Delay( 1 );
-	}
-
-	stime = SDL_GetTicks ();
+	SDL_framerateDelay(&fpsmgr);
 }
 
 #endif
