@@ -7,8 +7,6 @@
 #define BOOL int
 #endif
 
-typedef unsigned Color;
-
 UserdataStubs(Color, Color)
 
 
@@ -149,7 +147,7 @@ static int Image_blit (lua_State *L) {
 static int Image_clear (lua_State *L) {
 	int argc = lua_gettop(L);
 	if(argc != 1 && argc != 2) return luaL_error(L, "Argument error: Image:clear([color]) zero or one argument.");
-	unsigned color = (argc==2)?*toColor(L, 2):0;
+	Color color = (argc==2)?*toColor(L, 2):0;
 
 	SETDEST
 	if(dest)
@@ -167,7 +165,7 @@ static int Image_fillRect (lua_State *L) {
 	int y0 = luaL_checkint(L, 2);
 	int width = luaL_checkint(L, 3);
 	int height = luaL_checkint(L, 4);
-	int color = (argc==6)?*toColor(L, 5):0;
+	Color color = (argc==6)?*toColor(L, 5):0;
 	
 	if (width <= 0 || height <= 0) return 0;
 	if (x0 < 0) {
@@ -215,7 +213,7 @@ static int Image_drawLine (lua_State *L) {
 	int y0 = luaL_checkint(L, 2); 
 	int x1 = luaL_checkint(L, 3); 
 	int y1 = luaL_checkint(L, 4); 
-	int color = (argc==6) ? *toColor(L, 5) : 0;
+	Color color = (argc==6) ? *toColor(L, 5) : 0;
 	
 	// TODO: better clipping
 	if (x0 < 0) x0 = 0;
@@ -244,7 +242,7 @@ static int Image_pixel (lua_State *L) {
 	SETDEST
 	int x = luaL_checkint(L, 1);
 	int y = luaL_checkint(L, 2);
-	int color = (argc == 4)?*toColor(L, 3):0;
+	Color color = (argc == 4)?*toColor(L, 3):0;
 	if(dest) {
 		if (x >= 0 && y >= 0 && x < dest->imageWidth && y < dest->imageHeight) {
 			if(argc==3) {
@@ -276,7 +274,7 @@ static int Image_print (lua_State *L) {
 	int x = luaL_checkint(L, 1);
 	int y = luaL_checkint(L, 2);
 	const char* text = luaL_checkstring(L, 3);
-	int color = (argc == 5)?*toColor(L, 4):0x8000;
+	Color color = (argc == 5)?*toColor(L, 4):0x8000;
 	if (!dest) {
 		printTextScreen(x, y, text, color);
 	} else {
@@ -305,9 +303,9 @@ static int Image_save (lua_State *L) {
 	const char *filename = luaL_checkstring(L, 2);
 	SETDEST
 	if (dest) {
-		saveImage(filename, dest->data, dest->imageWidth, dest->imageHeight, dest->textureWidth);
+		saveImage(filename, dest->data, dest->imageWidth, dest->imageHeight, dest->textureWidth, 1);
 	} else {
-		saveImage(filename, getVramDisplayBuffer(), SCREEN_WIDTH, SCREEN_HEIGHT, PSP_LINE_SIZE);
+		saveImage(filename, getVramDisplayBuffer(), SCREEN_WIDTH, SCREEN_HEIGHT, PSP_LINE_SIZE, 0);
 	}
 	return 0;
 }
@@ -356,7 +354,7 @@ static int Color_new (lua_State *L) {
 	int argc = lua_gettop(L); 
 	if (argc != 3 && argc != 4) return luaL_error(L, "Argument error: Color.new(r, g, b, [a]) takes either three color arguments or three color arguments and an alpha value."); 
 	
-	unsigned *color = pushColor(L);
+	Color *color = pushColor(L);
 	
 	unsigned r = CLAMP(luaL_checkint(L, 1), 0, 255); 
 	unsigned g = CLAMP(luaL_checkint(L, 2), 0, 255); 
@@ -375,11 +373,11 @@ static int Color_new (lua_State *L) {
 static int Color_colors (lua_State *L) {
 	int argc = lua_gettop(L);
 	if(argc != 1) return luaL_error(L, "Argument error: color:colors() takes no arguments, and it must be called from an instance with a colon.");
-	unsigned color = *toColor(L, 1);
-	unsigned r = (color & 0x1f) << 3; 
-	unsigned g = ((color >> 5) & 0x1f) << 3 ;
-	unsigned b = ((color >> 10) & 0x1f) << 3 ;
-	unsigned a = color & 0x8000 ? 0xff : 0; 
+	Color color = *toColor(L, 1);
+	int r = (color & 0x1f) << 3; 
+	int g = ((color >> 5) & 0x1f) << 3 ;
+	int b = ((color >> 10) & 0x1f) << 3 ;
+	int a = color & 0x8000 ? 0xff : 0; 
 	
 	lua_newtable(L);
 	lua_pushstring(L, "r"); lua_pushnumber(L, r); lua_settable(L, -3);
@@ -402,8 +400,8 @@ static int Color_tostring (lua_State *L) {
 }
 
 static int Color_equal(lua_State *L) {
-	unsigned a = *toColor(L, 1);
-	unsigned b = *toColor(L, 2);
+	Color a = *toColor(L, 1);
+	Color b = *toColor(L, 2);
 	lua_pushboolean(L, a == b);
 	return 1;
 }

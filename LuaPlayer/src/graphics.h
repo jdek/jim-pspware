@@ -7,12 +7,14 @@
 #define SCREEN_WIDTH 480
 #define SCREEN_HEIGHT 272
 
+typedef u16 Color;
+
 typedef struct
 {
 	int textureWidth;  // the real width and height of data, 2^n with n>=0
 	int imageWidth;  // the image width
 	int imageHeight;
-	u16* data;
+	Color* data;
 } Image;
 
 /**
@@ -123,14 +125,14 @@ extern void freeImage(Image* image);
  * @param color - new color for the pixels
  * @param image - image to clear
  */
-extern void clearImage(u16 color, Image* image);
+extern void clearImage(Color color, Image* image);
 
 /**
  * Initialize all pixels of the screen with a color.
  *
  * @param color - new color for the pixels
  */
-extern void clearScreen(u16 color);
+extern void clearScreen(Color color);
 
 /**
  * Fill a rectangle of an image with a color.
@@ -143,7 +145,7 @@ extern void clearScreen(u16 color);
  * @param height - height of rectangle in image
  * @param image - image
  */
-extern void fillImageRect(u16 color, int x0, int y0, int width, int height, Image* image);
+extern void fillImageRect(Color color, int x0, int y0, int width, int height, Image* image);
 
 /**
  * Fill a rectangle of an image with a color.
@@ -155,7 +157,7 @@ extern void fillImageRect(u16 color, int x0, int y0, int width, int height, Imag
  * @param width - width of rectangle in image
  * @param height - height of rectangle in image
  */
-extern void fillScreenRect(u16 color, int x0, int y0, int width, int height);
+extern void fillScreenRect(Color color, int x0, int y0, int width, int height);
 
 /**
  * Set a pixel on screen to the specified color.
@@ -165,7 +167,7 @@ extern void fillScreenRect(u16 color, int x0, int y0, int width, int height);
  * @param x - left position of the pixel
  * @param y - top position of the pixel
  */
-extern void putPixelScreen(u16 color, int x, int y);
+extern void putPixelScreen(Color color, int x, int y);
 
 /**
  * Set a pixel in an image to the specified color.
@@ -175,7 +177,7 @@ extern void putPixelScreen(u16 color, int x, int y);
  * @param x - left position of the pixel
  * @param y - top position of the pixel
  */
-extern void putPixelImage(u16 color, int x, int y, Image* image);
+extern void putPixelImage(Color color, int x, int y, Image* image);
 
 /**
  * Get the color of a pixel on screen.
@@ -185,7 +187,7 @@ extern void putPixelImage(u16 color, int x, int y, Image* image);
  * @param y - top position of the pixel
  * @return the color of the pixel
  */
-extern u16 getPixelScreen(int x, int y);
+extern Color getPixelScreen(int x, int y);
 
 /**
  * Get the color of a pixel of an image.
@@ -195,7 +197,7 @@ extern u16 getPixelScreen(int x, int y);
  * @param y - top position of the pixel
  * @return the color of the pixel
  */
-extern u16 getPixelImage(int x, int y, Image* image);
+extern Color getPixelImage(int x, int y, Image* image);
 
 /**
  * Print a text (pixels out of the screen or image are clipped).
@@ -219,16 +221,17 @@ extern void printTextScreen(int x, int y, const char* text, u32 color);
 extern void printTextImage(int x, int y, const char* text, u32 color, Image* image);
 
 /**
- * Save an image or the screen in TGA format.
+ * Save an image or the screen in PNG format.
  *
  * @pre filename != NULL
- * @param filename - filename of the TGA image
- * @param data - start of u16 pixel data (can be getVramDisplayBuffer())
+ * @param filename - filename of the PNG image
+ * @param data - start of Color type pixel data (can be getVramDisplayBuffer())
  * @param width - logical width of the image or SCREEN_WIDTH
  * @param height - height of the image or SCREEN_HEIGHT
  * @param lineSize - physical width of the image or PSP_LINE_SIZE
+ * @param saveAlpha - if 0, image is saved without alpha channel
  */
-extern void saveImage(const char* filename, u16* data, int width, int height, int lineSize);
+extern void saveImage(const char* filename, Color* data, int width, int height, int lineSize, int saveAlpha);
 
 /**
  * Exchange display buffer and drawing buffer.
@@ -274,13 +277,13 @@ extern void drawLineImage(int x0, int y0, int x1, int y1, int color, Image* imag
  *
  * @return the start address of the current draw buffer
  */
-extern u16* getVramDrawBuffer();
+extern Color* getVramDrawBuffer();
 
 /**
  * Get the current display buffer for fast unchecked access.
  *
  * @return the start address of the current display buffer
  */
-extern u16* getVramDisplayBuffer();
+extern Color* getVramDisplayBuffer();
 
 #endif

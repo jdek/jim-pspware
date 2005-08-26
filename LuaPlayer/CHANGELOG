@@ -1,3 +1,14 @@
+v0.10
+==========
+ - Added the "Bitwise operators and hexadecimal support" patch from
+   http://lua-users.org/wiki/LuaPowerPatches :
+        - Hexadecimal support for 0xXXX in numeric literals. 
+        - Hexadecimal support for '\xXX' characters within strings. 
+        - Infix bitwise operators for AND (&), OR (|) and XOR (#). 
+        - Unary bitwise negation using # alone. 
+ - Changed the number type to float (more than 4 times faster calculations)
+ - "save" function writes PNG format now
+ 
 v0.7
 ==========
  - Added sound and music through mikmodlib
