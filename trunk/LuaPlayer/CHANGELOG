@@ -8,7 +8,11 @@ v0.10
         - Unary bitwise negation using # alone. 
  - Changed the number type to float (more than 4 times faster calculations)
  - "save" function writes PNG format now
- 
+ - Restructured files into src/
+ - Changed the main script file to "system.lua", to enforce the idea
+   that apps should be using Lowser and not bundle their own eboots.
+ - Rewrote the Makefile
+
 v0.7
 ==========
  - Added sound and music through mikmodlib
