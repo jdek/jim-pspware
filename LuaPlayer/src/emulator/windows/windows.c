@@ -5,8 +5,8 @@
 #include <GL/glut.h>
 #include <pspctrl.h>
 
-#include "../graphics.h"
-#include "../framebuffer.h"
+#include "graphics.h"
+#include "framebuffer.h"
 
 #define WIDTH 480
 #define HEIGHT 272
@@ -24,10 +24,6 @@ typedef struct
 NormalKeyMapping normalKeyMappings[] = {
 	{ PSP_CTRL_SELECT, 'a' },
 	{ PSP_CTRL_START, 's' },
-	{ PSP_CTRL_UP, GLUT_KEY_UP },
-	{ PSP_CTRL_RIGHT, GLUT_KEY_RIGHT },
-	{ PSP_CTRL_DOWN, GLUT_KEY_DOWN },
-	{ PSP_CTRL_LEFT, GLUT_KEY_LEFT },
 	{ PSP_CTRL_LTRIGGER, 'q' },
 	{ PSP_CTRL_RTRIGGER, 'w' },
 	{ PSP_CTRL_TRIANGLE, 'r' },

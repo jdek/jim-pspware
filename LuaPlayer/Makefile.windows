@@ -1,0 +1,8 @@
+LFLAGS = -L/usr/local/lib -lglut32 -lglu32 -llua -llualib -lopengl32 -lpng
+CFLAGS = -I$(PSPSDK)/sdk/include -I$(PSPSDK)/include -Isrc
+
+luaplayer.exe: $(OBJS)
+	gcc -o luaplayer.exe \
+		src/graphics.c src/sound.c src/luaplayer.c src/luacontrols.c src/luagraphics.c src/luasound.c src/luasystem.c src/utility.c \
+		src/emulator/emulator.c src/emulator/framebuffer.c src/emulator/windows/windows.c \
+		$(CFLAGS) $(LFLAGS) -lkernel32
