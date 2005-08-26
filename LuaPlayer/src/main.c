@@ -115,7 +115,7 @@ int main(int argc, char** argv)
 		clearScreen(0);
 		flipScreen();
 		clearScreen(0);
-		runScript("script.lua");
+		runScript("system.lua");
 		SceCtrlData pad; int i;
 		sceCtrlReadBufferPositive(&pad, 1); 
 		debugOutput("\nPress start to restart\n", 26);
