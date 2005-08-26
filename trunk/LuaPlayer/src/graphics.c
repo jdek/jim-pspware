@@ -35,16 +35,16 @@ static void setWidthToNextPower2(Image* image)
 	if (image->textureWidth == 2 * width) image->textureWidth >>= 1;
 }
 
-u16* getVramDrawBuffer()
+Color* getVramDrawBuffer()
 {
-	u16* vram = (u16*) g_vram_base;
+	Color* vram = (Color*) g_vram_base;
 	if (dispBufferNumber == 0) vram += FRAMEBUFFER_SIZE / 2;
 	return vram;
 }
 
-u16* getVramDisplayBuffer()
+Color* getVramDisplayBuffer()
 {
-	u16* vram = (u16*) g_vram_base;
+	Color* vram = (Color*) g_vram_base;
 	if (dispBufferNumber == 1) vram += FRAMEBUFFER_SIZE / 2;
 	return vram;
 }
@@ -99,7 +99,7 @@ Image* loadImage(const char* filename)
 	if (color_type == PNG_COLOR_TYPE_GRAY && bit_depth < 8) png_set_gray_1_2_4_to_8(png_ptr);
 	if (png_get_valid(png_ptr, info_ptr, PNG_INFO_tRNS)) png_set_tRNS_to_alpha(png_ptr);
 	png_set_filler(png_ptr, 0xff, PNG_FILLER_AFTER);
-	image->data = (u16*) memalign(16, image->textureWidth * image->textureWidth * 2);
+	image->data = (Color*) memalign(16, image->textureWidth * image->textureWidth * 2);
 	if (!image->data) {
 		free(image);
 		fclose(fp);
@@ -121,7 +121,7 @@ Image* loadImage(const char* filename)
 			int r = color & 0xff;
 			int g = (color >> 8) & 0xff;
 			int b = (color >> 16) & 0xff;
-			u16 color1555 = (r >> 3) | ((g >> 3)<<5) | ((b >> 3)<<10);
+			Color color1555 = (r >> 3) | ((g >> 3)<<5) | ((b >> 3)<<10);
 			if ((color & 0xff000000) != 0 ) color1555 |= 0x8000;
 			image->data[x + y * image->textureWidth] = color1555;
 		}
@@ -135,9 +135,9 @@ Image* loadImage(const char* filename)
 
 void blitImageToImage(int sx, int sy, int width, int height, Image* source, int dx, int dy, Image* destination)
 {
-	u16* destinationData = &destination->data[destination->textureWidth * dy + dx];
+	Color* destinationData = &destination->data[destination->textureWidth * dy + dx];
 	int destinationSkipX = destination->textureWidth - width;
-	u16* sourceData = &source->data[source->textureWidth * sy + sx];
+	Color* sourceData = &source->data[source->textureWidth * sy + sx];
 	int sourceSkipX = source->textureWidth - width;
 	int x, y;
 	for (y = 0; y < height; y++, destinationData += destinationSkipX, sourceData += sourceSkipX) {
@@ -150,7 +150,7 @@ void blitImageToImage(int sx, int sy, int width, int height, Image* source, int 
 void blitImageToScreen(int sx, int sy, int width, int height, Image* source, int dx, int dy)
 {
 	if (!initialized) return;
-	u16* vram = getVramDrawBuffer();
+	Color* vram = getVramDrawBuffer();
 	sceKernelDcacheWritebackInvalidateAll();
 	sceGuStart(GU_DIRECT,list);
 	sceGuCopyImage(GU_PSM_5551, sx, sy, width, height, source->textureWidth, source->data, dx, dy, PSP_LINE_SIZE, vram);
@@ -160,14 +160,14 @@ void blitImageToScreen(int sx, int sy, int width, int height, Image* source, int
 
 void blitAlphaImageToImage(int sx, int sy, int width, int height, Image* source, int dx, int dy, Image* destination)
 {
-	u16* destinationData = &destination->data[destination->textureWidth * dy + dx];
+	Color* destinationData = &destination->data[destination->textureWidth * dy + dx];
 	int destinationSkipX = destination->textureWidth - width;
-	u16* sourceData = &source->data[source->textureWidth * sy + sx];
+	Color* sourceData = &source->data[source->textureWidth * sy + sx];
 	int sourceSkipX = source->textureWidth - width;
 	int x, y;
 	for (y = 0; y < height; y++, destinationData += destinationSkipX, sourceData += sourceSkipX) {
 		for (x = 0; x < width; x++, destinationData++, sourceData++) {
-			u16 color = *sourceData;
+			Color color = *sourceData;
 			if (!IS_ALPHA(color)) *destinationData = color;
 		}
 	}
@@ -215,7 +215,7 @@ Image* createImage(int width, int height)
 	image->imageWidth = width;
 	image->imageHeight = height;
 	setWidthToNextPower2(image);
-	image->data = (u16*) memalign(16, image->textureWidth * image->textureWidth * 2);
+	image->data = (Color*) memalign(16, image->textureWidth * image->textureWidth * 2);
 	if (!image->data) return NULL;
 	memset(image->data, 0, image->textureWidth * image->textureWidth * 2);
 	return image;
@@ -227,62 +227,62 @@ void freeImage(Image* image)
 	free(image);
 }
 
-void clearImage(u16 color, Image* image)
+void clearImage(Color color, Image* image)
 {
 	int i;
 	int size = image->textureWidth * image->textureWidth;
-	u16* data = image->data;
+	Color* data = image->data;
 	for (i = 0; i < size; i++, data++) *data = color;
 }
 
-void clearScreen(u16 color)
+void clearScreen(Color color)
 {
 	if (!initialized) return;
 	int i;
 	int size = PSP_LINE_SIZE * SCREEN_HEIGHT;
-	u16* data = getVramDrawBuffer();
+	Color* data = getVramDrawBuffer();
 	for (i = 0; i < size; i++, data++) *data = color;
 }
 
-void fillImageRect(u16 color, int x0, int y0, int width, int height, Image* image)
+void fillImageRect(Color color, int x0, int y0, int width, int height, Image* image)
 {
 	int skipX = image->textureWidth - width;
 	int x, y;
-	u16* data = image->data + x0 + y0 * image->textureWidth;
+	Color* data = image->data + x0 + y0 * image->textureWidth;
 	for (y = 0; y < height; y++, data += skipX) {
 		for (x = 0; x < width; x++, data++) *data = color;
 	}
 }
 
-void fillScreenRect(u16 color, int x0, int y0, int width, int height)
+void fillScreenRect(Color color, int x0, int y0, int width, int height)
 {
 	if (!initialized) return;
 	int skipX = PSP_LINE_SIZE - width;
 	int x, y;
-	u16* data = getVramDrawBuffer() + x0 + y0 * PSP_LINE_SIZE;
+	Color* data = getVramDrawBuffer() + x0 + y0 * PSP_LINE_SIZE;
 	for (y = 0; y < height; y++, data += skipX) {
 		for (x = 0; x < width; x++, data++) *data = color;
 	}
 }
 
-void putPixelScreen(u16 color, int x, int y)
+void putPixelScreen(Color color, int x, int y)
 {
-	u16* vram = getVramDrawBuffer();
+	Color* vram = getVramDrawBuffer();
 	vram[PSP_LINE_SIZE * y + x] = color;
 }
 
-void putPixelImage(u16 color, int x, int y, Image* image)
+void putPixelImage(Color color, int x, int y, Image* image)
 {
 	image->data[x + y * image->textureWidth] = color;
 }
 
-u16 getPixelScreen(int x, int y)
+Color getPixelScreen(int x, int y)
 {
-	u16* vram = getVramDrawBuffer();
+	Color* vram = getVramDrawBuffer();
 	return vram[PSP_LINE_SIZE * y + x];
 }
 
-u16 getPixelImage(int x, int y, Image* image)
+Color getPixelImage(int x, int y, Image* image)
 {
 	return image->data[x + y * image->textureWidth];
 }
@@ -291,8 +291,8 @@ void printTextScreen(int x, int y, const char* text, u32 color)
 {
 	int c, i, j, l;
 	u8 *font;
-	u16 *vram_ptr;
-	u16 *vram;
+	Color *vram_ptr;
+	Color *vram;
 	
 	if (!initialized) return;
 
@@ -318,8 +318,8 @@ void printTextImage(int x, int y, const char* text, u32 color, Image* image)
 {
 	int c, i, j, l;
 	u8 *font;
-	u16 *data_ptr;
-	u16 *data;
+	Color *data_ptr;
+	Color *data;
 	
 	if (!initialized) return;
 
@@ -341,45 +341,60 @@ void printTextImage(int x, int y, const char* text, u32 color, Image* image)
 	}
 }
 
-void saveImage(const char* filename, u16* data, int width, int height, int lineSize)
+void saveImage(const char* filename, Color* data, int width, int height, int lineSize, int saveAlpha)
 {
-	const char tgaHeader[] = {0, 0, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0};
-	u16* lineBuffer = (u16*) malloc(width * 2);
-	if (!lineBuffer) return;
-	int x, y;
-	FILE* file = fopen(filename, "wb");
-	if (!file) return;
-	fwrite(tgaHeader, sizeof(tgaHeader), 1, file);
-	fputc(width & 0xff, file);
-	fputc(width >> 8, file);
-	fputc(height & 0xff, file);
-	fputc(height >> 8, file);
-	fputc(16, file);
-	fputc(0, file);
-	for (y = height - 1; y >= 0; y--) {
-		for (x = 0; x < width; x++) {
-			u16 color = data[y * lineSize + x];
-			int red = color & 0x1f;
-			int green = (color >> 5) & 0x1f;
-			int blue = (color >> 10) & 0x1f;
-			lineBuffer[x] = blue | (green<<5) | (red<<10);
-		}
-		fwrite(lineBuffer, width, 2, file);
+	png_structp png_ptr;
+	png_infop info_ptr;
+	FILE* fp;
+	int i, x, y;
+	u8* line;
+	
+	if ((fp = fopen(filename, "wb")) == NULL) return;
+	png_ptr = png_create_write_struct(PNG_LIBPNG_VER_STRING, NULL, NULL, NULL);
+	if (!png_ptr) return;
+	info_ptr = png_create_info_struct(png_ptr);
+	if (!info_ptr) {
+		png_destroy_write_struct(&png_ptr, (png_infopp)NULL);
+		return;
 	}
-	fclose(file);
-	free(lineBuffer);
+	png_init_io(png_ptr, fp);
+	png_set_IHDR(png_ptr, info_ptr, width, height, 8,
+		saveAlpha ? PNG_COLOR_TYPE_RGBA : PNG_COLOR_TYPE_RGB,
+		PNG_INTERLACE_NONE, PNG_COMPRESSION_TYPE_DEFAULT, PNG_FILTER_TYPE_DEFAULT);
+	png_write_info(png_ptr, info_ptr);
+	line = (u8*) malloc(width * (saveAlpha ? 4 : 3));
+	for (y = 0; y < height; y++) {
+		for (i = 0, x = 0; x < width; x++) {
+			Color color = data[x + y * lineSize];
+			int r = (color & 0x1f) << 3; 
+			int g = ((color >> 5) & 0x1f) << 3 ;
+			int b = ((color >> 10) & 0x1f) << 3 ;
+			line[i++] = r;
+			line[i++] = g;
+			line[i++] = b;
+			if (saveAlpha) {
+				int a = color & 0x8000 ? 0xff : 0; 
+				line[i++] = a;
+			}
+		}
+		png_write_row(png_ptr, line);
+	}
+	free(line);
+	png_write_end(png_ptr, info_ptr);
+	png_destroy_write_struct(&png_ptr, (png_infopp)NULL);
+	fclose(fp);
 }
 
 void flipScreen()
 {
 	if (!initialized) return;
-	u16* vram = getVramDrawBuffer();
+	Color* vram = getVramDrawBuffer();
 	sceGuSwapBuffers();
 	sceDisplaySetFrameBuf(vram, PSP_LINE_SIZE, 1, 1);
 	dispBufferNumber ^= 1;
 }
 
-static void drawLine(int x0, int y0, int x1, int y1, int color, u16* destination, int width)
+static void drawLine(int x0, int y0, int x1, int y1, int color, Color* destination, int width)
 {
 	int dy = y1 - y0;
 	int dx = x1 - x0;
