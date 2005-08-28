@@ -15,14 +15,12 @@ Build
 
 Install on PSP
 
-Create PSP/GAME/luaplayer/, and place the eboot.psp, system.lua, and 
+Create PSP/GAME/luaplayer/, and place the eboot.psp, Library, and 
 Applications folder in there. See the Applications folder for examples.
 
-If you want to distribute your own game with the luaplayer binaries without 
-Lowser (though not recommended), do as above, but do not add the Applications 
-folder, and add your own script instead of the bundled system.lua. See the 
-samples/snake folder for an example of this scenario
+It's not recommended that you distribute your own game with the luaplayer binaries without Lowser. If you really want to, note that the default script has been changed from "script.lua" to "Library/system.lua".
 
+See also README-DIST.
 
 
 Function reference

@@ -1,8 +1,9 @@
 TARGET = luaplayer
 OBJS = src/graphics.o src/sound.o src/luaplayer.o src/luacontrols.o src/luagraphics.o src/luasound.o src/luasystem.o src/utility.o src/main.o src/framebuffer.o
-PSPOBJS = ${LPOBJS} main.o framebuffer.o
-WINOBJS = ${LPOBJS} windows.o framebuffer.o
+VERSION = 0.10
 
+RELEASEFOLDER = "LuaPlayer v$(VERSION)"
+NIGHTLYFOLDER = "LuaPlayer `date +"%Y%m%d"`"
 
 INCDIR =
 CFLAGS = -G0 -Wall -O2 -fno-strict-aliasing
@@ -15,8 +16,42 @@ LIBS= -llua -llualib -lpng -lz -lpspgu -lm -lmikmod -lmmio -lpspaudiolib -lpspau
 
 
 EXTRA_TARGETS = EBOOT.PBP
-PSP_EBOOT_TITLE = Lua Player 0.10
+PSP_EBOOT_TITLE = Lua Player v$(VERSION)
 PSP_EBOOT_ICON = title-icon.png
 
 PSPSDK=$(shell psp-config --pspsdk-path)
 include $(PSPSDK)/lib/build.mak
+
+release: all kxploit
+	mkdir -p $(RELEASEFOLDER)
+	cp -R luaplayer $(RELEASEFOLDER)/
+	cp -R luaplayer% $(RELEASEFOLDER)/
+	cp -R EBOOT.PBP $(RELEASEFOLDER)/
+	cp -R Applications $(RELEASEFOLDER)/luaplayer/
+	cp -R Library $(RELEASEFOLDER)/luaplayer/
+	cp -R doc $(RELEASEFOLDER)/Documentation
+	cp -R samples $(RELEASEFOLDER)/Samples
+	cp -R README-DIST $(RELEASEFOLDER)/Readme.txt
+	cp -R CHANGELOG $(RELEASEFOLDER)/Changes.txt
+	cp -R KNOWN\ BUGS $(RELEASEFOLDER)/Known\ bugs.txt
+	cp -R LICENSE $(RELEASEFOLDER)/License.txt
+	-find $(RELEASEFOLDER) -name ".svn" -exec rm -rfv '{}' ";"
+#	-zip -r "LuaPlayer_v$(VERSION)".zip $(RELEASEFOLDER)
+
+nightly: release
+	mv $(RELEASEFOLDER) $(NIGHTLYFOLDER)
+	/usr/local/bin/svn info | grep "Last Changed" > $(NIGHTLYFOLDER)/nightly-info
+	-zip -r "LuaPlayer_`date +"%Y%m%d"`" $(NIGHTLYFOLDER)
+	
+
+clean-kx: clean
+	-rm -rf luaplayer luaplayer% 
+clean-release: clean-kx
+	-rm -rf $(RELEASEFOLDER)
+	-rm -rf $(NIGHTLYFOLDER)
+	-rm *.zip
+	
+install: all kxploit
+	cp -R luaplayer /Volumes/Untitled/PSP/GAME/
+	cp -R luaplayer% /Volumes/Untitled/PSP/GAME/
+	cp -R Library /Volumes/Untitled/PSP/GAME/luaplayer/

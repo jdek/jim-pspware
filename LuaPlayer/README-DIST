@@ -1,5 +1,5 @@
 Lua Player
-by Shine and Nevyn
+by Shine, Nevyn et al.
 
 
 Install on PSP
@@ -10,18 +10,37 @@ For 1.5 firmware
 	
 For 1.0 firmware
 	Create the folder (memorystick)/PSP/GAME/luaplayer. Place EBOOT.PBP in it.
-	Copy all files but the EBOOT.PBP from the luaplayer folder into the
+	Copy all files but the EBOOT.PBP from the "luaplayer" folder into the
 	luaplayer folder on your stick.
+	
+Finding and installing LuaPlayer apps and games
+============================
+There's a list of apps and games available at
+http://www.luaplayer.org/gallery/index.html
+
+To install them, simply drop the app folder into the /PSP/GAME/luaplayer/Applications/ folder.
 	
 
 Writing Lua software for PSP
 ============================
-Lua is an interpreted language. This means that all applications are distributed in source form, which in turn means that you can look at other people's code. Just go to the Applications folder, and then look at the index.lua inside the applications. There's also documentation inside the doc/ folder, and a 'samples' folder.
+Lua is an interpreted language. This means that all applications are distributed in source form, which in turn means that you can look at other people's code. Just go to the Applications folder, and then look at the index.lua inside the applications. There's also documentation inside the Documentation folder, and a 'Samples' folder.
+
+To learn the Lua language, read the Lua book over at
+http://www.lua.org/pil/
+and use the resources at the Lua Wiki:
+http://lua-users.org/wiki/
+
+Feel free to drop by at the LuaPlayer forums at
+http://forums.ps2dev.org/viewforum.php?f=21
+This forum is for LuaPlayer- and Lua on PSP-specific questions and discussions,  /not/ general Lua questions.
 
 
 Obtaining the source
 ============================
+If you want to help out with writing on the LuaPlayer code, get the source from the svn repository:
 % svn co svn://svn.pspdev.org/pspware/trunk/LuaPlayer
+
+(you do not need to do this if you just want to write Lua games and apps.)
 
 
 Function reference
