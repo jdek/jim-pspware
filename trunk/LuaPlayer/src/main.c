@@ -115,11 +115,11 @@ int main(int argc, char** argv)
 		clearScreen(0);
 		flipScreen();
 		clearScreen(0);
-		runScript("system.lua");
+		runScript("Library/system.lua");
 		SceCtrlData pad; int i;
 		sceCtrlReadBufferPositive(&pad, 1); 
 		debugOutput("\nPress start to restart\n", 26);
-		for(i = 0; i < 20; i++) sceDisplayWaitVblankStart();
+		for(i = 0; i < 40; i++) sceDisplayWaitVblankStart();
 		while(!(pad.Buttons&PSP_CTRL_START)) sceCtrlReadBufferPositive(&pad, 1); 
 		chdir(path);
 		debugOutput(0,0);
