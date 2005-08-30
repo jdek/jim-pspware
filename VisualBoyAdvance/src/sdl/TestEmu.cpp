@@ -126,6 +126,9 @@ void usage(char *cmd)
   printf("%s file-name\n",cmd);
 }
 
+#ifdef PSP
+extern "C"
+#endif
 int main(int argc, char **argv)
 {
   fprintf(stderr,"VisualBoyAdvance-Test version %s\n", VERSION);

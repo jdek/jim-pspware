@@ -27,8 +27,8 @@ case "$target" in
     VBA_USE_MMX=no
     VBA_ENABLE_DEV=no
     VBA_ENABLE_PROFILING=no
-    CFLAGS="$CFLAGS -G0"
-    CXXFLAGS="$CXXFLAGS -G0"
+    CFLAGS="$CFLAGS -G0 -fsingle-precision-constant"
+    CXXFLAGS="$CXXFLAGS -G0 -fsingle-precision-constant"
     ;;
   *)
     VBA_USE_C_CORE=yes
