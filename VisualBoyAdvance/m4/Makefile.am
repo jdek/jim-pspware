@@ -19,6 +19,7 @@ EXTRA_DIST = \
 	po.m4		\
 	printf-posix.m4	\
 	progtest.m4	\
+	sdl.m4		\
 	signed.m4	\
 	size_max.m4	\
 	stdint_h.m4	\
