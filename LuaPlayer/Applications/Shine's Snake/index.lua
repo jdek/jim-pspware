@@ -3,7 +3,7 @@ Snake, Copyright (c) 2005 Frank Buss <fb@frank-buss.de> (aka Shine)
 
    artworks by Gundrosen
    coding by Shine
-   background music: Jeroen Tel, Maniacs of Noise
+   background music: "Stranglehold", composed by Jeroen Tel, (C) 1995 Maniacs of Noise
 ]]
 
 -- start music
