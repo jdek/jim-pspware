@@ -38,7 +38,7 @@ int codecnum = 0;
 /**
  *  main routine 
  */
-int libpspmc_init(int argc, char *argv[])
+int libpspmc_init()
 {
   int stubnum;
   //get codecStubs
