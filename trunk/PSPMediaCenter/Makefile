@@ -10,6 +10,7 @@ PSP_EBOOT_TITLE = "PSP Media Center v0.90"
 PSP_MSDIR = /cygdrive/I/PSP/GAME/PSPMC
 
 # Work thru the codecs, and sort out settings
+PSPMC_BASE = ../../
 include codec.conf
 
 # Now postprocess the values
@@ -20,7 +21,7 @@ CFLAGS  := -G0 $(PSP_CFLAGS) $(CFLAGS)
 #CXXFLAGS := $(CFLAGS) -fno-exceptions -fno-rtti
 CXXFLAGS := $(CFLAGS)
 #ASFLAGS := $(CFLAGS)
-#LDFLAGS := $(PSP_LDFLAGS)
+LDFLAGS := $(LDFLAGS) $(PSP_LDFLAGS)
 EXTRA_TARGETS := header 
 #USE_PSPSDK_LIBC = 1
 
