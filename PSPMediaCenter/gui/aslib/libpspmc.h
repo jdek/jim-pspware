@@ -1,9 +1,6 @@
 #ifndef _LIB_PSPMC_H_
 #define _LIB_PSPMC_H_
 
-/**
- *  main routine 
- */
 int libpspmc_init();
 int libpspmc_end();
 int libpspmc_stop();
