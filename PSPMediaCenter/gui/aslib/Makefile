@@ -22,22 +22,10 @@ EXTRA_TARGETS := header
 # This must be included here
 include $(PSPSDK)/lib/build.mak
 
-
-cleanall:
-	rm -f *.elf *.o *.a $(PSP_EBOOT) $(FINAL_TARGET) $(PSPMC_BASE)codecincs.h $(PSP_OBJS) 2> /dev/null
-
-cleanup:
-	@find -name "*.bak" -exec rm -f {} \;
-	@find -name "*.?~" -exec rm -f {} \;
-
-indent:
-	@find -name "*.[h|c]" -exec indent -kr -l120 '{}' \;
-	
 finallib: $(OBJS)
 	$(AR) cru $(TARGET_LIB) $(OBJS) $(PSP_LIB_LDFLAGS)
 	$(RANLIB) $(TARGET_LIB)
 	$(AR) t $(TARGET_LIB)
-
 
 # Generate the headerfile for included codecs
 header:

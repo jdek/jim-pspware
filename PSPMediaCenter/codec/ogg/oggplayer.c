@@ -13,7 +13,7 @@
 #include <ctype.h>
 #include <pspaudiolib.h>
 #include "oggplayer.h"
-#include "codec.h"
+#include "../../codec.h"
 
 
 #define FALSE 0
