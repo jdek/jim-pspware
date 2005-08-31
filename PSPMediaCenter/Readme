@@ -1,6 +1,13 @@
 PSPMediaCenter by John_K & adresd
 =================================
 
+v0.91 - July XX 2003
+-------------------------------------------------------------
+
+[Tip]
+Holding the screen brightness button down for a couple of seconds disables the lcd display, until
+pressed again, useful for when using the remote and enabling the hold mode while in pocket.
+
 v0.90 - July 23 2003
 -------------------------------------------------------------
 Added usb mass storage mode.

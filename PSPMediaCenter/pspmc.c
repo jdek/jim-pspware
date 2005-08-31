@@ -26,11 +26,12 @@
 #include "codecincs.h"
 
 /* Define the module info section */
-PSP_MODULE_INFO("PSPMC", 0x1000, 0, 1);
 //#define K_STARTUP
 #ifdef K_STARTUP
+PSP_MODULE_INFO("PSPMC", 0x1000, 0, 1);
 PSP_MAIN_THREAD_ATTR(THREAD_ATTR_USER);
 #else
+PSP_MODULE_INFO("PSPMC", 0x1000, 1, 1);
 PSP_MAIN_THREAD_ATTR(0);
 #endif
 
@@ -177,6 +178,7 @@ int exit_callback(int arg1, int arg2, void *common)
 #ifdef USB_ENABLED
     usb_deinit();
 #endif
+    pspAudioEnd();
     sceKernelExitGame();
 }
 
