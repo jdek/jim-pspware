@@ -1,8 +1,11 @@
 PSPMediaCenter by John_K & adresd
 =================================
 
-v0.91 - July XX 2003
+v0.91 - August 31 2003
 -------------------------------------------------------------
+
+Added an 'aslib' gui directory, this builds PSPMC as a library, to be included by other programs.
+This gives basic load/play/stop functionality, ie for shell type apps.
 
 [Tip]
 Holding the screen brightness button down for a couple of seconds disables the lcd display, until

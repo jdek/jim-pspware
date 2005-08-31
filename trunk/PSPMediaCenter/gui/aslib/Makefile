@@ -1,4 +1,4 @@
-# Makefile for PSP MediaCenter
+# Makefile for PSP MediaCenter as a library
 PSPSDK=$(shell psp-config --pspsdk-path)
 TARGET_LIB = libpspmc.a
 
@@ -17,7 +17,6 @@ CXXFLAGS := $(CFLAGS)
 LDFLAGS := $(LDFLAGS) $(PSP_LDFLAGS)
 EXTRA_TARGETS := header 
 #USE_PSPSDK_LIBC = 1
-
 
 # This must be included here
 include $(PSPSDK)/lib/build.mak

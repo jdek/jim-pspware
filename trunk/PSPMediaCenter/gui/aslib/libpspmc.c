@@ -1,6 +1,6 @@
 /*********************************************************************
  * 
- *  Main file for modplayer sample for PSP
+ *  PSPMC as a Library, for other programs to use
  *  adresd 2005
  */
 #include <pspkernel.h>
