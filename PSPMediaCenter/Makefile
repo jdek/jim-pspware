@@ -10,7 +10,7 @@ PSP_EBOOT_TITLE = "PSP Media Center v0.91"
 PSP_MSDIR = /cygdrive/I/PSP/GAME/PSPMC
 
 # Work thru the codecs, and sort out settings
-PSPMC_BASE = ../../
+PSPMC_BASE = ./
 include codec.conf
 
 # Now postprocess the values
