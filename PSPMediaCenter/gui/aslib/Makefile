@@ -20,7 +20,7 @@ EXTRA_TARGETS := header
 # This must be included here
 include $(PSPSDK)/lib/build.mak
 
-finallib: $(OBJS)
+finallib: clean header $(OBJS)
 	$(AR) cru $(TARGET_LIB) $(OBJS) $(PSP_LIB_LDFLAGS)
 	$(RANLIB) $(TARGET_LIB)
 	$(AR) t $(TARGET_LIB)
