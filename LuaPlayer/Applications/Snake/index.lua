@@ -27,13 +27,15 @@ possibleOptions = {
 
 -- load images
 backgroundImages = { grass = Image.load("grass.png"), desert = Image.load("desert.png") }
-scorePosition = { grass = { x = 377, y = 91 }, desert = { x = 374, y = 72 } }
-highScorePosition = { grass = { x = 377, y = 138 }, desert = { x = 374, y = 113 } }
-scoreColor = { grass = Color.new(0, 0, 0), desert = Color.new(255, 255, 255) }
+optionsImage = Image.load("options.png")
 
 background = backgroundImages.desert
 tiles = Image.load("tiles.png")
 snake = Image.createEmpty(480, 272)
+
+scorePosition = { grass = { x = 377, y = 91 }, desert = { x = 374, y = 72 } }
+highScorePosition = { grass = { x = 377, y = 138 }, desert = { x = 374, y = 113 } }
+scoreColor = { grass = Color.new(0, 0, 0), desert = Color.new(255, 255, 255) }
 
 -- load sounds
 explode = Sound.load("explode.wav")
@@ -273,13 +275,11 @@ function showMenu()
 	activeColor = Color.new(255, 255, 255)
 	x0 = 80
 	y0 = 80
-	width = 250
-	height = 88
 	black = Color.new(0, 0, 0)
-	screen:fillRect(x0, y0, width, height, black)
-	screen:print(x0 + 8, y0 + 8, "digital pad: change options", activeColor)
-	screen:print(x0 + 8, y0 + 16, "o: save options", activeColor)
-	screen:print(x0 + 8, y0 + 24, "x: start game", activeColor)
+	screen:blit(x0, y0, optionsImage)
+	screen:print(x0 + 16, y0 + 26, "digital pad: change options", activeColor)
+	screen:print(x0 + 16, y0 + 34, "o: save options", activeColor)
+	screen:print(x0 + 16, y0 + 42, "x: start game", activeColor)
 	y = 0
 	selectedOptionValues = nil
 	selectedOptionIndex = nil
@@ -290,7 +290,7 @@ function showMenu()
 			color = activeColor
 			selectedOptionValues = possibleOption.values
 		end
-		screen:print(x0 + 8, y * 10 + y0 + 40, possibleOption.displayName, color)
+		screen:print(x0 + 16, y * 10 + y0 + 60, possibleOption.displayName, color)
 		for i, value in possibleOption.values do
 			color = deactiveColor
 			if options[optionKey] == value then
@@ -300,7 +300,7 @@ function showMenu()
 					selectedOptionName = optionKey
 				end
 			end
-			screen:print(i * 50 + 150 + 8, y * 10 + y0 + 40, value, color)
+			screen:print(i * 75 + 70 + 8, y * 10 + y0 + 60, value, color)
 		end
 		y = y + 1
 	end
