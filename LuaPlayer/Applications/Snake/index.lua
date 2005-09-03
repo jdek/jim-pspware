@@ -6,11 +6,32 @@ Snake, Copyright (c) 2005 Frank Buss <fb@frank-buss.de> (aka Shine)
    background music: "Stranglehold", composed by Jeroen Tel, (C) 1995 Maniacs of Noise
 ]]
 
--- start music
-Music.playFile("stranglehold.xm", true)
+-- default options
+options = { speed = 2, level = "desert", music = "on", sound = "on" }
+
+-- possible options for menu
+possibleOptions = {
+	speed = {
+		displayName = "Speed",
+		values = { 1, 2, 3 } },
+	level = {
+		displayName = "Level",
+		values = { "grass", "desert" } },
+	music = {
+		displayName = "Music",
+		values = { "on", "off" } },
+	sound = {
+		displayName = "Sound",
+		values = { "on", "off" } }
+}
 
 -- load images
-background = Image.load("background.png")
+backgroundImages = { grass = Image.load("grass.png"), desert = Image.load("desert.png") }
+scorePosition = { grass = { x = 377, y = 91 }, desert = { x = 374, y = 72 } }
+highScorePosition = { grass = { x = 377, y = 138 }, desert = { x = 374, y = 113 } }
+scoreColor = { grass = Color.new(0, 0, 0), desert = Color.new(255, 255, 255) }
+
+background = backgroundImages.desert
 tiles = Image.load("tiles.png")
 snake = Image.createEmpty(480, 272)
 
@@ -38,6 +59,7 @@ bodyTB = { x = 5, y = 2 }
 
 apple = { x = 0, y = 3 }
 fly = { x = 1, y = 3 }
+scorpion = { x = 2, y = 3 }
 
 -- define globals
 tails = {}
@@ -81,7 +103,11 @@ function createRandomTarget()
 	if math.random(2) == 1 then
 		targetImage = apple
 	else
-		targetImage = fly
+		if options.level == "desert" then
+			targetImage = scorpion
+		else
+			targetImage = fly
+		end
 	end
 end
 
@@ -186,7 +212,7 @@ function move()
 		drawTileToSnakeImage(bodyRT, lastX, lastY)
 	elseif lastDirection == BOTTOM and direction == LEFT then
 		drawTileToSnakeImage(bodyLT, lastX, lastY)
-	else 
+	else
 		drawTileToSnakeImage(bodies[direction], lastX, lastY)
 	end
 	
@@ -197,7 +223,7 @@ function move()
 	if cellHead.x == target.x and cellHead.y == target.y then
 		createRandomTarget()
 		score = score + 1
-		clack:play()
+		if options.sound == "on" then clack:play() end
 	else
 		-- remove tail
 		clearTileInSnakeImage(cellTail.x, cellTail.y)
@@ -239,29 +265,167 @@ function isGameOver()
 	return gameOver
 end
 	
+selectedOptionNumber = 0
+oldPad = Controls.read()
+
+function showMenu()
+	deactiveColor = Color.new(0, 255, 0)
+	activeColor = Color.new(255, 255, 255)
+	x0 = 80
+	y0 = 80
+	width = 250
+	height = 88
+	black = Color.new(0, 0, 0)
+	screen:fillRect(x0, y0, width, height, black)
+	screen:print(x0 + 8, y0 + 8, "digital pad: change options", activeColor)
+	screen:print(x0 + 8, y0 + 16, "o: save options", activeColor)
+	screen:print(x0 + 8, y0 + 24, "x: start game", activeColor)
+	y = 0
+	selectedOptionValues = nil
+	selectedOptionIndex = nil
+	selectedOptionName = nil
+	for optionKey, possibleOption in possibleOptions do
+		color = deactiveColor
+		if selectedOptionNumber == y then
+			color = activeColor
+			selectedOptionValues = possibleOption.values
+		end
+		screen:print(x0 + 8, y * 10 + y0 + 40, possibleOption.displayName, color)
+		for i, value in possibleOption.values do
+			color = deactiveColor
+			if options[optionKey] == value then
+				color = activeColor
+				if selectedOptionNumber == y then
+					selectedOptionIndex = i
+					selectedOptionName = optionKey
+				end
+			end
+			screen:print(i * 50 + 150 + 8, y * 10 + y0 + 40, value, color)
+		end
+		y = y + 1
+	end
+
+	pad = Controls.read()
+	if pad ~= oldPad then
+		if pad:circle() then saveOptions() end
+		if pad:cross() then return false end
+		if pad:up() then
+			selectedOptionNumber = selectedOptionNumber - 1
+			if selectedOptionNumber < 0 then selectedOptionNumber = y - 1 end
+		end
+		if pad:down() then
+			selectedOptionNumber = selectedOptionNumber + 1
+			if selectedOptionNumber >= y then selectedOptionNumber = 0 end
+		end
+		len = table.getn(selectedOptionValues)
+		if pad:left() then
+			selectedOptionIndex = selectedOptionIndex - 1
+			if selectedOptionIndex <= 0 then selectedOptionIndex = len end
+			options[selectedOptionName] = selectedOptionValues[selectedOptionIndex]
+		end
+		if pad:right() then
+			selectedOptionIndex = selectedOptionIndex + 1
+			if selectedOptionIndex > len then selectedOptionIndex = 1 end
+			options[selectedOptionName] = selectedOptionValues[selectedOptionIndex]
+		end
+		oldPad = pad
+	end
+	background = backgroundImages[options.level]
+	if options.music == "on" then
+		if not Music.playing() then Music.playFile("stranglehold.xm", true) end
+	else
+		if Music.playing() then Music.stop() end
+	end
+	return true
+end
+
+optionsFile = "options.txt"
+
+function saveOptions()
+	file = io.open(optionsFile, "w")
+	if file then
+		for key, value in options do
+			file:write(key .. "=" .. value .. "\n")
+		end
+		file:close()
+	end
+end
+
+function loadOptions()
+	file = io.open(optionsFile, "r")
+	if file then
+		for line in file:lines() do
+			equal = string.find(line, "=")
+			if equal then
+				key = string.sub(line, 1, equal - 1)
+				value = string.sub(line, equal + 1)
+				if key == "speed" then value = tonumber(value) end
+				options[key] = value
+			end
+		end
+		file:close()
+	end
+end
+
+highscoreFile = "highscore.txt"
+
+function saveHighscore()
+	file = io.open(highscoreFile, "w")
+	if file then
+		file:write(high)
+		file:close()
+	end
+end
+
+function loadHighscore()
+	file = io.open(highscoreFile, "r")
+	if file then
+		high = file:read("*n")
+		file:close()
+	end
+end
+
 -- init
+loadOptions()
+loadHighscore()
+loadedHighscore = high
 math.randomseed(os.time())
 newGame()
 
 -- game loop
+menu = true
 while not Controls.read():start() do
-	for i=0,4 do
-		keyboardControl()
+	if not menu then
+		for i=0,(4 - options.speed) * 2 do
+			keyboardControl()
+		end
+		move()
 	end
-	move()
 	screen:blit(0, 0, background, 0, 0, background:width(), background:height(), false)
 	screen:blit(0, 0, snake)
 	drawTileToOffscreen(targetImage, target.x, target.y)
 	if score > high then
 		high = score
 	end
-	screen:print(410, 81, score)
-	screen:print(429, 128, high)
+	screen:print(scorePosition[options.level].x, scorePosition[options.level].y, score, scoreColor[options.level])
+	screen:print(highScorePosition[options.level].x, highScorePosition[options.level].y, high, scoreColor[options.level])
+	if menu then
+		if not showMenu() then
+			newGame()
+			menu = false
+		end
+	else
+		if isGameOver() then
+			if options.sound == "on" then explode:play() end
+			screen.waitVblankStart(50)
+			menu = true
+			if high > loadedHighscore then
+				saveHighscore()
+				loadedHighscore = high
+			end
+		end
+	end
 	screen.waitVblankStart()
 	screen.flip()
-	if isGameOver() then
-		explode:play()
-		screen.waitVblankStart(50)
-		newGame()
-	end
 end
+
