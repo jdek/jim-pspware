@@ -1,7 +1,7 @@
 PSPMediaCenter by John_K & adresd
-=================================
+==================================
 
-v0.91 - August 31 2003
+v0.91 - August 31 2003 
 -------------------------------------------------------------
 
 Added an 'aslib' gui directory, this builds PSPMC as a library, to be included by other programs.
