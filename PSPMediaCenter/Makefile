@@ -31,10 +31,9 @@ include $(PSPSDK)/lib/build.mak
 
 # Now our own build targets
 #deps: 
-#	make -C newlib-fix
+
 
 cleanall:
-#	make -C newlib-fix clean
 	rm -f *.elf *.o *.a $(PSP_EBOOT) $(FINAL_TARGET) release/* release/v1.0/* release/PSPMC/* release/PSPMC%/* codecincs.h $(PSP_OBJS) 2> /dev/null
 
 cleanup:
