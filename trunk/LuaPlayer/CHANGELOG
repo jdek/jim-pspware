@@ -5,14 +5,21 @@ v0.10
         - Hexadecimal support for 0xXXX in numeric literals. 
         - Hexadecimal support for '\xXX' characters within strings. 
         - Infix bitwise operators for AND (&), OR (|) and XOR (#). 
-        - Unary bitwise negation using # alone. 
+        - Unary bitwise negation using # alone.  [Shine]
  - Changed the number type to float (more than 4 times faster calculations) 
-   (requires recompilation of the lua libraries from svn)
- - "save" function writes PNG format now
- - Restructured files into src/
- - Changed the main script file to Library/system.lua, to enforce the idea
-   that apps should be using Lowser and not bundle their own eboots.
- - Rewrote the Makefile
+   (requires recompilation of the lua libraries from svn) [Shine]
+ - "save" function writes PNG format now [Shine]
+ - Restructured files into src/ [Nevyn]
+ - Changed the main script file to System/system.lua [Nevyn]
+ - Rewrote the Makefiles and readmes to be more user-friendly.  [Nevyn]
+ - Changed startup load sequence (see the lua dev readme) [Nevyn]
+ - Made a procedure for making standalone LP apps [Nevyn]
+ 
+v0.9
+==========
+- bugfixing clearImage and clearScreen [Shine]
+- sceKernelDcacheWritebackInvalidateAll only needed before sceGu functions, when reading modified main memory [Shine]
+- speed improved for fillImageRect, fillScreenRect, blitAlphaImageToImage, blitImageToImage and drawLine [Shine]
 
 v0.7
 ==========

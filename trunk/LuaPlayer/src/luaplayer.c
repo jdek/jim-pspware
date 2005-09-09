@@ -1,5 +1,7 @@
 #include <stdlib.h>
 #include <unistd.h>
+#include <string.h>
+
 #include <pspkernel.h>
 #include <pspdebug.h>
 #include <pspdisplay.h>
@@ -13,7 +15,7 @@
 
 static lua_State *L;
 
-void runScript(const char* filename)
+int runScript(const char* script, BOOL isStringBuffer )
 {
 	L = lua_open();
 	
@@ -31,7 +33,12 @@ void runScript(const char* filename)
 	luaGraphics_init(L);
 	luaSystem_init(L);
 	
-	int s = luaL_loadfile(L, filename);
+	int s = 0;
+	if(!isStringBuffer) 
+		s = luaL_loadfile(L, script);
+	else 
+		s = luaL_loadbuffer(L, script, strlen(script), NULL);
+		
 	if (s == 0) {
 		s = lua_pcall(L, 0, LUA_MULTRET, 0);
 	}
@@ -40,4 +47,6 @@ void runScript(const char* filename)
 		lua_pop(L, 1); // remove error message
 	}
 	lua_close(L);
+	
+	return s;
 }
