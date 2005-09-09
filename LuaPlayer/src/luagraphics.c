@@ -82,6 +82,7 @@ static int Image_createEmpty(lua_State *L)
 	int w = luaL_checkint(L, 1);
 	int h = luaL_checkint(L, 2);
 	if (w <= 0 || h <= 0 || w > SCREEN_WIDTH || h > SCREEN_HEIGHT) return luaL_error(L, "invalid size");
+	luaC_collectgarbage(L);
 	Image* image = createImage(w, h);
 	if (!image) return luaL_error(L, "can't create image");
 	Image** luaImage = pushImage(L);
@@ -90,6 +91,7 @@ static int Image_createEmpty(lua_State *L)
 }
 static int Image_load (lua_State *L) {
 	if (lua_gettop(L) != 1) return luaL_error(L, "Argument error: Image.load(filename) takes one argument.");
+	luaC_collectgarbage(L);
 	Image* image = loadImage(luaL_checkstring(L, 1));
 	if(!image) return luaL_error(L, "Image.load: Error loading image.");
 	Image** luaImage = pushImage(L);
