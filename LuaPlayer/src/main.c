@@ -25,6 +25,10 @@
 #include "sound.h"
 #include "luaplayer.h"
 
+/* the boot.lua */
+extern unsigned char bootString_start[];
+extern int bootString_size;
+
 /* Define the module info section */
 PSP_MODULE_INFO("LUAPLAYER", 0x1000, 1, 1);
 
@@ -99,55 +103,6 @@ __attribute__((constructor)) void stdoutInit()
 	pspDebugInstallStdoutHandler(nullOutput); 
 } 
 
-
-int findAndLoadBaseScript() {
-	// I'd much rather store this script in an external source file, and link it into the binary as a TEXT entry. D'you know how to do this? The unmangled version is available at src/aux/boot.lua
-	char scptFindAndLoadBaseScript[] = "\
-	flist = System.listDirectory()\n\
-	dofiles = {}\n\
-	\n\
-	for idx, file in flist do\n\
-		if file.name ~= \".\" and file.name ~= \"..\" then\n\
-			if file.name == \"SCRIPT.LUA\" then -- luaplayer/script.lua\n\
-				dofiles[1] = \"SCRIPT.LUA\"\n\
-			end\n\
-			if file.directory then\n\
-				fflist = System.listDirectory(file.name)\n\
-				for fidx, ffile in fflist do\n\
-					if ffile.name == \"SCRIPT.LUA\" then -- app bundle\n\
-						dofiles[2] = file.name..\"/\"..ffile.name\n\
-						System.currentDirectory(file.name)\n\
-					end\n\
-					if ffile.name == \"INDEX.LUA\" then -- app bundle\n\
-						dofiles[2] = file.name..\"/\"..ffile.name\n\
-						System.currentDirectory(file.name)\n\
-					end\n\
-					\n\
-					if ffile.name == \"SYSTEM.LUA\" then -- luaplayer/System\n\
-						dofiles[3] = file.name..\"/\"..ffile.name\n\
-					end\n\
-				end\n\
-			end\n\
-		end\n\
-	end\n\
-	done = false\n\
-	for idx, runfile in dofiles do\n\
-		dofile(runfile)\n\
-		done = true\n\
-		break\n\
-	end\n\
-	if not done then\n\
-		print(\"Boot error: No boot script found!\")\n\
-	end\n\
-	";
-
-
-
-	runScript(scptFindAndLoadBaseScript, true);
-	return 0;
-}
-
-
 int main(int argc, char** argv)
 {
 	SetupCallbacks();
@@ -163,14 +118,16 @@ int main(int argc, char** argv)
 	// execute Lua script (according to boot sequence)
 	char path[256];
 	getcwd(path, 256);
+	char* bootString = (char*) malloc(bootString_size + 1);
+	memcpy(bootString, bootString_start, bootString_size);
+	bootString[bootString_size] = 0;		
 	while(1) { // reload on error
 		clearScreen(0);
 		flipScreen();
 		clearScreen(0);
-		
-		if(findAndLoadBaseScript())
-			debugOutput("Error: No script file found.\n", 29);
 
+		if (runScript(bootString, true))
+			debugOutput("Error: No script file found.\n", 29);
 		
 		debugOutput("\nPress start to restart\n", 26);
 		SceCtrlData pad; int i;
@@ -182,6 +139,7 @@ int main(int argc, char** argv)
 		debugOutput(0,0);
 		initGraphics();
 	}
+	free(bootString);
 	
 	
 	// wait until user ends the program
