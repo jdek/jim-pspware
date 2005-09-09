@@ -48,6 +48,8 @@ int HANDLE##_register(lua_State *L) { \
 	return 1; \
 }
 
+extern void luaC_collectgarbage (lua_State *L);
+
 extern void runScript(const char* filename);
 
 
