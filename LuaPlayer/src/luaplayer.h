@@ -2,6 +2,7 @@
 #define __LUAPLAYER_H
 
 #include <stdlib.h>
+#include <tdefs.h>
 #include "lua.h"
 #include "lualib.h"
 #include "lauxlib.h"
@@ -48,9 +49,8 @@ int HANDLE##_register(lua_State *L) { \
 	return 1; \
 }
 
+extern int runScript(const char* script, int isStringBuffer);
 extern void luaC_collectgarbage (lua_State *L);
-
-extern void runScript(const char* filename);
 
 
 
