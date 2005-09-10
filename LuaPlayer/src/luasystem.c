@@ -2,6 +2,7 @@
 #include <pspkernel.h>
 #include <pspusb.h>
 #include <pspusbstor.h>
+#include <psppower.h>
 #include "luaplayer.h"
 
 #include <unistd.h>
@@ -151,11 +152,85 @@ static int lua_usbDeactivate(lua_State *L)
 	return 0;
 }
 
+// battery functions
+ 
+static int lua_powerIsPowerOnline(lua_State *L)
+{
+	if (lua_gettop(L) != 0) return luaL_error(L, "wrong number of arguments");
+	lua_pushboolean(L, scePowerIsPowerOnline());
+	return 1;
+}
+
+static int lua_powerIsBatteryExist(lua_State *L)
+{
+	if (lua_gettop(L) != 0) return luaL_error(L, "wrong number of arguments");
+	lua_pushboolean(L, scePowerIsBatteryExist());
+	return 1;
+}
+
+static int lua_powerIsBatteryCharging(lua_State *L)
+{
+	if (lua_gettop(L) != 0) return luaL_error(L, "wrong number of arguments");
+	lua_pushboolean(L, scePowerIsBatteryCharging());
+	return 1;
+}
+
+static int lua_powerGetBatteryChargingStatus(lua_State *L)
+{
+	if (lua_gettop(L) != 0) return luaL_error(L, "wrong number of arguments");
+	lua_pushnumber(L, scePowerGetBatteryChargingStatus());
+	return 1;
+}
+
+static int lua_powerIsLowBattery(lua_State *L)
+{
+	if (lua_gettop(L) != 0) return luaL_error(L, "wrong number of arguments");
+	lua_pushboolean(L, scePowerIsLowBattery());
+	return 1;
+}
+
+static int lua_powerGetBatteryLifePercent(lua_State *L)
+{
+	if (lua_gettop(L) != 0) return luaL_error(L, "wrong number of arguments");
+	lua_pushnumber(L, scePowerGetBatteryLifePercent());
+	return 1;
+}
+
+static int lua_powerGetBatteryLifeTime(lua_State *L)
+{
+	if (lua_gettop(L) != 0) return luaL_error(L, "wrong number of arguments");
+	lua_pushnumber(L, scePowerGetBatteryLifeTime());
+	return 1;
+}
+
+static int lua_powerGetBatteryTemp(lua_State *L)
+{
+	if (lua_gettop(L) != 0) return luaL_error(L, "wrong number of arguments");
+	lua_pushnumber(L, scePowerGetBatteryTemp());
+	return 1;
+}
+
+static int lua_powerGetBatteryVolt(lua_State *L)
+{
+	if (lua_gettop(L) != 0) return luaL_error(L, "wrong number of arguments");
+	lua_pushnumber(L, scePowerGetBatteryVolt());
+	return 1;
+}
+
 static const luaL_reg System_functions[] = {
-  {"currentDirectory",          lua_curdir},
-  {"listDirectory",           	lua_dir},
-  {"usbDiskModeActivate",       lua_usbActivate},
-  {"usbDiskModeDeactivate",    	lua_usbDeactivate},
+  {"currentDirectory",              lua_curdir},
+  {"listDirectory",           	    lua_dir},
+  {"usbDiskModeActivate",           lua_usbActivate},
+  {"usbDiskModeDeactivate",    	    lua_usbDeactivate},
+  {"powerIsPowerOnline",            lua_powerIsPowerOnline},
+  {"powerIsBatteryExist",           lua_powerIsBatteryExist},
+  {"powerIsBatteryCharging",        lua_powerIsBatteryCharging},
+  {"powerGetBatteryChargingStatus", lua_powerGetBatteryChargingStatus},
+  {"powerIsLowBattery",             lua_powerIsLowBattery},
+  {"powerGetBatteryLifePercent",    lua_powerGetBatteryLifePercent},
+  {"powerGetBatteryLifeTime",       lua_powerGetBatteryLifeTime},
+  {"powerGetBatteryTemp",           lua_powerGetBatteryTemp},
+  {"powerGetBatteryVolt",           lua_powerGetBatteryVolt},
   {0, 0}
 };
 void luaSystem_init(lua_State *L) {

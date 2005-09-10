@@ -52,6 +52,27 @@ Number controls:analogY() -- same
 
 Bool (Controls a == Controls b) -- note! The analog stick is NOT considered when comparing because of analog fluctuations.
 
+Number controls:buttons() -- returns the bitmask like sceCtrlReadBufferPositive reads it
+
+Constants for binary operations on buttons() result
+(for example "Controls.read():buttons() & Controls.startMask > 0" is the same as "Controls.read():start()")
+Number Controls.selectMask
+Number Controls.startMask
+Number Controls.upMask
+Number Controls.rightMask
+Number Controls.downMask
+Number Controls.leftMask
+Number Controls.ltriggerMask
+Number Controls.rtriggerMask
+Number Controls.triangleMask
+Number Controls.circleMask
+Number Controls.crossMask
+Number Controls.squareMask
+Number Controls.homeMask
+Number Controls.holdMask
+Number Controls.noteMask
+
+
 System
 ========================================
 String System.currentDirectory() -- get
@@ -69,6 +90,19 @@ memmory stick.
 nil System.usbDiskModeDeactivate()
 
 Deactivates the USB mode.
+
+Battery functions:
+
+Bool System.powerIsPowerOnline()
+Bool System.powerIsBatteryExist()
+Bool System.powerIsBatteryCharging()
+Number System.powerGetBatteryChargingStatus()
+Bool System.powerIsLowBattery()
+Number System.powerGetBatteryLifePercent()
+Number System.powerGetBatteryLifeTime()
+Number System.powerGetBatteryTemp()
+Number System.powerGetBatteryVolt()
+
 
 Sound and music
 ========================================
