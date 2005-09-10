@@ -26,8 +26,7 @@
 #include "luaplayer.h"
 
 /* the boot.lua */
-extern unsigned char bootString_start[];
-extern int bootString_size;
+#include "boot.c"
 
 /* Define the module info section */
 PSP_MODULE_INFO("LUAPLAYER", 0x1000, 1, 1);
@@ -118,15 +117,15 @@ int main(int argc, char** argv)
 	// execute Lua script (according to boot sequence)
 	char path[256];
 	getcwd(path, 256);
-	char* bootString = (char*) malloc(bootString_size + 1);
-	memcpy(bootString, bootString_start, bootString_size);
-	bootString[bootString_size] = 0;		
+	char* bootStringWith0 = (char*) malloc(size_bootString + 1);
+	memcpy(bootStringWith0, bootString, size_bootString);
+	bootString[size_bootString] = 0;
 	while(1) { // reload on error
 		clearScreen(0);
 		flipScreen();
 		clearScreen(0);
 
-		if (runScript(bootString, true))
+		if (runScript(bootStringWith0, true))
 			debugOutput("Error: No script file found.\n", 29);
 		
 		debugOutput("\nPress start to restart\n", 26);
@@ -139,8 +138,7 @@ int main(int argc, char** argv)
 		debugOutput(0,0);
 		initGraphics();
 	}
-	free(bootString);
-	
+	free(bootStringWith0);
 	
 	// wait until user ends the program
 	sceKernelSleepThread();
