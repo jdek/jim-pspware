@@ -545,3 +545,48 @@ void sceGuInit(void)
 int sceGuDisplay(int state)
 {
 }
+
+int scePowerIsPowerOnline()
+{
+	return 1;
+}
+
+int scePowerIsBatteryExist()
+{
+	return 1;
+}
+
+int scePowerIsBatteryCharging()
+{
+	return 0;
+}
+
+int scePowerGetBatteryChargingStatus()
+{
+	return 0;
+}
+
+int scePowerIsLowBattery()
+{
+	return 0;
+}
+
+int scePowerGetBatteryLifePercent()
+{
+	return 0;
+}
+
+int scePowerGetBatteryLifeTime()
+{
+	return 0;
+}
+
+int scePowerGetBatteryTemp()
+{
+	return 0;
+}
+
+scePowerGetBatteryVolt()
+{
+	return 0;
+}

@@ -126,7 +126,7 @@ void specialUp(int key, int x, int y)
 
 DWORD WINAPI LuaThread(LPVOID pParam)
 {
-	runScript((char*) pParam);
+	runScript((char*) pParam, 0);
 	
 	exit(0);
 	return 0;
