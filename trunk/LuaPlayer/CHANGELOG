@@ -14,6 +14,12 @@ v0.10
  - Rewrote the Makefiles and readmes to be more user-friendly.  [Nevyn]
  - Changed startup load sequence (see the lua dev readme) [Nevyn]
  - Made a procedure for making standalone LP apps [Nevyn]
+ - keyboard mapping fixed in PC version [Shine]
+ - bitmask operations added in controls class [Shine]
+ - added battery functions to System
+ - os.time() returns a userdata instead of a number because of problems
+   with the float-precision, so you have to use os.difftime instead of
+   doing calculations with the result
  
 v0.9
 ==========

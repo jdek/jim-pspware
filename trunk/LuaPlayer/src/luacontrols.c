@@ -26,10 +26,12 @@ static int Controls_read(lua_State *L)
 	return 1;
 }
 
+const char* g_errorMessage = "Argument error: The Controls functions take no arguments (and also, must be called with a colon from an instance: e g mycontrols:left().";
+
 #define CHECK_CTRL(NAME, BIT) \
 static int NAME(lua_State *L) \
 { \
-	if (lua_gettop(L) != 1) return luaL_error(L, "Argument error: The Controls functions take no arguments (and also, must be called with a colon from an instance: e g mycontrols:left()."); \
+	if (lua_gettop(L) != 1) return luaL_error(L, g_errorMessage); \
 	Controls *a = toControls(L, 1);\
 	lua_pushboolean(L, (a->Buttons & BIT) == BIT); \
 	return 1; \
@@ -50,6 +52,14 @@ CHECK_CTRL(Controls_square, PSP_CTRL_SQUARE)
 CHECK_CTRL(Controls_home, PSP_CTRL_HOME)
 CHECK_CTRL(Controls_hold, PSP_CTRL_HOLD)
 CHECK_CTRL(Controls_note, PSP_CTRL_NOTE)
+
+static int Controls_buttons(lua_State *L)
+{
+	if (lua_gettop(L) != 1) return luaL_error(L, g_errorMessage);
+	Controls *a = toControls(L, 1);
+	lua_pushnumber(L, a->Buttons);
+	return 1;
+}
 
 static int Controls_analogX(lua_State *L) 
 { 
@@ -93,6 +103,7 @@ static const luaL_reg Controls_methods[] = {
 	{"note", Controls_note },
 	{"analogX", Controls_analogX},
 	{"analogY", Controls_analogY},
+	{"buttons", Controls_buttons },
   {0, 0}
 };
 static const luaL_reg Controls_meta[] = {
@@ -102,12 +113,32 @@ static const luaL_reg Controls_meta[] = {
 };
 UserdataRegister(Controls, Controls_methods, Controls_meta)
 
-
-
-
+void setTableValue(lua_State *L, char* name, int value)
+{
+	lua_pushstring(L, name);
+	lua_pushnumber(L, value);
+	lua_settable(L, -3);
+}
 
 void luaControls_init(lua_State *L) {
 	sceCtrlSetSamplingMode(PSP_CTRL_MODE_ANALOG);
 	Controls_register(L);
-}
 
+	lua_pushstring(L, "Controls");
+	lua_gettable(L, LUA_GLOBALSINDEX); \
+	setTableValue(L, "selectMask", PSP_CTRL_SELECT);
+	setTableValue(L, "startMask", PSP_CTRL_START);
+	setTableValue(L, "upMask", PSP_CTRL_UP);
+	setTableValue(L, "rightMask", PSP_CTRL_RIGHT);
+	setTableValue(L, "downMask", PSP_CTRL_DOWN);
+	setTableValue(L, "leftMask", PSP_CTRL_LEFT);
+	setTableValue(L, "ltriggerMask", PSP_CTRL_LTRIGGER);
+	setTableValue(L, "rtriggerMask", PSP_CTRL_RTRIGGER);
+	setTableValue(L, "triangleMask", PSP_CTRL_TRIANGLE);
+	setTableValue(L, "circleMask", PSP_CTRL_CIRCLE);
+	setTableValue(L, "crossMask", PSP_CTRL_CROSS);
+	setTableValue(L, "squareMask", PSP_CTRL_SQUARE);
+	setTableValue(L, "homeMask", PSP_CTRL_HOME);
+	setTableValue(L, "holdMask", PSP_CTRL_HOLD);
+	setTableValue(L, "noteMask", PSP_CTRL_NOTE);
+}
