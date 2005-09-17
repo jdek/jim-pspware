@@ -1,3 +1,22 @@
+function dumpDirectory(filelist, directory)
+	flist = System.listDirectory(directory)
+	for idx, file in flist do
+		if file.name ~= "." and file.name ~= ".." and file.name ~= "filelist.txt" then
+			fullFile = directory .. "/" .. file.name
+			if file.directory then
+				dumpDirectory(filelist, fullFile)
+			else
+				fullFileHandle = io.open(fullFile, "r")
+				if fullFileHandle then
+					md5sum = System.md5sum(fullFileHandle:read("*a"))
+					fullFileHandle:close()
+					filelist:write(fullFile .. ", size: " .. file.size .. ", md5: " .. md5sum .. "\r\n")
+				end
+			end
+		end
+	end
+end
+
 flist = System.listDirectory()
 dofiles = {}
 
@@ -31,6 +50,10 @@ for idx, runfile in dofiles do
 	done = true
 	break
 end
+
 if not done then
-	print("Boot error: No boot script found!")
+	print("Boot error: No boot script found, creating filelist.txt...")
+	filelist = io.open("filelist.txt", "w")
+	dumpDirectory(filelist, System.currentDirectory())
+	filelist:close()
 end

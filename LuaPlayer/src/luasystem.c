@@ -217,6 +217,22 @@ static int lua_powerGetBatteryVolt(lua_State *L)
 	return 1;
 }
 
+static int lua_md5sum(lua_State *L)
+{
+	size_t size;
+	const char *string = luaL_checklstring(L, 1, &size);
+	if (!string) return luaL_error(L, "Argument error: System.md5sum(string) takes a string as argument.");
+
+	u8 digest[16];
+	sceKernelUtilsMd5Digest((u8*)string, size, digest);
+	int i;
+	char result[33];
+	for (i = 0; i < 16; i++) sprintf(result + 2 * i, "%02x", digest[i]);
+	lua_pushstring(L, result);
+	
+	return 1;
+}
+
 static const luaL_reg System_functions[] = {
   {"currentDirectory",              lua_curdir},
   {"listDirectory",           	    lua_dir},
@@ -231,6 +247,7 @@ static const luaL_reg System_functions[] = {
   {"powerGetBatteryLifeTime",       lua_powerGetBatteryLifeTime},
   {"powerGetBatteryTemp",           lua_powerGetBatteryTemp},
   {"powerGetBatteryVolt",           lua_powerGetBatteryVolt},
+  {"md5sum",                        lua_md5sum},
   {0, 0}
 };
 void luaSystem_init(lua_State *L) {
