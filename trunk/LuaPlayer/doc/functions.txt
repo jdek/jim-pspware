@@ -103,6 +103,12 @@ Number System.powerGetBatteryLifeTime()
 Number System.powerGetBatteryTemp()
 Number System.powerGetBatteryVolt()
 
+String System.md5sum(String)
+
+Calculates the md5sum of a string. For example
+print(System.md5sum(io.input("EBOOT.PBP"):read("*a")))
+prints the same digest as "md5sum EBOOT.PBP" on Unix.
+
 
 Sound and music
 ========================================
