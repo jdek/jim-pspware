@@ -28,7 +28,7 @@ EXTRA_TARGETS := header
 
 # This must be included here
 include $(PSPSDK)/lib/build.mak
-
+LIBS += -lpsphprm_driver
 # Now our own build targets
 #deps: 
 

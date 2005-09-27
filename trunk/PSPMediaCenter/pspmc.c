@@ -13,11 +13,8 @@
 #include <string.h>
 #include <pspmoduleinfo.h>
 #include <pspaudiolib.h>
-#include <pspusb.h>
-#include <pspusbstor.h>
 #include <pspmodulemgr.h>
 #include <pspsdk.h>
-
 
 #include "codec.h"
 
@@ -26,9 +23,11 @@
 #include "codecincs.h"
 
 /* Define the module info section */
-//#define K_STARTUP
+#define K_STARTUP
+#define ENABLE_SIO
+
 #ifdef K_STARTUP
-PSP_MODULE_INFO("PSPMC", 0x1000, 0, 1);
+PSP_MODULE_INFO("PSPMC", 0x1000, 1, 1);
 PSP_MAIN_THREAD_ATTR(THREAD_ATTR_USER);
 #else
 PSP_MODULE_INFO("PSPMC", 0x1000, 1, 1);
@@ -60,101 +59,44 @@ void MyExceptionHandler(PspDebugRegBlock * regs)
     pspDebugScreenSetBackColor(0x00000000);
 }
 
-
-#ifdef USB_ENABLED
-/**
- * helper function to make things easier
- */
-int LoadStartModule(char *path)
+//Put this here so we can dump our own stuff
+static const char *codeTxt[32] = 
 {
-    u32 loadResult;
-    u32 startResult;
-    int status;
-
-    loadResult = sceKernelLoadModule(path, 0, NULL);
-    if (loadResult & 0x80000000)
-	return -1;
-    else
-	startResult = sceKernelStartModule(loadResult, 0, NULL, &status, NULL);
-
-    if (loadResult != startResult)
-	return -2;
-
-    return 0;
-}
-
-/**
- * Load all the prx's needed for usb, and init the drivers
- */
-void usb_init(void)
+    "Interrupt", "TLB modification", "TLB load/inst fetch", "TLB store",
+    "Address load/inst fetch", "Address store", "Bus error (instr)", 
+    "Bus error (data)", "Syscall", "Breakpoint", "Reserved instruction", 
+    "Coprocessor unusable", "Arithmetic overflow", "Unknown 14",
+	"Unknown 15", "Unknown 16", "Unknown 17", "Unknown 18", "Unknown 19",
+	"Unknown 20", "Unknown 21", "Unknown 22", "Unknown 23", "Unknown 24",
+	"Unknown 25", "Unknown 26", "Unknown 27", "Unknown 28", "Unknown 29",
+	"Unknown 31"
+};
+static const unsigned char regName[32][5] =
 {
-    int retVal;
-    //start necessary drivers
-    LoadStartModule("flash0:/kd/semawm.prx");
-    LoadStartModule("flash0:/kd/usbstor.prx");
-    LoadStartModule("flash0:/kd/usbstormgr.prx");
-    LoadStartModule("flash0:/kd/usbstorms.prx");
-    LoadStartModule("flash0:/kd/usbstorboot.prx");
+    "zr", "at", "v0", "v1", "a0", "a1", "a2", "a3",
+    "t0", "t1", "t2", "t3", "t4", "t5", "t6", "t7", 
+    "s0", "s1", "s2", "s3", "s4", "s5", "s6", "s7",
+    "t8", "t9", "k0", "k1", "gp", "sp", "fp", "ra"
+};
 
-    //setup USB drivers
-    retVal = sceUsbStart(PSP_USBBUS_DRIVERNAME, 0, 0);
-    if (retVal != 0) {
-	printf("Error starting USB Bus driver (0x%08X)\n", retVal);
-	sceKernelSleepThread();
-    }
-    retVal = sceUsbStart(PSP_USBSTOR_DRIVERNAME, 0, 0);
-    if (retVal != 0) {
-	printf("Error starting USB Mass Storage driver (0x%08X)\n", retVal);
-	sceKernelSleepThread();
-    }
-    retVal = sceUsbstorBootSetCapacity(0x800000);
-    if (retVal != 0) {
-	printf("Error setting capacity with USB Mass Storage driver (0x%08X)\n", retVal);
-	sceKernelSleepThread();
-    }
-    retVal = 0;
-}
-
-/**
- * Tear down the USB drivers
- */
-void usb_deinit(void)
+void MySioExceptionHandler(PspDebugRegBlock * regs)
 {
-    int retVal;
-    unsigned int state = sceUsbGetState();
-    if (state & PSP_USB_ACTIVATED) {
-	retVal = sceUsbDeactivate();
-	if (retVal != 0) {
-	    printf("Error calling sceUsbDeactivate (0x%08X)\n", retVal);
-	    sceKernelSleepThread();
-	}
-    }
-    retVal = sceUsbStop(PSP_USBSTOR_DRIVERNAME, 0, 0);
-    if (retVal != 0) {
-	printf("Error calling sceUsbStop stor (0x%08X)\n", retVal);
-	sceKernelSleepThread();
-    }
+    int i;
+    fprintf(stdout, "Your PSP has just crashed!\r\n");
+    fprintf(stdout, "Exception details:\r\n");
+    
 
-    retVal = sceUsbStop(PSP_USBBUS_DRIVERNAME, 0, 0);
-    if (retVal != 0) {
-	printf("Error calling sceUsbStop bus (0x%08X)\n", retVal);
-	sceKernelSleepThread();
+    fprintf(stdout, "Exception - %s\r\n", codeTxt[(regs->cause >> 2) & 31]);
+    fprintf(stdout, "EPC       - %08X\r\n", regs->epc);
+    fprintf(stdout, "Cause     - %08X\r\n", regs->cause);
+    fprintf(stdout, "Status    - %08X\r\n", regs->status);
+    fprintf(stdout, "BadVAddr  - %08X\r\n", regs->badvaddr);
+    for(i = 0; i < 32; i+=4)
+    {
+	fprintf(stdout, "%s:%08X %s:%08X %s:%08X %s:%08X\r\n", regName[i], regs->r[i], regName[i+1], regs->r[i+1], regName[i+2], regs->r[i+2], regName[i+3], regs->r[i+3]);
     }
+    fprintf(stdout, "Please restart your PSP now.\r\n");
 }
-
-/**
- * Call this from the GUI end to toggle the USB on/off
- */
-void usb_toggle(void)
-{
-    unsigned int state = sceUsbGetState();
-    if (state & PSP_USB_ACTIVATED) {
-	sceUsbDeactivate();
-    } else {
-	sceUsbActivate(0x1c8);
-    }
-}
-#endif
 
 #ifdef K_STARTUP		// causes problems, so done in main at the moment
 /**
@@ -166,8 +108,18 @@ void loaderInit()
 {
     pspKernelSetKernelPC();
     pspSdkInstallNoDeviceCheckPatch();
+#ifdef ENABLE_SIO
+    pspDebugSioSetBaud(115200);
+    pspDebugSioInit();
+    pspDebugInstallStdoutHandler(pspDebugSioPutData);
+    pspDebugInstallStderrHandler(pspDebugSioPutData);
+    pspDebugSioInstallKprintf();
+    pspDebugInstallErrorHandler(MySioExceptionHandler);
+#else
     pspDebugInstallKprintfHandler(NULL);
     pspDebugInstallErrorHandler(MyExceptionHandler);
+#endif
+    
 }
 #endif
 
@@ -175,9 +127,6 @@ void loaderInit()
 /* Exit callback */
 int exit_callback(int arg1, int arg2, void *common)
 {
-#ifdef USB_ENABLED
-    usb_deinit();
-#endif
     pspAudioEnd();
     sceKernelExitGame();
 }
@@ -207,18 +156,11 @@ int SetupCallbacks(void)
 int main(int argc, char *argv[])
 {
     int stubnum;
-#ifdef USB_ENABLED
-    pspDebugScreenInit();
-    pspDebugScreenClear();
 #ifndef K_STARTUP
     pspSdkInstallNoDeviceCheckPatch();
     pspDebugInstallKprintfHandler(NULL);
     pspDebugInstallErrorHandler(MyExceptionHandler);
 #endif
-    usb_init();
-#endif
-    pspDebugInstallKprintfHandler(NULL);
-    pspDebugInstallErrorHandler(MyExceptionHandler);
     SetupCallbacks();
     // Setup Pad
     sceCtrlSetSamplingCycle(0);
@@ -234,9 +176,7 @@ int main(int argc, char *argv[])
     gui_main();
 
     pspAudioEnd();
-#ifdef USB_ENABLED
-    usb_deinit();
-#endif
+    
     sceKernelExitGame();
 
     // wait forever
