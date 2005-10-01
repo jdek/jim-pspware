@@ -11,7 +11,8 @@ typedef u16 Color;
 
 typedef struct
 {
-	int textureWidth;  // the real width and height of data, 2^n with n>=0
+	int textureWidth;  // the real width of data, 2^n with n>=0
+	int textureHeight;  // the real height of data, 2^n with n>=0
 	int imageWidth;  // the image width
 	int imageHeight;
 	Color* data;

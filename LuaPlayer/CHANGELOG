@@ -2,6 +2,9 @@ v0.11
 ==========
  - Added System.md5sum and filelist.txt debug ouput on startup failure in boot.lua [Shine]
  - changed case sensitivity handling in boot.lua [Shine]
+ - now Image.createEmpty accepts arbitrary sizes [Shine]
+ - internal image width and height needs not to be the same size [Shine]
+ - max image size can be 512x512 now (larger are not allowed with GU blit) [Shine]
 
 v0.10
 ==========

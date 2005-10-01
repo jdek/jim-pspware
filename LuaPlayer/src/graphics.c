@@ -25,14 +25,14 @@ static unsigned int __attribute__((aligned(16))) list[256];
 static int dispBufferNumber;
 static int initialized = 0;
 
-static void setWidthToNextPower2(Image* image)
+static int getNextPower2(int width)
 {
-	int width = MAX(image->imageWidth, image->imageHeight);
 	int b = width;
 	int n;
 	for (n = 0; b != 0; n++) b >>= 1;
-	image->textureWidth = 1 << n;
-	if (image->textureWidth == 2 * width) image->textureWidth >>= 1;
+	b = 1 << n;
+	if (b == 2 * width) b >>= 1;
+	return b;
 }
 
 Color* getVramDrawBuffer()
@@ -92,14 +92,15 @@ Image* loadImage(const char* filename)
 	}
 	image->imageWidth = width;
 	image->imageHeight = height;
-	setWidthToNextPower2(image);
+	image->textureWidth = getNextPower2(width);
+	image->textureHeight = getNextPower2(height);
 	png_set_strip_16(png_ptr);
 	png_set_packing(png_ptr);
 	if (color_type == PNG_COLOR_TYPE_PALETTE) png_set_palette_to_rgb(png_ptr);
 	if (color_type == PNG_COLOR_TYPE_GRAY && bit_depth < 8) png_set_gray_1_2_4_to_8(png_ptr);
 	if (png_get_valid(png_ptr, info_ptr, PNG_INFO_tRNS)) png_set_tRNS_to_alpha(png_ptr);
 	png_set_filler(png_ptr, 0xff, PNG_FILLER_AFTER);
-	image->data = (Color*) memalign(16, image->textureWidth * image->textureWidth * 2);
+	image->data = (Color*) memalign(16, image->textureWidth * image->textureHeight * 2);
 	if (!image->data) {
 		free(image);
 		fclose(fp);
@@ -179,9 +180,10 @@ void blitAlphaImageToScreen(int sx, int sy, int width, int height, Image* source
 
 	sceKernelDcacheWritebackInvalidateAll();
 	sceGuStart(GU_DIRECT, list);
-	sceGuTexImage(0, source->textureWidth, source->textureWidth, source->textureWidth, (void*) source->data);
-	float w = 1.0f / ((float)source->textureWidth);
-	sceGuTexScale(w, w);
+	sceGuTexImage(0, source->textureWidth, source->textureHeight, source->textureWidth, (void*) source->data);
+	float u = 1.0f / ((float)source->textureWidth);
+	float v = 1.0f / ((float)source->textureHeight);
+	sceGuTexScale(u, v);
 	
 	int j = 0;
 	while (j < width) {
@@ -214,10 +216,11 @@ Image* createImage(int width, int height)
 	if (!image) return NULL;
 	image->imageWidth = width;
 	image->imageHeight = height;
-	setWidthToNextPower2(image);
-	image->data = (Color*) memalign(16, image->textureWidth * image->textureWidth * 2);
+	image->textureWidth = getNextPower2(width);
+	image->textureHeight = getNextPower2(height);
+	image->data = (Color*) memalign(16, image->textureWidth * image->textureHeight * 2);
 	if (!image->data) return NULL;
-	memset(image->data, 0, image->textureWidth * image->textureWidth * 2);
+	memset(image->data, 0, image->textureWidth * image->textureHeight * 2);
 	return image;
 }
 
@@ -230,7 +233,7 @@ void freeImage(Image* image)
 void clearImage(Color color, Image* image)
 {
 	int i;
-	int size = image->textureWidth * image->textureWidth;
+	int size = image->textureWidth * image->textureHeight;
 	Color* data = image->data;
 	for (i = 0; i < size; i++, data++) *data = color;
 }

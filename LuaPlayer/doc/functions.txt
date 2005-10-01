@@ -113,6 +113,10 @@ prints the same digest as "md5sum EBOOT.PBP" on Unix.
 Sound and music
 ========================================
 nil Music.playFile( string file, bool loop )
+
+Plays a music in one of the following formats:
+UNI, IT, XM, S3M, MOD, MTM, STM, DSM, MED, FAR, ULT or 669.
+
 nil Music.pause()
 nil Music.resume()
 nil Music.stop()
