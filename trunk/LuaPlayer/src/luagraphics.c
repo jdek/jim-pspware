@@ -81,7 +81,7 @@ static int Image_createEmpty(lua_State *L)
 	if (lua_gettop(L) != 2) return luaL_error(L, "Argument error: Image.createEmpty(w, h) takes two arguments.");
 	int w = luaL_checkint(L, 1);
 	int h = luaL_checkint(L, 2);
-	if (w <= 0 || h <= 0 || w > SCREEN_WIDTH || h > SCREEN_HEIGHT) return luaL_error(L, "invalid size");
+	if (w <= 0 || h <= 0 || w > 512 || h > 512) return luaL_error(L, "invalid size");
 	luaC_collectgarbage(L);
 	Image* image = createImage(w, h);
 	if (!image) return luaL_error(L, "can't create image");
