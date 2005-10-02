@@ -6,6 +6,7 @@
 #include "../framebuffer.h"
 #include "../graphics.h"
 #include "mikmod.h"
+#include "md5.inc"
 
 extern int currentControls;
 extern unsigned short* fb;
@@ -589,4 +590,12 @@ int scePowerGetBatteryTemp()
 scePowerGetBatteryVolt()
 {
 	return 0;
+}
+
+int sceKernelUtilsMd5Digest(u8 *data, u32 size, u8 *digest)
+{
+  MD5_CTX ctx;
+  MD5Init( &ctx );
+  MD5Update( &ctx, data, size );
+  MD5Final( digest, &ctx );
 }
