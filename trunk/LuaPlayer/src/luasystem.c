@@ -3,12 +3,14 @@
 #include <pspusb.h>
 #include <pspusbstor.h>
 #include <psppower.h>
-#include "luaplayer.h"
-
+#include <pspdebug.h>
 #include <unistd.h>
+#include "luaplayer.h"
+#include "sio.h"
 
 static int usbActivated = 0;
-
+static SceUID sio_fd = -1;
+static const char* sioNotInitialized = "SIO not initialized.";
 
 static int lua_getCurrentDirectory(lua_State *L)
 {
@@ -233,6 +235,43 @@ static int lua_md5sum(lua_State *L)
 	return 1;
 }
 
+static int lua_sioInit(lua_State *L)
+{
+	if (lua_gettop(L) != 1) return luaL_error(L, "baud rate expected.");
+	int baudRate = luaL_checkint(L, 1);
+	if (sio_fd < 0) sio_fd = sceIoOpen("sio:", PSP_O_RDWR, 0);
+	if (sio_fd < 0) return luaL_error(L, "failed create SIO handle.");
+	sceIoIoctl(sio_fd, SIO_IOCTL_SET_BAUD_RATE, &baudRate, sizeof(baudRate), NULL, 0);
+	
+	return 0;
+}
+
+static int lua_sioWrite(lua_State *L)
+{
+	if (sio_fd < 0) return luaL_error(L, sioNotInitialized);
+	size_t size;
+	const char *string = luaL_checklstring(L, 1, &size);
+	if (!string) return luaL_error(L, "Argument error: System.sioWrite(string) takes a string as argument.");
+	sceIoWrite(sio_fd, string, size);
+	
+	return 0;
+}
+
+static int lua_sioRead(lua_State *L)
+{
+	if (sio_fd < 0) return luaL_error(L, sioNotInitialized);
+	if (lua_gettop(L) != 0) return luaL_error(L, "no arguments expected.");
+	char data[256];
+	int count = sceIoRead(sio_fd, data, 256);
+	if (count > 0) {
+		lua_pushlstring(L, data, count);
+	} else {
+		lua_pushstring(L, "");
+	}
+	
+	return 1;
+}
+
 static const luaL_reg System_functions[] = {
   {"currentDirectory",              lua_curdir},
   {"listDirectory",           	    lua_dir},
@@ -248,6 +287,9 @@ static const luaL_reg System_functions[] = {
   {"powerGetBatteryTemp",           lua_powerGetBatteryTemp},
   {"powerGetBatteryVolt",           lua_powerGetBatteryVolt},
   {"md5sum",                        lua_md5sum},
+  {"sioInit",                       lua_sioInit},
+  {"sioRead",                       lua_sioRead},
+  {"sioWrite",                      lua_sioWrite},
   {0, 0}
 };
 void luaSystem_init(lua_State *L) {

@@ -5,6 +5,9 @@ v0.11
  - now Image.createEmpty accepts arbitrary sizes [Shine]
  - internal image width and height needs not to be the same size [Shine]
  - max image size can be 512x512 now (larger are not allowed with GU blit) [Shine]
+ - System.sioInit, sioWrite and sioRead implemented for serial port support [Shine]
+   (see http://www.luaplayer.org/sio/readme.html and http://nil.rpc1.org/psp/remote.html
+    for information about the hardware interface)
 
 v0.10
 ==========

@@ -24,6 +24,7 @@
 #include "graphics.h"
 #include "sound.h"
 #include "luaplayer.h"
+#include "sio.h"
 
 /* the boot.lua */
 #include "boot.c"
@@ -97,6 +98,7 @@ __attribute__((constructor)) void stdoutInit()
 	pspKernelSetKernelPC();
 	pspSdkInstallNoDeviceCheckPatch();
 	pspDebugInstallKprintfHandler(NULL);
+	registerSIODriver();
 
 	// ignore startup messages from kernel, but install the tty driver in kernel mode
 	pspDebugInstallStdoutHandler(nullOutput); 
