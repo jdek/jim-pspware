@@ -428,4 +428,4 @@ while not Controls.read():start() do
 	screen.waitVblankStart()
 	screen.flip()
 end
-
+Music.stop()

@@ -31,6 +31,7 @@ int runScript(const char* script, BOOL isStringBuffer )
 	luaSound_init(L);
 	luaControls_init(L);
 	luaGraphics_init(L);
+	luaTimer_init(L);
 	luaSystem_init(L);
 	
 	int s = 0;

@@ -182,6 +182,7 @@ int registerSIODriver(void)
 {
 	int ret;
 
+	pspKernelSetKernelPC();
 	(void) sceIoDelDrv("sio"); /* Ignore error */
 	ret = sceIoAddDrv(&sio_driver);
 	if(ret < 0)

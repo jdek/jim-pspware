@@ -1,5 +1,6 @@
 Lua Player
 http://www.luaplayer.org/
+IRC: #luaplayer on http://freenode.net/
 
 What is Lua Player?
 ============================
@@ -24,5 +25,3 @@ There's a list of apps and games available at
 http://www.luaplayer.org/gallery/
 
 To install them, simply drop the app folder into the /PSP/GAME/luaplayer/Applications/ folder.
-	
-	
