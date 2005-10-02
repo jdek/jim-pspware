@@ -141,6 +141,7 @@ while true do
 	end
 	
 	if keyin:start() then
+		Music.stop()
 		break
 	end
 

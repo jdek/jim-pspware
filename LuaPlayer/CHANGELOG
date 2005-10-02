@@ -1,13 +1,16 @@
-v0.11
-==========
- - Added System.md5sum and filelist.txt debug ouput on startup failure in boot.lua [Shine]
- - changed case sensitivity handling in boot.lua [Shine]
- - now Image.createEmpty accepts arbitrary sizes [Shine]
- - internal image width and height needs not to be the same size [Shine]
- - max image size can be 512x512 now (larger are not allowed with GU blit) [Shine]
- - System.sioInit, sioWrite and sioRead implemented for serial port support [Shine]
+v0.11 (all changes for this version by Shine)
+================================================
+ - Added System.md5sum and filelist.txt debug ouput on startup failure in boot.lua
+ - changed case sensitivity handling in boot.lua for problems with Windows 98
+ - now Image.createEmpty accepts 512x512 pixel sizes
+ - internal image width and height needs not to be the same size
+ - max image size can be 512x512 now (larger are not allowed with GU blit)
+ - System.sioInit, sioWrite and sioRead implemented for serial port support
    (see http://www.luaplayer.org/sio/readme.html and http://nil.rpc1.org/psp/remote.html
     for information about the hardware interface)
+ - new Timer class and System.sleep function
+ - fixed timezone bug
+ - moved Starfield and SIO Echo example to Applications
 
 v0.10
 ==========

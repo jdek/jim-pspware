@@ -272,6 +272,14 @@ static int lua_sioRead(lua_State *L)
 	return 1;
 }
 
+static int lua_sleep(lua_State *L)
+{
+	if (lua_gettop(L) != 1) return luaL_error(L, "milliseconds expected.");
+	int milliseconds = luaL_checkint(L, 1);
+	sceKernelDelayThread(milliseconds * 1000);
+	return 0;
+}
+
 static const luaL_reg System_functions[] = {
   {"currentDirectory",              lua_curdir},
   {"listDirectory",           	    lua_dir},
@@ -290,6 +298,7 @@ static const luaL_reg System_functions[] = {
   {"sioInit",                       lua_sioInit},
   {"sioRead",                       lua_sioRead},
   {"sioWrite",                      lua_sioWrite},
+  {"sleep",                         lua_sleep},
   {0, 0}
 };
 void luaSystem_init(lua_State *L) {

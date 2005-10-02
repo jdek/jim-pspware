@@ -2,6 +2,9 @@ Graphics
 ========================================
 
 Image Image.createEmpty(width, height)
+
+Creates an empty image, initially cleared. Max width and height is 512.
+
 Image Image.load( filename )
 
 nil image:blit(x, y, Image source, [sourcex, sourcey, width, height], [alpha = true])
@@ -73,6 +76,33 @@ Number Controls.holdMask
 Number Controls.noteMask
 
 
+Millisecond Timer
+========================================
+
+Timer Timer.new([startTime]) 
+
+Creates a new Timer object, sets to 0 or startTime in milliseconds, if specified BUT don't start ticking as yet.
+
+Number Timer:start() 
+
+Starts to tick the timer (incrementing by one every millisecond), or resumes to tick after being stopped.
+Returns the current time() value. If the timer is running, it is the same as time().
+
+Number Timer:time() 
+
+Returns in milliseconds since the timer started/resumed.
+
+Number Timer:stop() 
+
+Stops the timer. Returns the current time(). Subsequent time() calls returns the value when stopped.
+If the timer is stopped, this call is the same as time().
+
+Number Timer:reset([startTime]) 
+
+Resets the timer to 0 by default or startTime in milliseconds and holds the timer.
+Returns the time before resetted to the new value. 
+
+
 System
 ========================================
 String System.currentDirectory() -- get
@@ -122,6 +152,10 @@ Writes the string to the SIO
 string System.sioRead()
 
 Reads all available data from the SIO. Returns an empty string, if no data was received.
+
+System.sleep(number) 
+
+Pauses program execution for the specified time in milliseconds. It doesn't affect any timer object.
 
 
 Sound and music

@@ -17,6 +17,8 @@
 #include <pspdisplay.h>
 #include <pspctrl.h>
 #include <pspsdk.h>
+#include <psputility.h>
+#include <time.h>
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
@@ -104,9 +106,24 @@ __attribute__((constructor)) void stdoutInit()
 	pspDebugInstallStdoutHandler(nullOutput); 
 } 
 
+// preliminary fix, should be removed, when integrated at the right position in PSPSDK
+void initTimezone()
+{
+	int tzOffset = 0;
+	sceUtilityGetSystemParamInt(PSP_SYSTEMPARAM_ID_INT_TIMEZONE, &tzOffset);
+	int tzOffsetAbs = tzOffset < 0 ? -tzOffset : tzOffset;
+	int hours = tzOffsetAbs / 60;
+	int minutes = tzOffsetAbs - hours * 60;
+	static char tz[10];
+	sprintf(tz, "GMT%s%02i:%02i", tzOffset < 0 ? "+" : "-", hours, minutes);
+	setenv("TZ", tz, 1);
+	tzset();
+}
+
 int main(int argc, char** argv)
 {
 	SetupCallbacks();
+	initTimezone();
 
 	// init modules
 	initGraphics();

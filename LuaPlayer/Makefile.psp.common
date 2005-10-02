@@ -1,11 +1,12 @@
-OBJS = src/graphics.o src/sound.o src/luaplayer.o src/luacontrols.o src/luagraphics.o src/luasound.o src/luasystem.o src/utility.o src/main.o src/framebuffer.o src/sio.o
+OBJS = src/graphics.o src/sound.o src/luaplayer.o src/utility.o src/main.o src/framebuffer.o src/sio.o \
+	src/luacontrols.o src/luagraphics.o src/luasound.o src/luatimer.o src/luasystem.o
 INCDIR =
 CFLAGS = -G0 -Wall -O2 -fno-strict-aliasing
 CXXFLAGS = $(CFLAGS) -fno-exceptions -fno-rtti
 ASFLAGS = $(CFLAGS)
 LIBDIR =
 LDFLAGS =
-LIBS= -llua -llualib -lpng -lz -lpspgu -lm -lmikmod -lmmio -lpspaudiolib -lpspaudio -lpspusb -lpspusbstor -lpsppower -lpspdebug -lpsphprm_driver
+LIBS= -llua -llualib -lpng -lz -lpspgu -lm -lmikmod -lmmio -lpspaudiolib -lpspaudio -lpspusb -lpspusbstor -lpsppower -lpspdebug -lpsphprm_driver -lpsputility
 EXTRA_TARGETS = EBOOT.PBP
 PSPSDK=$(shell psp-config --pspsdk-path)
 
