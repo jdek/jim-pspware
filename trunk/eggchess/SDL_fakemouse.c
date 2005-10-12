@@ -11,12 +11,7 @@
 #include <SDL.h>                                        
 #include <SDL_events.h>                                        
 
-#ifdef PSP
-/* The PSP needs a bigger deadzone than the default. */
-#define JOY_DEADZONE (256 * 16)
-#else
 #define JOY_DEADZONE (256)
-#endif
 
 extern int SDL_PrivateMouseMotion(Uint8 buttonstate, int relative, Sint16 x, Sint16 y);
 extern int SDL_PrivateMouseButton(Uint8 state, Uint8 button, Sint16 x, Sint16 y);

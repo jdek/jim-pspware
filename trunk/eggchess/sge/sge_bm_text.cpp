@@ -47,7 +47,7 @@ sge_bmpFont* sge_BF_CreateFont(SDL_Surface *surface, Uint8 flags)
 {
 	sge_bmpFont	*font;
 
-	font = new(nothrow) sge_bmpFont; if(font==NULL){SDL_SetError("SGE - Out of memory");return NULL;}
+	font = new sge_bmpFont; if(font==NULL){SDL_SetError("SGE - Out of memory");return NULL;}
 	
 	if(!(flags&SGE_BFNOCONVERT) && !(flags&SGE_BFSFONT)){    /* Get a converted copy */
 		font->FontSurface = SDL_DisplayFormat(surface);
@@ -118,7 +118,7 @@ sge_bmpFont* sge_BF_CreateFont(SDL_Surface *surface, Uint8 flags)
 	else{                    /* Karl Bartel's sfont */
 		Sint16 x=0;
 		int i=0;
-		font->CharPos = new(nothrow) Sint16[256];
+		font->CharPos = new Sint16[256];
 		if(!font->CharPos){SDL_SetError("SGE - Out of memory");sge_BF_CloseFont(font);return NULL;}
 		Uint32 color = sge_GetPixel(fnt,0,0);
 
