@@ -6,7 +6,7 @@ CXXFLAGS = $(CFLAGS) -fno-exceptions -fno-rtti
 ASFLAGS = $(CFLAGS)
 LIBDIR =
 LDFLAGS =
-LIBS= -llua -llualib -lpng -lz -lpspgu -lm -lmikmod -lmmio -lpspaudiolib -lpspaudio -lpspusb -lpspusbstor -lpsppower -lpspdebug -lpsphprm_driver -lpsputility
+LIBS= -llua -llualib -lpng -lz -lpspgum -lpspgu -lm -lmikmod -lmmio -lpspaudiolib -lpspaudio -lpspusb -lpspusbstor -lpsppower -lpspdebug -lpsphprm_driver -lpsputility
 EXTRA_TARGETS = EBOOT.PBP
 PSPSDK=$(shell psp-config --pspsdk-path)
 
