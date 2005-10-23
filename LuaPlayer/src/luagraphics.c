@@ -1,5 +1,9 @@
 #include <stdlib.h>
+#include <malloc.h>
 #include <pspdisplay.h>
+#include <pspgu.h>
+#include <pspgum.h>
+#include <string.h>
 #include "luaplayer.h"
 
 #include "graphics.h"
@@ -9,6 +13,12 @@
 
 UserdataStubs(Color, Color)
 
+struct FloatVertex
+{
+	float u, v;
+	unsigned int color;
+	float x,y,z;
+};
 
 /// screen.*
 /// ====================
@@ -276,7 +286,7 @@ static int Image_print (lua_State *L) {
 	int x = luaL_checkint(L, 1);
 	int y = luaL_checkint(L, 2);
 	const char* text = luaL_checkstring(L, 3);
-	Color color = (argc == 5)?*toColor(L, 4):0x8000;
+	Color color = (argc == 5)?*toColor(L, 4):0xFF000000;
 	if (!dest) {
 		printTextScreen(x, y, text, color);
 	} else {
@@ -363,12 +373,13 @@ static int Color_new (lua_State *L) {
 	unsigned b = CLAMP(luaL_checkint(L, 3), 0, 255);
 	unsigned a;
 	if (argc == 4) {
-		a = CLAMP(luaL_checkint(L, 3), 0, 255);
+		a = CLAMP(luaL_checkint(L, 4), 0, 255);
 	} else {
 		a = 255;
 	}
 
-	*color = ((b>>3)<<10) | ((g>>3)<<5) | (r>>3) | (a == 255 ? 0x8000 : 0);
+	//*color = ((b>>3)<<10) | ((g>>3)<<5) | (r>>3) | (a == 255 ? 0x8000 : 0);
+	*color = a << 24 | b << 16 | g << 8 | r;
 	
 	return 1;
 }
@@ -376,10 +387,10 @@ static int Color_colors (lua_State *L) {
 	int argc = lua_gettop(L);
 	if(argc != 1) return luaL_error(L, "Argument error: color:colors() takes no arguments, and it must be called from an instance with a colon.");
 	Color color = *toColor(L, 1);
-	int r = (color & 0x1f) << 3; 
-	int g = ((color >> 5) & 0x1f) << 3 ;
-	int b = ((color >> 10) & 0x1f) << 3 ;
-	int a = color & 0x8000 ? 0xff : 0; 
+	int r = R(color); 
+	int g = G(color);
+	int b = B(color);
+	int a = A(color);
 	
 	lua_newtable(L);
 	lua_pushstring(L, "r"); lua_pushnumber(L, r); lua_settable(L, -3);
@@ -428,7 +439,195 @@ static const luaL_reg Screen_functions[] = {
 
 
 
+#define CONSTANT(name)\
+   lua_pushstring(L, #name);\
+   lua_pushnumber(L, name);\
+   lua_settable(L, LUA_GLOBALSINDEX);
 
+static int lua_sceGuClearColor(lua_State *L) {
+	int argc = lua_gettop(L); 
+	if (argc != 1) return luaL_error(L, "wrong number of arguments"); 
+	sceGuClearColor(*toColor(L, 1));
+	return 0;
+}
+
+static int lua_sceGuClearDepth(lua_State *L) {
+	int argc = lua_gettop(L); 
+	if (argc != 1) return luaL_error(L, "wrong number of arguments"); 
+	sceGuClearDepth(luaL_checkint(L, 1));
+	return 0;
+}
+
+static int lua_sceGuClear(lua_State *L) {
+	int argc = lua_gettop(L); 
+	if (argc != 1) return luaL_error(L, "wrong number of arguments"); 
+	sceGuClear(luaL_checkint(L, 1));
+	return 0;
+}
+
+static int lua_sceGumMatrixMode(lua_State *L) {
+	int argc = lua_gettop(L); 
+	if (argc != 1) return luaL_error(L, "wrong number of arguments"); 
+	sceGumMatrixMode(luaL_checkint(L, 1));
+	return 0;
+}
+
+static int lua_sceGumLoadIdentity(lua_State *L) {
+	int argc = lua_gettop(L); 
+	if (argc != 0) return luaL_error(L, "wrong number of arguments"); 
+	sceGumLoadIdentity();
+	return 0;
+}
+static int lua_sceGumPerspective(lua_State *L) {
+	int argc = lua_gettop(L); 
+	if (argc != 4) return luaL_error(L, "wrong number of arguments"); 
+	sceGumPerspective(luaL_checknumber(L, 1), luaL_checknumber(L, 2), luaL_checknumber(L, 3), luaL_checknumber(L, 4));
+	return 0;
+}
+	
+static int lua_sceGumTranslate(lua_State *L) {
+	int argc = lua_gettop(L); 
+	if (argc != 3) return luaL_error(L, "wrong number of arguments"); 
+	ScePspFVector3 v;
+	v.x = luaL_checknumber(L, 1);
+	v.y = luaL_checknumber(L, 2);
+	v.z = luaL_checknumber(L, 3);
+	sceGumTranslate(&v);
+	return 0;
+}
+
+static int lua_sceGumRotateXYZ(lua_State *L) {
+	int argc = lua_gettop(L); 
+	if (argc != 3) return luaL_error(L, "wrong number of arguments"); 
+	ScePspFVector3 v;
+	v.x = luaL_checknumber(L, 1);
+	v.y = luaL_checknumber(L, 2);
+	v.z = luaL_checknumber(L, 3);
+	sceGumRotateXYZ(&v);
+	return 0;
+}
+
+static int lua_sceGuTexImage(lua_State *L) {
+	int argc = lua_gettop(L); 
+	if (argc != 1) return luaL_error(L, "wrong number of arguments"); 
+	Image* image = *toImage(L, 1);
+	sceGuTexImage(0, image->textureWidth, image->textureHeight, image->textureWidth, image->data);
+
+	return 0;
+}
+
+static int lua_sceGuTexFunc(lua_State *L) {
+	int argc = lua_gettop(L); 
+	if (argc != 2) return luaL_error(L, "wrong number of arguments"); 
+	sceGuTexFunc(luaL_checkint(L, 1), luaL_checkint(L, 2));
+	return 0;
+}
+
+static int lua_sceGuTexEnvColor(lua_State *L) {
+	int argc = lua_gettop(L); 
+	if (argc != 1) return luaL_error(L, "wrong number of arguments"); 
+	sceGuTexEnvColor(*toColor(L, 1));
+	return 0;
+}
+
+static int lua_sceGuTexFilter(lua_State *L) {
+	int argc = lua_gettop(L); 
+	if (argc != 2) return luaL_error(L, "wrong number of arguments"); 
+	sceGuTexFilter(luaL_checkint(L, 1), luaL_checkint(L, 2));
+	return 0;
+}
+
+static int lua_sceGuTexScale(lua_State *L) {
+	int argc = lua_gettop(L); 
+	if (argc != 2) return luaL_error(L, "wrong number of arguments"); 
+	sceGuTexScale(luaL_checknumber(L, 1), luaL_checknumber(L, 2));
+	return 0;
+}
+
+static int lua_sceGuTexOffset(lua_State *L) {
+	int argc = lua_gettop(L); 
+	if (argc != 2) return luaL_error(L, "wrong number of arguments"); 
+	sceGuTexOffset(luaL_checknumber(L, 1), luaL_checknumber(L, 2));
+	return 0;
+}
+
+static int lua_sceGuAmbientColor(lua_State *L) {
+	int argc = lua_gettop(L); 
+	if (argc != 1) return luaL_error(L, "wrong number of arguments"); 
+	sceGuAmbientColor(*toColor(L, 1));
+	return 0;
+}
+
+static int lua_sceGumDrawArray(lua_State *L) {
+	int argc = lua_gettop(L);
+	if (argc != 3) return luaL_error(L, "wrong number of arguments");
+
+	int prim = luaL_checkint(L, 1);
+	int vtype = luaL_checkint(L, 2);
+	if (lua_type(L, 3) != LUA_TTABLE) return luaL_error(L, "vertices table missing");
+	int n = luaL_getn(L, 3);
+
+	// hack for testing
+	// array must be available until guFinish. Perhaps a user object would be better, with cached vertices data
+	static struct FloatVertex* vertices = NULL;
+	if (vertices == NULL) {
+		vertices = memalign(16, n * sizeof(struct FloatVertex));
+		int i;
+		for (i = 1; i <= n; ++i) {
+			struct FloatVertex* vertice = &vertices[i - 1];
+			
+			// get vertice table
+			lua_rawgeti(L, 3, i);
+			lua_pushnil(L);  /* first key */
+			while (lua_next(L, -2) != 0) {
+				// 'key' is at index -2 and 'value' at index -1
+				const char* key = luaL_checkstring(L, -2);
+				if (strcmp(key, "u") == 0) {
+					vertice->u = luaL_checknumber(L, -1);
+				} else if (strcmp(key, "v") == 0) {
+					vertice->v = luaL_checknumber(L, -1);
+				} else if (strcmp(key, "color") == 0) {
+					vertice->color = *toColor(L, -1);
+				} else if (strcmp(key, "x") == 0) {
+					vertice->x = luaL_checknumber(L, -1);
+				} else if (strcmp(key, "y") == 0) {
+					vertice->y = luaL_checknumber(L, -1);
+				} else if (strcmp(key, "z") == 0) {
+					vertice->z = luaL_checknumber(L, -1);
+				}
+				lua_pop(L, 1);  // removes 'value'; keeps 'key' for next iteration
+			}
+	
+			// remove vertice table
+			lua_pop(L, 1);
+		}
+	}
+	
+	sceGumDrawArray(prim, vtype, n, NULL, vertices);
+	//free(vertices);
+	return 0;
+}
+
+static int lua_sceGuFinish(lua_State *L) {
+	int argc = lua_gettop(L); 
+	if (argc != 0) return luaL_error(L, "wrong number of arguments"); 
+	sceGuFinish();
+	return 0;
+}
+
+static int lua_sceGuSync(lua_State *L) {
+	int argc = lua_gettop(L); 
+	if (argc != 2) return luaL_error(L, "wrong number of arguments"); 
+	sceGuSync(luaL_checkint(L, 1), luaL_checkint(L, 2));
+	return 0;
+}
+
+static int lua_sceGuStart(lua_State *L) {
+	int argc = lua_gettop(L); 
+	if (argc != 0) return luaL_error(L, "wrong number of arguments"); 
+	guStart();
+	return 0;
+}
 
 void luaGraphics_init(lua_State *L) {
 	Image_register(L);
@@ -436,5 +635,43 @@ void luaGraphics_init(lua_State *L) {
 	
 	luaL_openlib(L, "screen", Screen_functions, 0);
 	luaL_openlib(L, "screen", Image_methods, 0); // Basically just an ugly hack. What I'd really want to say is metatable(screen).__index = Image, but my lua powress is failing me there.
+
+	// sceGu* and sceGum* stuff
+
+	CONSTANT(GU_COLOR_BUFFER_BIT)
+	CONSTANT(GU_DEPTH_BUFFER_BIT)
+	CONSTANT(GU_PROJECTION)
+	CONSTANT(GU_VIEW)
+	CONSTANT(GU_MODEL)
+	CONSTANT(GU_PI)
+	CONSTANT(GU_TFX_ADD)
+	CONSTANT(GU_TCC_RGB)
+	CONSTANT(GU_LINEAR)
+	CONSTANT(GU_LINEAR)
+	CONSTANT(GU_TRIANGLES)
+	CONSTANT(GU_TEXTURE_32BITF)
+	CONSTANT(GU_COLOR_8888)
+	CONSTANT(GU_VERTEX_32BITF)
+	CONSTANT(GU_TRANSFORM_3D)
+	
+	lua_register(L, "sceGuClearColor", lua_sceGuClearColor);
+	lua_register(L, "sceGuClearDepth", lua_sceGuClearDepth);
+	lua_register(L, "sceGuClear", lua_sceGuClear);
+	lua_register(L, "sceGumMatrixMode", lua_sceGumMatrixMode);
+	lua_register(L, "sceGumLoadIdentity", lua_sceGumLoadIdentity);
+	lua_register(L, "sceGumPerspective", lua_sceGumPerspective);
+	lua_register(L, "sceGumTranslate", lua_sceGumTranslate);
+	lua_register(L, "sceGumRotateXYZ", lua_sceGumRotateXYZ);
+	lua_register(L, "sceGuTexImage", lua_sceGuTexImage);
+	lua_register(L, "sceGuTexFunc", lua_sceGuTexFunc);
+	lua_register(L, "sceGuTexEnvColor", lua_sceGuTexEnvColor);
+	lua_register(L, "sceGuTexFilter", lua_sceGuTexFilter);
+	lua_register(L, "sceGuTexScale", lua_sceGuTexScale);
+	lua_register(L, "sceGuTexOffset", lua_sceGuTexOffset);
+	lua_register(L, "sceGuAmbientColor", lua_sceGuAmbientColor);
+	lua_register(L, "sceGumDrawArray", lua_sceGumDrawArray);
+	lua_register(L, "sceGuFinish", lua_sceGuFinish);
+	lua_register(L, "sceGuSync", lua_sceGuSync);
+	lua_register(L, "sceGuStart", lua_sceGuStart);
 }
 

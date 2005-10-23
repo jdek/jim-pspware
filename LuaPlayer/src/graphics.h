@@ -7,7 +7,11 @@
 #define SCREEN_WIDTH 480
 #define SCREEN_HEIGHT 272
 
-typedef u16 Color;
+typedef u32 Color;
+#define A(color) ((u8)(color >> 24 & 0xFF))
+#define B(color) ((u8)(color >> 16 & 0xFF))
+#define G(color) ((u8)(color >> 8 & 0xFF))
+#define R(color) ((u8)(color & 0xFF))
 
 typedef struct
 {
@@ -259,7 +263,7 @@ extern void disableGraphics();
  * @param x1 - x line end position
  * @param y1 - y line end position
  */
-void drawLineScreen(int x0, int y0, int x1, int y1, int color);
+void drawLineScreen(int x0, int y0, int x1, int y1, Color color);
 
 /**
  * Draw a line to screen.
@@ -271,7 +275,7 @@ void drawLineScreen(int x0, int y0, int x1, int y1, int color);
  * @param x1 - x line end position
  * @param y1 - y line end position
  */
-extern void drawLineImage(int x0, int y0, int x1, int y1, int color, Image* image);
+extern void drawLineImage(int x0, int y0, int x1, int y1, Color color, Image* image);
 
 /**
  * Get the current draw buffer for fast unchecked access.
@@ -286,5 +290,7 @@ extern Color* getVramDrawBuffer();
  * @return the start address of the current display buffer
  */
 extern Color* getVramDisplayBuffer();
+
+extern void guStart();
 
 #endif

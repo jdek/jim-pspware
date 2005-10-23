@@ -8,20 +8,19 @@
 #include "graphics.h"
 #include "framebuffer.h"
 
-#define IS_ALPHA(color) ((color)&0x8000?0:1)
-#define FRAMEBUFFER_SIZE (PSP_LINE_SIZE*SCREEN_HEIGHT*2)
+#define IS_ALPHA(color) (((color)&0xff000000)==0xff000000?0:1)
+#define FRAMEBUFFER_SIZE (PSP_LINE_SIZE*SCREEN_HEIGHT*4)
 #define MAX(X, Y) ((X) > (Y) ? (X) : (Y))
 
 typedef struct
 {
 	unsigned short u, v;
-	unsigned short color;
 	short x, y, z;
 } Vertex;
 
 extern u8 msx[];
 
-static unsigned int __attribute__((aligned(16))) list[256];
+unsigned int __attribute__((aligned(16))) list[262144];
 static int dispBufferNumber;
 static int initialized = 0;
 
@@ -38,14 +37,14 @@ static int getNextPower2(int width)
 Color* getVramDrawBuffer()
 {
 	Color* vram = (Color*) g_vram_base;
-	if (dispBufferNumber == 0) vram += FRAMEBUFFER_SIZE / 2;
+	if (dispBufferNumber == 0) vram += FRAMEBUFFER_SIZE / sizeof(Color);
 	return vram;
 }
 
 Color* getVramDisplayBuffer()
 {
 	Color* vram = (Color*) g_vram_base;
-	if (dispBufferNumber == 1) vram += FRAMEBUFFER_SIZE / 2;
+	if (dispBufferNumber == 1) vram += FRAMEBUFFER_SIZE / sizeof(Color);
 	return vram;
 }
 
@@ -100,7 +99,7 @@ Image* loadImage(const char* filename)
 	if (color_type == PNG_COLOR_TYPE_GRAY && bit_depth < 8) png_set_gray_1_2_4_to_8(png_ptr);
 	if (png_get_valid(png_ptr, info_ptr, PNG_INFO_tRNS)) png_set_tRNS_to_alpha(png_ptr);
 	png_set_filler(png_ptr, 0xff, PNG_FILLER_AFTER);
-	image->data = (Color*) memalign(16, image->textureWidth * image->textureHeight * 2);
+	image->data = (Color*) memalign(16, image->textureWidth * image->textureHeight * sizeof(Color));
 	if (!image->data) {
 		free(image);
 		fclose(fp);
@@ -119,12 +118,7 @@ Image* loadImage(const char* filename)
 		png_read_row(png_ptr, (u8*) line, png_bytep_NULL);
 		for (x = 0; x < width; x++) {
 			u32 color = line[x];
-			int r = color & 0xff;
-			int g = (color >> 8) & 0xff;
-			int b = (color >> 16) & 0xff;
-			Color color1555 = (r >> 3) | ((g >> 3)<<5) | ((b >> 3)<<10);
-			if ((color & 0xff000000) != 0 ) color1555 |= 0x8000;
-			image->data[x + y * image->textureWidth] = color1555;
+			image->data[x + y * image->textureWidth] =  color;
 		}
 	}
 	free(line);
@@ -153,14 +147,15 @@ void blitImageToScreen(int sx, int sy, int width, int height, Image* source, int
 	if (!initialized) return;
 	Color* vram = getVramDrawBuffer();
 	sceKernelDcacheWritebackInvalidateAll();
-	sceGuStart(GU_DIRECT,list);
-	sceGuCopyImage(GU_PSM_5551, sx, sy, width, height, source->textureWidth, source->data, dx, dy, PSP_LINE_SIZE, vram);
+	guStart();
+	sceGuCopyImage(GU_PSM_8888, sx, sy, width, height, source->textureWidth, source->data, dx, dy, PSP_LINE_SIZE, vram);
 	sceGuFinish();
 	sceGuSync(0,0);
 }
 
 void blitAlphaImageToImage(int sx, int sy, int width, int height, Image* source, int dx, int dy, Image* destination)
 {
+	// TODO Blend!
 	Color* destinationData = &destination->data[destination->textureWidth * dy + dx];
 	int destinationSkipX = destination->textureWidth - width;
 	Color* sourceData = &source->data[source->textureWidth * sy + sx];
@@ -179,7 +174,7 @@ void blitAlphaImageToScreen(int sx, int sy, int width, int height, Image* source
 	if (!initialized) return;
 
 	sceKernelDcacheWritebackInvalidateAll();
-	sceGuStart(GU_DIRECT, list);
+	guStart();
 	sceGuTexImage(0, source->textureWidth, source->textureHeight, source->textureWidth, (void*) source->data);
 	float u = 1.0f / ((float)source->textureWidth);
 	float v = 1.0f / ((float)source->textureHeight);
@@ -192,17 +187,15 @@ void blitAlphaImageToScreen(int sx, int sy, int width, int height, Image* source
 		if (j + sliceWidth > width) sliceWidth = width - j;
 		vertices[0].u = sx + j;
 		vertices[0].v = sy;
-		vertices[0].color = 0;
 		vertices[0].x = dx + j;
 		vertices[0].y = dy;
 		vertices[0].z = 0;
 		vertices[1].u = sx + j + sliceWidth;
 		vertices[1].v = sy + height;
-		vertices[1].color = 0;
 		vertices[1].x = dx + j + sliceWidth;
 		vertices[1].y = dy + height;
 		vertices[1].z = 0;
-		sceGuDrawArray(GU_SPRITES, GU_TEXTURE_16BIT | GU_COLOR_5551 | GU_VERTEX_16BIT | GU_TRANSFORM_2D, 2, 0, vertices);
+		sceGuDrawArray(GU_SPRITES, GU_TEXTURE_16BIT | GU_VERTEX_16BIT | GU_TRANSFORM_2D, 2, 0, vertices);
 		j += sliceWidth;
 	}
 	
@@ -218,9 +211,9 @@ Image* createImage(int width, int height)
 	image->imageHeight = height;
 	image->textureWidth = getNextPower2(width);
 	image->textureHeight = getNextPower2(height);
-	image->data = (Color*) memalign(16, image->textureWidth * image->textureHeight * 2);
+	image->data = (Color*) memalign(16, image->textureWidth * image->textureHeight * sizeof(Color));
 	if (!image->data) return NULL;
-	memset(image->data, 0, image->textureWidth * image->textureHeight * 2);
+	memset(image->data, 0, image->textureWidth * image->textureHeight * sizeof(Color));
 	return image;
 }
 
@@ -369,16 +362,14 @@ void saveImage(const char* filename, Color* data, int width, int height, int lin
 	for (y = 0; y < height; y++) {
 		for (i = 0, x = 0; x < width; x++) {
 			Color color = data[x + y * lineSize];
-			int r = (color & 0x1f) << 3; 
-			int g = ((color >> 5) & 0x1f) << 3 ;
-			int b = ((color >> 10) & 0x1f) << 3 ;
+			u8 r = color & 0xff; 
+			u8 g = (color >> 8) & 0xff;
+			u8 b = (color >> 16) & 0xff;
+			u8 a = saveAlpha ? (color >> 24) & 0xff : 0xff;
 			line[i++] = r;
 			line[i++] = g;
 			line[i++] = b;
-			if (saveAlpha) {
-				int a = color & 0x8000 ? 0xff : 0; 
-				line[i++] = a;
-			}
+			if (saveAlpha) line[i++] = a;
 		}
 		png_write_row(png_ptr, line);
 	}
@@ -391,9 +382,7 @@ void saveImage(const char* filename, Color* data, int width, int height, int lin
 void flipScreen()
 {
 	if (!initialized) return;
-	Color* vram = getVramDrawBuffer();
 	sceGuSwapBuffers();
-	sceDisplaySetFrameBuf(vram, PSP_LINE_SIZE, 1, 1);
 	dispBufferNumber ^= 1;
 }
 
@@ -436,31 +425,34 @@ static void drawLine(int x0, int y0, int x1, int y1, int color, Color* destinati
 	}
 }
 
-void drawLineScreen(int x0, int y0, int x1, int y1, int color)
+void drawLineScreen(int x0, int y0, int x1, int y1, Color color)
 {
 	drawLine(x0, y0, x1, y1, color, getVramDrawBuffer(), PSP_LINE_SIZE);
 }
 
-void drawLineImage(int x0, int y0, int x1, int y1, int color, Image* image)
+void drawLineImage(int x0, int y0, int x1, int y1, Color color, Image* image)
 {
 	drawLine(x0, y0, x1, y1, color, image->data, image->textureWidth);
 }
 
+#define BUF_WIDTH (512)
+#define SCR_WIDTH (480)
+#define SCR_HEIGHT (272)
+#define PIXEL_SIZE (4) /* change this if you change to another screenmode */
+#define FRAME_SIZE (BUF_WIDTH * SCR_HEIGHT * PIXEL_SIZE)
+#define ZBUF_SIZE (BUF_WIDTH SCR_HEIGHT * 2) /* zbuffer seems to be 16-bit? */
+
 void initGraphics()
 {
-	sceDisplaySetMode(0,SCREEN_WIDTH,SCREEN_HEIGHT);
-
 	dispBufferNumber = 0;
-	sceDisplayWaitVblankStart();
-	sceDisplaySetFrameBuf((void*) g_vram_base, PSP_LINE_SIZE, 1, 1);
 
 	sceGuInit();
 
-	sceGuStart(GU_DIRECT, list);
-	sceGuDrawBuffer(GU_PSM_5551, (void*)FRAMEBUFFER_SIZE, PSP_LINE_SIZE);
+	guStart();
+	sceGuDrawBuffer(GU_PSM_8888, (void*)FRAMEBUFFER_SIZE, PSP_LINE_SIZE);
 	sceGuDispBuffer(SCREEN_WIDTH, SCREEN_HEIGHT, (void*)0, PSP_LINE_SIZE);
 	sceGuClear(GU_COLOR_BUFFER_BIT | GU_DEPTH_BUFFER_BIT);
-	sceGuDepthBuffer((void*) 0x110000, PSP_LINE_SIZE);
+	sceGuDepthBuffer((void*) (FRAMEBUFFER_SIZE*2), PSP_LINE_SIZE);
 	sceGuOffset(2048 - (SCREEN_WIDTH / 2), 2048 - (SCREEN_HEIGHT / 2));
 	sceGuViewport(2048, 2048, SCREEN_WIDTH, SCREEN_HEIGHT);
 	sceGuDepthRange(0xc350, 0x2710);
@@ -474,19 +466,27 @@ void initGraphics()
 	sceGuShadeModel(GU_SMOOTH);
 	sceGuEnable(GU_CULL_FACE);
 	sceGuEnable(GU_TEXTURE_2D);
-	sceGuTexMode(GU_PSM_5551, 0, 0, 0);
+	sceGuEnable(GU_CLIP_PLANES);
+	sceGuTexMode(GU_PSM_8888, 0, 0, 0);
 	sceGuTexFunc(GU_TFX_REPLACE, GU_TCC_RGBA);
 	sceGuTexFilter(GU_NEAREST, GU_NEAREST);
 	sceGuAmbientColor(0xffffffff);
+	sceGuEnable(GU_BLEND);
+	sceGuBlendFunc(GU_ADD, GU_SRC_ALPHA, GU_ONE_MINUS_SRC_ALPHA, 0, 0);
 	sceGuFinish();
 	sceGuSync(0, 0);
 
 	sceDisplayWaitVblankStart();
-	sceGuDisplay(1);
+	sceGuDisplay(GU_TRUE);
 	initialized = 1;
 }
 
 void disableGraphics()
 {
 	initialized = 0;
+}
+
+void guStart()
+{
+	sceGuStart(GU_DIRECT, list);
 }

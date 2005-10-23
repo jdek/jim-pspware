@@ -3,6 +3,6 @@
 
 #include <psptypes.h>
 
-extern u16* g_vram_base;
+extern u32* g_vram_base;
 
 #endif
