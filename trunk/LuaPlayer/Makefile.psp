@@ -17,7 +17,6 @@ release: all kxploit # note - does not include binary; see release10 & 15
 	cp -R samples $(RELEASEFOLDER)/Samples
 	cp -R Readme* $(RELEASEFOLDER)/
 	cp -R CHANGELOG $(RELEASEFOLDER)/Changes.txt
-	cp -R KNOWN\ BUGS $(RELEASEFOLDER)/Known\ bugs.txt
 	cp -R LICENSE $(RELEASEFOLDER)/License.txt
 	-find $(RELEASEFOLDER) -name ".svn" -exec rm -rfv '{}' ";"
 	
