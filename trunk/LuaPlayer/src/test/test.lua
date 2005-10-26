@@ -248,7 +248,9 @@ function testBlitSpeedCopyScreen(pngName)
 	return testBlitSpeedCopy(Image.createEmpty(480, 272), screen, pngName)
 end
 
-tests = {
+--[[
+the old 5551 timings:
+
 	{ name="testSmallImage", time=8131, result="10d7fcf1f0a4c5c94984542e526dca9b" },
 	{ name="testFullScreenPixelPlot", time=7178, result="5361a7ccb80fc2f861c878a55bd1bb1c" },
 	{ name="testTransparencyImage", time=508, result="24814c6078ac85280d39fc9ae2ca1e95" },
@@ -263,6 +265,25 @@ tests = {
 	{ name="testBlitSpeedAlphaScreen", time=474, result="5361a7ccb80fc2f861c878a55bd1bb1c" },
 	{ name="testBlitSpeedCopyImage", time=8382, result="858b57847ffc5d527203f98ea98ed8e2" },
 	{ name="testBlitSpeedCopyScreen", time=1694, result="5361a7ccb80fc2f861c878a55bd1bb1c" },
+	
+testBlitSpeedAlphaScreen and testBlitSpeedCopyScreen needs to be faster for the 8888 mode
+]]
+
+tests = {
+	{ name="testSmallImage", time=8757, result="01d42086a28ec1cf03c551ce75ddd30a" },
+	{ name="testFullScreenPixelPlot", time=7760, result="b24f32a46df7088f08587d51e7071bd0" },
+	{ name="testTransparencyImage", time=647, result="9b6cad02f04c0cb4942f5b602ba13357" },
+	{ name="testTransparencyScreen", time=571, result="595c0b4d67c4f15142daf639d4ad4461" },
+	{ name="testClippingImage", time=954, result="71fc06f295443cba12db8bdcd85ad078" },
+	{ name="testClippingScreen", time=1732, result="725a5479391dee169613cfde9556dc73" },
+	{ name="testLineImage", time=2228, result="995675cd3da15e1918255a5aa6b53aae" },
+	{ name="testLineScreen", time=737, result="213678f024aa302c7431a4c991fc355e" },
+	{ name="testTextImage", time=807, result="7a0baad1a6a22afa622f05d749f7fffa" },
+	{ name="testTextScreen", time=588, result="7716950c9b560863494f51b542dbd854" },
+	{ name="testBlitSpeedAlphaImage", time=1332, result="5d917a000187d605ba4d07d4ff32bda3" },
+	{ name="testBlitSpeedAlphaScreen", time=957, result="b51210e887c4615bce12974a858d4f82" },
+	{ name="testBlitSpeedCopyImage", time=11198, result="5d917a000187d605ba4d07d4ff32bda3" },
+	{ name="testBlitSpeedCopyScreen", time=3415, result="b24f32a46df7088f08587d51e7071bd0" },
 }
 
 textY = 0
