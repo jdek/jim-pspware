@@ -1,5 +1,5 @@
 TARGET = luaplayer
-VERSION = 0.11
+VERSION = 0.12
 
 RELEASEF = "LuaPlayer v$(VERSION)"
 RELEASEFOLDER = build/$(RELEASEF)
