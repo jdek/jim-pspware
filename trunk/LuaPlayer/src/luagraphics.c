@@ -1,6 +1,7 @@
 #include <stdlib.h>
 #include <malloc.h>
 #include <pspdisplay.h>
+#include <psputils.h>
 #include <pspgu.h>
 #include <pspgum.h>
 #include <string.h>
@@ -11,14 +12,9 @@
 #define BOOL int
 #endif
 
-UserdataStubs(Color, Color)
+PspGeContext __attribute__((aligned(16))) geContext;
 
-struct FloatVertex
-{
-	float u, v;
-	unsigned int color;
-	float x,y,z;
-};
+UserdataStubs(Color, Color)
 
 /// screen.*
 /// ====================
@@ -558,6 +554,70 @@ static int lua_sceGuAmbientColor(lua_State *L) {
 	return 0;
 }
 
+static int lua_sceGuEnable(lua_State *L) {
+	int argc = lua_gettop(L); 
+	if (argc != 1) return luaL_error(L, "wrong number of arguments"); 
+	sceGuEnable(luaL_checkint(L, 1));
+	return 0;
+}
+
+static int lua_sceGuDisable(lua_State *L) {
+	int argc = lua_gettop(L); 
+	if (argc != 1) return luaL_error(L, "wrong number of arguments"); 
+	sceGuDisable(luaL_checkint(L, 1));
+	return 0;
+}
+
+static int lua_sceGuBlendFunc(lua_State *L) {
+	int argc = lua_gettop(L); 
+	if (argc != 5) return luaL_error(L, "wrong number of arguments"); 
+	sceGuBlendFunc(luaL_checkint(L, 1), luaL_checkint(L, 2), luaL_checkint(L, 3), luaL_checkint(L, 4), luaL_checkint(L, 5));
+	return 0;
+}
+
+static int lua_sceGuLight(lua_State *L) {
+	int argc = lua_gettop(L); 
+	if (argc != 6) return luaL_error(L, "wrong number of arguments");
+	ScePspFVector3 v;
+	v.x = luaL_checknumber(L, 4);
+	v.y = luaL_checknumber(L, 5);
+	v.z = luaL_checknumber(L, 6);
+	sceGuLight(luaL_checkint(L, 1), luaL_checkint(L, 2), luaL_checkint(L, 3), &v);
+	return 0;
+}
+
+static int lua_sceGuLightAtt(lua_State *L) {
+	int argc = lua_gettop(L); 
+	if (argc != 4) return luaL_error(L, "wrong number of arguments");
+	sceGuLightAtt(luaL_checkint(L, 1), luaL_checknumber(L, 2), luaL_checknumber(L, 3), luaL_checknumber(L, 4));
+	return 0;
+}
+
+static int lua_sceGuLightColor(lua_State *L) {
+	int argc = lua_gettop(L); 
+	if (argc != 3) return luaL_error(L, "wrong number of arguments");
+	sceGuLightColor(luaL_checkint(L, 1), luaL_checkint(L, 2), *toColor(L, 3));
+	return 0;
+}
+
+static int lua_sceGuLightMode(lua_State *L) {
+	int argc = lua_gettop(L); 
+	if (argc != 1) return luaL_error(L, "wrong number of arguments");
+	sceGuLightMode(luaL_checkint(L, 1));
+	return 0;
+}
+
+static int lua_sceGuLightSpot(lua_State *L) {
+	int argc = lua_gettop(L); 
+	if (argc != 6) return luaL_error(L, "wrong number of arguments");
+	ScePspFVector3 v;
+	v.x = luaL_checknumber(L, 2);
+	v.y = luaL_checknumber(L, 3);
+	v.z = luaL_checknumber(L, 4);
+	sceGuLightSpot(luaL_checkint(L, 1), &v, luaL_checknumber(L, 5), luaL_checknumber(L, 6));
+	return 0;
+}
+
 static int lua_sceGumDrawArray(lua_State *L) {
 	int argc = lua_gettop(L);
 	if (argc != 3) return luaL_error(L, "wrong number of arguments");
@@ -567,65 +627,63 @@ static int lua_sceGumDrawArray(lua_State *L) {
 	if (lua_type(L, 3) != LUA_TTABLE) return luaL_error(L, "vertices table missing");
 	int n = luaL_getn(L, 3);
 
-	// hack for testing
-	// array must be available until guFinish. Perhaps a user object would be better, with cached vertices data
-	static struct FloatVertex* vertices = NULL;
-	if (vertices == NULL) {
-		vertices = memalign(16, n * sizeof(struct FloatVertex));
-		int i;
-		for (i = 1; i <= n; ++i) {
-			struct FloatVertex* vertice = &vertices[i - 1];
-			
-			// get vertice table
-			lua_rawgeti(L, 3, i);
-			lua_pushnil(L);  /* first key */
-			while (lua_next(L, -2) != 0) {
-				// 'key' is at index -2 and 'value' at index -1
-				const char* key = luaL_checkstring(L, -2);
-				if (strcmp(key, "u") == 0) {
-					vertice->u = luaL_checknumber(L, -1);
-				} else if (strcmp(key, "v") == 0) {
-					vertice->v = luaL_checknumber(L, -1);
-				} else if (strcmp(key, "color") == 0) {
-					vertice->color = *toColor(L, -1);
-				} else if (strcmp(key, "x") == 0) {
-					vertice->x = luaL_checknumber(L, -1);
-				} else if (strcmp(key, "y") == 0) {
-					vertice->y = luaL_checknumber(L, -1);
-				} else if (strcmp(key, "z") == 0) {
-					vertice->z = luaL_checknumber(L, -1);
-				}
-				lua_pop(L, 1);  // removes 'value'; keeps 'key' for next iteration
-			}
-	
-			// remove vertice table
-			lua_pop(L, 1);
+	int quads = 0;
+	int colorLuaIndex = -1;
+	if (vtype & GU_TEXTURE_32BITF) quads += 2;
+	if (vtype & GU_COLOR_8888) {
+		quads++;
+		colorLuaIndex = quads;
+	}
+	if (vtype & GU_NORMAL_32BITF) quads += 3;
+	if (vtype & GU_VERTEX_32BITF) quads += 3;
+
+	void* vertices = memalign(16, n * quads*4);
+	float* vertex = vertices;
+	int i;
+	for (i = 1; i <= n; ++i) {
+		// get vertice table
+		lua_rawgeti(L, 3, i);
+		int n2 = luaL_getn(L, -1);
+		if (n2 != quads) {
+			free(vertices);
+			return luaL_error(L, "wrong number of vertex components");
 		}
+		int j;
+		for (j = 1; j <= n2; ++j) {
+			lua_rawgeti(L, -1, j);
+			if (j != colorLuaIndex) {
+				*vertex = luaL_checknumber(L, -1);
+			} else {
+				*((Color*) vertex) = *toColor(L, -1);
+			}
+			lua_pop(L, 1);  // removes 'value'
+			vertex++;
+		}
+
+		// remove vertice table
+		lua_pop(L, 1);
 	}
 	
+	sceKernelDcacheWritebackInvalidateAll();
 	sceGumDrawArray(prim, vtype, n, NULL, vertices);
-	//free(vertices);
+	free(vertices);
 	return 0;
 }
 
-static int lua_sceGuFinish(lua_State *L) {
+static int lua_start3d(lua_State *L) {
+	int argc = lua_gettop(L); 
+	if (argc != 0) return luaL_error(L, "wrong number of arguments"); 
+	sceGeSaveContext(&geContext);
+	guStart();
+	return 0;
+}
+
+static int lua_end3d(lua_State *L) {
 	int argc = lua_gettop(L); 
 	if (argc != 0) return luaL_error(L, "wrong number of arguments"); 
 	sceGuFinish();
-	return 0;
-}
-
-static int lua_sceGuSync(lua_State *L) {
-	int argc = lua_gettop(L); 
-	if (argc != 2) return luaL_error(L, "wrong number of arguments"); 
-	sceGuSync(luaL_checkint(L, 1), luaL_checkint(L, 2));
-	return 0;
-}
-
-static int lua_sceGuStart(lua_State *L) {
-	int argc = lua_gettop(L); 
-	if (argc != 0) return luaL_error(L, "wrong number of arguments"); 
-	guStart();
+	sceGuSync(0, 0);
+	sceGeRestoreContext(&geContext);
 	return 0;
 }
 
@@ -637,23 +695,171 @@ void luaGraphics_init(lua_State *L) {
 	luaL_openlib(L, "screen", Image_methods, 0); // Basically just an ugly hack. What I'd really want to say is metatable(screen).__index = Image, but my lua powress is failing me there.
 
 	// sceGu* and sceGum* stuff
-
-	CONSTANT(GU_COLOR_BUFFER_BIT)
-	CONSTANT(GU_DEPTH_BUFFER_BIT)
+	CONSTANT(GU_PI)
+	CONSTANT(GU_FALSE)
+	CONSTANT(GU_TRUE)
+	CONSTANT(GU_POINTS)
+	CONSTANT(GU_LINES)
+	CONSTANT(GU_LINE_STRIP)
+	CONSTANT(GU_TRIANGLES)
+	CONSTANT(GU_TRIANGLE_STRIP)
+	CONSTANT(GU_TRIANGLE_FAN)
+	CONSTANT(GU_SPRITES)
+	CONSTANT(GU_ALPHA_TEST)
+	CONSTANT(GU_DEPTH_TEST)
+	CONSTANT(GU_SCISSOR_TEST)
+	CONSTANT(GU_STENCIL_TEST)
+	CONSTANT(GU_BLEND)
+	CONSTANT(GU_CULL_FACE)
+	CONSTANT(GU_DITHER)
+	CONSTANT(GU_FOG)
+	CONSTANT(GU_CLIP_PLANES)
+	CONSTANT(GU_TEXTURE_2D)
+	CONSTANT(GU_LIGHTING)
+	CONSTANT(GU_LIGHT0)
+	CONSTANT(GU_LIGHT1)
+	CONSTANT(GU_LIGHT2)
+	CONSTANT(GU_LIGHT3)
+	CONSTANT(GU_UNKNOWN_15)
+	CONSTANT(GU_UNKNOWN_16)
+	CONSTANT(GU_COLOR_TEST)
+	CONSTANT(GU_COLOR_LOGIC_OP)
+	CONSTANT(GU_FACE_NORMAL_REVERSE)
+	CONSTANT(GU_PATCH_FACE)
+	CONSTANT(GU_FRAGMENT_2X)
 	CONSTANT(GU_PROJECTION)
 	CONSTANT(GU_VIEW)
 	CONSTANT(GU_MODEL)
-	CONSTANT(GU_PI)
+	CONSTANT(GU_TEXTURE)
+	CONSTANT(GU_TEXTURE_8BIT)
+	CONSTANT(GU_TEXTURE_16BIT)
+	CONSTANT(GU_TEXTURE_32BITF)
+	CONSTANT(GU_TEXTURE_BITS)
+	CONSTANT(GU_COLOR_RES1)
+	CONSTANT(GU_COLOR_RES2)
+	CONSTANT(GU_COLOR_RES3)
+	CONSTANT(GU_COLOR_5650)
+	CONSTANT(GU_COLOR_5551)
+	CONSTANT(GU_COLOR_4444)
+	CONSTANT(GU_COLOR_8888)
+	CONSTANT(GU_COLOR_BITS)
+	CONSTANT(GU_NORMAL_8BIT)
+	CONSTANT(GU_NORMAL_16BIT)
+	CONSTANT(GU_NORMAL_32BITF)
+	CONSTANT(GU_NORMAL_BITS)
+	CONSTANT(GU_VERTEX_8BIT)
+	CONSTANT(GU_VERTEX_16BIT)
+	CONSTANT(GU_VERTEX_32BITF)
+	CONSTANT(GU_VERTEX_BITS)
+	CONSTANT(GU_WEIGHT_8BIT)
+	CONSTANT(GU_WEIGHT_16BIT)
+	CONSTANT(GU_WEIGHT_32BITF)
+	CONSTANT(GU_WEIGHT_BITS)
+	CONSTANT(GU_INDEX_8BIT)
+	CONSTANT(GU_INDEX_16BIT)
+	CONSTANT(GU_INDEX_BITS)
+	CONSTANT(GU_WEIGHTS_BITS)
+	CONSTANT(GU_VERTICES_BITS)
+	CONSTANT(GU_TRANSFORM_3D)
+	CONSTANT(GU_TRANSFORM_2D)
+	CONSTANT(GU_TRANSFORM_BITS)
+	CONSTANT(GU_PSM_5650)
+	CONSTANT(GU_PSM_5551)
+	CONSTANT(GU_PSM_4444)
+	CONSTANT(GU_PSM_8888)
+	CONSTANT(GU_PSM_T4)
+	CONSTANT(GU_PSM_T8)
+	CONSTANT(GU_PSM_T16)
+	CONSTANT(GU_PSM_T32)
+	CONSTANT(GU_FLAT)
+	CONSTANT(GU_SMOOTH)
+	CONSTANT(GU_CLEAR)
+	CONSTANT(GU_AND)
+	CONSTANT(GU_AND_REVERSE)
+	CONSTANT(GU_COPY)
+	CONSTANT(GU_AND_INVERTED)
+	CONSTANT(GU_NOOP)
+	CONSTANT(GU_XOR)
+	CONSTANT(GU_OR)
+	CONSTANT(GU_NOR)
+	CONSTANT(GU_EQUIV)
+	CONSTANT(GU_INVERTED)
+	CONSTANT(GU_OR_REVERSE)
+	CONSTANT(GU_COPY_INVERTED)
+	CONSTANT(GU_OR_INVERTED)
+	CONSTANT(GU_NAND)
+	CONSTANT(GU_SET)
+	CONSTANT(GU_NEAREST)
+	CONSTANT(GU_LINEAR)
+	CONSTANT(GU_NEAREST_MIPMAP_NEAREST)
+	CONSTANT(GU_LINEAR_MIPMAP_NEAREST)
+	CONSTANT(GU_NEAREST_MIPMAP_LINEAR)
+	CONSTANT(GU_LINEAR_MIPMAP_LINEAR)
+	CONSTANT(GU_TEXTURE_COORDS)
+	CONSTANT(GU_TEXTURE_MATRIX)
+	CONSTANT(GU_ENVIRONMENT_MAP)
+	CONSTANT(GU_POSITION)
+	CONSTANT(GU_UV)
+	CONSTANT(GU_NORMALIZED_NORMAL)
+	CONSTANT(GU_NORMAL)
+	CONSTANT(GU_REPEAT)
+	CONSTANT(GU_CLAMP)
+	CONSTANT(GU_CW)
+	CONSTANT(GU_CCW)
+	CONSTANT(GU_NEVER)
+	CONSTANT(GU_ALWAYS)
+	CONSTANT(GU_EQUAL)
+	CONSTANT(GU_NOTEQUAL)
+	CONSTANT(GU_LESS)
+	CONSTANT(GU_LEQUAL)
+	CONSTANT(GU_GREATER)
+	CONSTANT(GU_GEQUAL)
+	CONSTANT(GU_COLOR_BUFFER_BIT)
+	CONSTANT(GU_STENCIL_BUFFER_BIT)
+	CONSTANT(GU_DEPTH_BUFFER_BIT)
+	CONSTANT(GU_TFX_MODULATE)
+	CONSTANT(GU_TFX_DECAL)
+	CONSTANT(GU_TFX_BLEND)
+	CONSTANT(GU_TFX_REPLACE)
 	CONSTANT(GU_TFX_ADD)
 	CONSTANT(GU_TCC_RGB)
-	CONSTANT(GU_LINEAR)
-	CONSTANT(GU_LINEAR)
-	CONSTANT(GU_TRIANGLES)
-	CONSTANT(GU_TEXTURE_32BITF)
-	CONSTANT(GU_COLOR_8888)
-	CONSTANT(GU_VERTEX_32BITF)
-	CONSTANT(GU_TRANSFORM_3D)
-	
+	CONSTANT(GU_TCC_RGBA)
+	CONSTANT(GU_ADD)
+	CONSTANT(GU_SUBTRACT)
+	CONSTANT(GU_REVERSE_SUBTRACT)
+	CONSTANT(GU_MIN)
+	CONSTANT(GU_MAX)
+	CONSTANT(GU_ABS)
+	CONSTANT(GU_SRC_COLOR)
+	CONSTANT(GU_ONE_MINUS_SRC_COLOR)
+	CONSTANT(GU_SRC_ALPHA)
+	CONSTANT(GU_ONE_MINUS_SRC_ALPHA)
+	CONSTANT(GU_DST_COLOR)
+	CONSTANT(GU_ONE_MINUS_DST_COLOR)
+	CONSTANT(GU_DST_ALPHA)
+	CONSTANT(GU_ONE_MINUS_DST_ALPHA)
+	CONSTANT(GU_FIX)
+	CONSTANT(GU_KEEP)
+	CONSTANT(GU_ZERO)
+	CONSTANT(GU_REPLACE)
+	CONSTANT(GU_INVERT)
+	CONSTANT(GU_INCR)
+	CONSTANT(GU_DECR)
+	CONSTANT(GU_AMBIENT)
+	CONSTANT(GU_DIFFUSE)
+	CONSTANT(GU_SPECULAR)
+	CONSTANT(GU_AMBIENT_AND_DIFFUSE)
+	CONSTANT(GU_DIFFUSE_AND_SPECULAR)
+	CONSTANT(GU_UNKNOWN_LIGHT_COMPONENT)
+	CONSTANT(GU_DIRECTIONAL)
+	CONSTANT(GU_POINTLIGHT)
+	CONSTANT(GU_SPOTLIGHT)
+	CONSTANT(GU_DIRECT)
+	CONSTANT(GU_CALL)
+	CONSTANT(GU_SEND)
+	CONSTANT(GU_TAIL)
+	CONSTANT(GU_HEAD)
+
 	lua_register(L, "sceGuClearColor", lua_sceGuClearColor);
 	lua_register(L, "sceGuClearDepth", lua_sceGuClearDepth);
 	lua_register(L, "sceGuClear", lua_sceGuClear);
@@ -669,9 +875,16 @@ void luaGraphics_init(lua_State *L) {
 	lua_register(L, "sceGuTexScale", lua_sceGuTexScale);
 	lua_register(L, "sceGuTexOffset", lua_sceGuTexOffset);
 	lua_register(L, "sceGuAmbientColor", lua_sceGuAmbientColor);
+	lua_register(L, "sceGuEnable", lua_sceGuEnable);
+	lua_register(L, "sceGuDisable", lua_sceGuDisable);
+	lua_register(L, "sceGuBlendFunc", lua_sceGuBlendFunc);
+	lua_register(L, "sceGuLight", lua_sceGuLight);
+	lua_register(L, "sceGuLightAtt", lua_sceGuLightAtt);
+	lua_register(L, "sceGuLightColor", lua_sceGuLightColor);
+	lua_register(L, "sceGuLightMode", lua_sceGuLightMode);
+	lua_register(L, "sceGuLightSpot", lua_sceGuLightSpot);
 	lua_register(L, "sceGumDrawArray", lua_sceGumDrawArray);
-	lua_register(L, "sceGuFinish", lua_sceGuFinish);
-	lua_register(L, "sceGuSync", lua_sceGuSync);
-	lua_register(L, "sceGuStart", lua_sceGuStart);
+	lua_register(L, "start3d", lua_start3d);
+	lua_register(L, "end3d", lua_end3d);
 }
 

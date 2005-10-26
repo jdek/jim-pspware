@@ -234,10 +234,11 @@ void clearImage(Color color, Image* image)
 void clearScreen(Color color)
 {
 	if (!initialized) return;
-	int i;
-	int size = PSP_LINE_SIZE * SCREEN_HEIGHT;
-	Color* data = getVramDrawBuffer();
-	for (i = 0; i < size; i++, data++) *data = color;
+	guStart();
+	sceGuClearDepth(0);
+	sceGuClear(GU_COLOR_BUFFER_BIT|GU_DEPTH_BUFFER_BIT);
+	sceGuFinish();
+	sceGuSync(0, 0);
 }
 
 void fillImageRect(Color color, int x0, int y0, int width, int height, Image* image)

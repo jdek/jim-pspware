@@ -1,3 +1,8 @@
+v0.12
+==========
+ - pixel format changed to true color [Durante / Shine]
+ - initial GU mapping [Shine]
+
 v0.11 (all changes for this version by Shine)
 ================================================
  - Added System.md5sum and filelist.txt debug ouput on startup failure in boot.lua
