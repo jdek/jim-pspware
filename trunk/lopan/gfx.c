@@ -24,9 +24,7 @@
 #define JOY_LTRIGGER 4
 #define JOY_RTRIGGER 5
 /* The PSP needs a bigger deadzone than the default. */
-#define JOY_DEADZONE (256 * 8)
 #else
-#define JOY_DEADZONE (256)
 #define JOY_A 0
 #define JOY_B 1
 #endif /* PSP */
@@ -146,6 +144,8 @@ SDLK_RSHIFT,MYSHIFTR,MYSHIFTR,
 ENDMARK
 };
 
+extern void fakemouse_init(void);
+extern void fakemouse_finish(void);
 extern void fakemouse_event(SDL_Event ev);
 extern void nomem(int code);
 
@@ -242,12 +242,16 @@ void scaninput(void)
 	int joybut_stat = 1;
 #endif
 
+//	mousedown=0;
+#ifdef FAKEMOUSE_YES
+	fakemouse_init();
+#endif
+
 #ifdef PSP
 	// a kludge like this only improves this code
 	SDL_UpdateRects(thescreen, 0, 0);
 #endif
 
-//	mousedown=0;
 	while(SDL_PollEvent(&event))
 	{
 		switch(event.type)
@@ -271,8 +275,7 @@ void scaninput(void)
 #ifdef JOY_YES
 #ifdef FAKEMOUSE_YES
 		case SDL_JOYAXISMOTION:
-			if ((event.jaxis.value < -JOY_DEADZONE) || (event.jaxis.value > JOY_DEADZONE))
-				fakemouse_event(event);
+			fakemouse_event(event);
 			break;
 #endif
 		case SDL_JOYBUTTONUP:
@@ -334,6 +337,9 @@ void scaninput(void)
 			addcode(lastcode);
 		}
 	}
+#ifdef FAKEMOUSE_YES
+	fakemouse_finish();
+#endif
 }
 
 void opendisplay(int sx,int sy)
