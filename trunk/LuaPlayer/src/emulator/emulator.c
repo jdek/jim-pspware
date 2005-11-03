@@ -5,13 +5,138 @@
 #include <time.h>
 #include "../framebuffer.h"
 #include "../graphics.h"
+#include "../sio.h"
 #include "mikmod.h"
-#include "md5.inc"
+#include "md5.h"
+#include <fcntl.h>   /* File control definitions */
+#include <errno.h>   /* Error number definitions */
+#include <termios.h> /* POSIX terminal control definitions */
 
 extern int currentControls;
 extern unsigned short* fb;
 u16* currentTexture;
 int currentTextureWidth, currentTextureHeight;
+
+int sceIoIoctl(SceUID fd, unsigned int cmd, void *indata, int inlen, void *outdata, int outlen)
+{
+	if (cmd == SIO_IOCTL_SET_BAUD_RATE)
+	{
+		int baudrate = 0;
+		int pspbaudrate = 0;
+		struct termios options;		pspbaudrate = *((int*)indata);
+		switch (pspbaudrate)
+		{
+      case 38400:
+        baudrate = B38400;
+      break;
+      case 19200:
+        baudrate  = B19200;
+      break;
+      case 9600:
+          baudrate  = B9600;
+      break;
+      case 4800:
+        baudrate  = B4800;
+      break;
+      case 2400:
+        baudrate  = B2400;
+      break;
+      case 1800:
+        baudrate  = B1800;
+      break;
+      case 1200:
+        baudrate  = B1200;
+      break;
+      case 600:
+        baudrate  = B600;
+      break;
+      case 300:
+        baudrate  = B300;
+      break;
+      case 200:
+        baudrate  = B200;
+      break;
+      case 150:
+        baudrate  = B150;
+      break;
+      case 134:
+        baudrate  = B134;
+      break;
+      case 110:
+        baudrate  = B110;
+      break;
+      case 75:
+        baudrate  = B75;
+      break;
+      case 50:
+        baudrate  = B50;
+      break;
+     
+    }
+		
+    /*
+     * Get the current options for the port...
+    */
+    tcgetattr(fd, &options);
+    
+    /*
+    * Set the baud rates
+    */
+    cfsetispeed(&options, baudrate);
+    cfsetospeed(&options, baudrate);
+    
+    /*
+    * Enable the receiver and set local mode...
+    */
+    options.c_cflag |= (CLOCAL | CREAD);
+    
+    options.c_cflag &= ~PARENB;
+    options.c_cflag &= ~CSTOPB;
+    options.c_cflag &= ~CSIZE;
+    options.c_cflag |= CS8;
+    /*
+    * Set the new options for the port...
+    */
+    
+    tcsetattr(fd, TCSANOW, &options);
+  }
+  return (0);
+}
+
+SceUID sceIoOpen(const char *file, int flags, SceMode mode)
+{
+  int fd = -1; /* File descriptor for the port */
+  if (strncmp(file, "sio:", 4) == 0)
+  {
+    fd = open("/dev/ttyS0", O_RDWR | O_NOCTTY | O_NDELAY);
+    if (fd != -1)
+    {
+      fcntl(fd, F_SETFL, 0);
+			fcntl(fd, F_SETFL, FNDELAY);
+    }
+  }
+	else
+	{
+	  fd = open(file, O_RDWR);
+	}
+  return (fd);
+}
+
+int sceIoRead(SceUID fd, void *data, SceSize size)
+{
+  int readChars = 0;
+  return (read(fd, data, size));
+}
+
+int sceIoWrite(SceUID fd, const void *data, SceSize size)
+{
+  return (write(fd, data, size));
+}
+
+void sceKernelDelayThread(SceUInt delay)
+{
+  sleep(delay);
+}
 
 void sceKernelDcacheWritebackInvalidateAll()
 {
