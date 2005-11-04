@@ -565,7 +565,7 @@ void SystemStub_SDL::unlockMutex(void *mutex) {
 void SystemStub_SDL::prepareGfxMode() {
 	int w = _screenW * _scalers[_scaler].factor;
 	int h = _screenH * _scalers[_scaler].factor;
-	_screen = SDL_SetVideoMode(w, h, 16, _fullscreen ? (SDL_FULLSCREEN | SDL_HWSURFACE) : SDL_HWSURFACE);
+	_screen = SDL_SetVideoMode(w, h, 16, _fullscreen ? (SDL_FULLSCREEN | SDL_SWSURFACE) : SDL_SWSURFACE);
 	if (!_screen) {
 		error("SystemStub_SDL::prepareGfxMode() unable to allocate _screen buffer");
 	}
