@@ -16,7 +16,7 @@ MORE_CFLAGS = -O2 -fsingle-precision-constant -ffast-math
 CFLAGS = $(DEFAULT_CFLAGS) $(MORE_CFLAGS)
 CXXFLAGS = $(DEFAULT_CFLAGS) $(MORE_CFLAGS) -fno-exceptions
 
-LIBS = -lbulletml -lSDL_mixer -lvorbisfile -lvorbis -logg $(shell $(SDL_CONFIG) --libs) -lstdc++
+LIBS = -lbulletml -lSDL_mixer -lvorbisidec $(shell $(SDL_CONFIG) --libs) -lstdc++
 
 EXTRA_TARGETS = EBOOT.PBP
 
