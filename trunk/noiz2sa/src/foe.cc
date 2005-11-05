@@ -86,7 +86,7 @@ static Foe* getNextFoe() {
   return &(foe[i]);
 }
 
-Foe* addFoe(int x, int y, double rank, int d, int spd, int type, int shield, 
+Foe* addFoe(int x, int y, float rank, int d, int spd, int type, int shield, 
 	    BulletMLParser *parser) {
   int i;
   Foe *fe = getNextFoe();
@@ -113,7 +113,7 @@ Foe* addFoe(int x, int y, double rank, int d, int spd, int type, int shield,
   return fe;
 }
 
-Foe* addFoeBossActiveBullet(int x, int y, double rank, 
+Foe* addFoeBossActiveBullet(int x, int y, float rank, 
 			    int d, int spd, BulletMLParser *parser) {
   Foe *fe = addFoe(x, y, rank, d, spd, BOSS_TYPE, 0, parser);
   if ( !fe ) return NULL;
@@ -122,7 +122,7 @@ Foe* addFoeBossActiveBullet(int x, int y, double rank,
   return fe;
 }
 
-void addFoeActiveBullet(Vector *pos, double rank, 
+void addFoeActiveBullet(Vector *pos, float rank, 
 			int d, int spd, int color, BulletMLState *state) {
   Foe *fe = getNextFoe();
   if ( !fe ) return;
@@ -137,7 +137,7 @@ void addFoeActiveBullet(Vector *pos, double rank,
   fe->color = color;
 }
 
-void addFoeNormalBullet(Vector *pos, double rank, int d, int spd, int color) {
+void addFoeNormalBullet(Vector *pos, float rank, int d, int spd, int color) {
   Foe *fe = getNextFoe();
   if ( !fe ) return;
   fe->cmd = NULL;
