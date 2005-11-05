@@ -67,7 +67,7 @@ int vctCheckSide(Vector *checkPos, Vector *pos1, Vector *pos2) {
 }
 
 int vctSize(Vector *v) {
-  return sqrt(v->x*v->x + v->y*v->y);
+  return sqrtf(v->x*v->x + v->y*v->y);
 }
 
 int vctDist(Vector *v1, Vector *v2) {

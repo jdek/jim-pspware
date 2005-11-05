@@ -11,7 +11,7 @@ OBJS =	$(TARGET).$(O) ship.$(O) shot.$(O) frag.$(O) bonus.$(O) \
 
 DEFAULT_CFLAGS = $(shell $(SDL_CONFIG) --cflags)
 
-MORE_CFLAGS = -O2
+MORE_CFLAGS = -O2 -fsingle-precision-constant -ffast-math
 
 CFLAGS = $(DEFAULT_CFLAGS) $(MORE_CFLAGS)
 CXXFLAGS = $(DEFAULT_CFLAGS) $(MORE_CFLAGS)
