@@ -299,7 +299,7 @@ void moveTitleMenu() {
     }
     titleCnt = 16;
   }
-  if ( mnp && (btn & PAD_BUTTON1) ) {
+  if ( mnp && ((btn & PAD_BUTTON1) || (btn & PAD_START)) ) {
     if ( slcStg == STAGE_NUM+ENDLESS_STAGE_NUM ) {
       quitLast();
       return;
@@ -392,7 +392,7 @@ void initGameoverAtr() {
 
 void moveGameover() {
   int btn = getButtonState();
-  if ( goCnt > 900 || (goCnt > 128 && mnp && (btn & PAD_BUTTON1)) ) {
+  if ( goCnt > 900 || (goCnt > 128 && mnp && ((btn & PAD_BUTTON1) || (btn & PAD_START))) ) {
     setHiScore();
     initTitle();
     return;
@@ -424,7 +424,7 @@ void initStageClearAtr() {
 
 void moveStageClear() {
   int btn = getButtonState();
-  if ( scCnt > 900 || (scCnt > 128 && mnp && (btn & PAD_BUTTON1)) ) {
+  if ( scCnt > 900 || (scCnt > 128 && mnp && ((btn & PAD_BUTTON1) || (btn & PAD_START))) ) {
     setHiScore();
     initTitle();
     return;
