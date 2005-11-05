@@ -280,7 +280,13 @@ int main(int argc, char *argv[]) {
     SDL_PollEvent(&event);
     keys = SDL_GetKeyState(NULL);
     if ( keys[SDLK_ESCAPE] == SDL_PRESSED || event.type == SDL_QUIT ) done = 1;
-    if ( keys[SDLK_p] == SDL_PRESSED ) {
+    btn = 0;
+    if ( stick != NULL ) {
+#ifdef PSP
+      btn = SDL_JoystickGetButton(stick, 11); /* PSP Start */
+#endif
+    }
+    if ( keys[SDLK_p] == SDL_PRESSED || btn ) {
       if ( !pPrsd ) {
 	if ( status == IN_GAME ) {
 	  status = PAUSE;
