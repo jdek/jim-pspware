@@ -14,7 +14,7 @@ DEFAULT_CFLAGS = $(shell $(SDL_CONFIG) --cflags)
 MORE_CFLAGS = -O2
 
 CFLAGS = $(DEFAULT_CFLAGS) $(MORE_CFLAGS)
-CXXFLAGS = $(DEFAULT_CFLAGS) $(MORE_CFLAGS) -Wno-deprecated
+CXXFLAGS = $(DEFAULT_CFLAGS) $(MORE_CFLAGS)
 
 LIBS = -lbulletml -lSDL_mixer $(shell $(SDL_CONFIG) --libs) -lstdc++
 

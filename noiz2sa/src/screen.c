@@ -23,6 +23,12 @@
 #include "letterrender.h"
 #include "attractmanager.h"
 
+#ifdef PSP
+#include <pspdebug.h>
+#define fprintf(x, args...) pspDebugScreenPrintf(args)
+#define printf(args...) pspDebugScreenPrintf(args)
+#endif
+
 int windowMode = 0;
 int brightness = DEFAULT_BRIGHTNESS;
 
@@ -133,7 +139,11 @@ void initSDL(int window) {
   atexit(SDL_Quit);
 
   videoBpp = BPP;
+#ifdef PSP
+  videoFlags = SDL_SWSURFACE;
+#else
   videoFlags = SDL_DOUBLEBUF | SDL_HWSURFACE | SDL_HWPALETTE;
+#endif
   if ( !window ) videoFlags |= SDL_FULLSCREEN;
 
   if ( (video = SDL_SetVideoMode(SCREEN_WIDTH, SCREEN_HEIGHT, videoBpp, videoFlags)) == NULL ) {
