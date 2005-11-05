@@ -578,6 +578,9 @@ int getButtonState() {
     btn2 = SDL_JoystickGetButton(stick, 1); /* PSP Circle */
     btn3 = SDL_JoystickGetButton(stick, 3); /* PSP Square */
     btn4 = SDL_JoystickGetButton(stick, 0); /* PSP Triangle */
+    if ( SDL_JoystickGetButton(stick, 11) ) {
+      btn |= PAD_START;
+    }
 #else
     btn1 = SDL_JoystickGetButton(stick, 0);
     btn2 = SDL_JoystickGetButton(stick, 1);
