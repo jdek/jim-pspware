@@ -23,12 +23,6 @@ extern "C" {
 #include "attractmanager.h"
 }
 
-#ifdef PSP
-#include <pspdebug.h>
-#define fprintf(x, args...) pspDebugScreenPrintf(args)
-#define printf(args...) pspDebugScreenPrintf(args)
-#endif
-
 #include "barragemanager.h"
 #include "foe.h"
 

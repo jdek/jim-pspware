@@ -23,12 +23,6 @@
 #include "letterrender.h"
 #include "attractmanager.h"
 
-#ifdef PSP
-#include <pspdebug.h>
-#define fprintf(x, args...) pspDebugScreenPrintf(args)
-#define printf(args...) pspDebugScreenPrintf(args)
-#endif
-
 int windowMode = 0;
 int brightness = DEFAULT_BRIGHTNESS;
 
