@@ -39,8 +39,8 @@ void initMikmod() {
 }
 
 void unloadMikmod() {
-	if(musichandle) MikMod_FreeSong(musichandle);
 	Player_Stop();
+	if(musichandle) MikMod_FreeSong(musichandle);
 	MikMod_Exit();
 }
 

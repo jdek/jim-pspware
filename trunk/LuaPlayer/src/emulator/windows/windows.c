@@ -4,13 +4,13 @@
 #include <string.h>
 #include <GL/glut.h>
 #include <pspctrl.h>
-
+#include "../../sound.h"
 #include "graphics.h"
 #include "framebuffer.h"
 
 #define WIDTH 480
 #define HEIGHT 272
-static unsigned short fb[512 * HEIGHT * 2];
+static Color fb[512 * HEIGHT * 2];
 static unsigned char pixels[WIDTH * HEIGHT * 4];
 
 int currentControls = 0;
@@ -50,7 +50,7 @@ SpecialKeyMapping specialKeyMappings[] = {
 
 void reshape(int width, int height)
 {
-    glViewport(0, 0, width, height);
+  glViewport(0, 0, width, height);
 }
 
 
@@ -58,23 +58,18 @@ void display(void)
 {
 	int i = 0;
 	int x, y;
-	u16* fb = getVramDisplayBuffer();
-	for (y = HEIGHT - 1; y >= 0; y--) {
-		for (x = 0; x < WIDTH; x++) {
-			int color = fb[x + y * 512];
-			unsigned char r = (color & 0x1f) << 3; 
-			unsigned char g = ((color >> 5) & 0x1f) << 3 ;
-			unsigned char b = ((color >> 10) & 0x1f) << 3 ;
-			unsigned char a = color & 0x8000 ? 0xff : 0; 
-			pixels[i++] = r;
-			pixels[i++] = g;
-			pixels[i++] = b;
-			pixels[i++] = a;
+	Color* fb = getVramDisplayBuffer();
+  Color* pixelFB = (Color*)pixels;
+  
+	for (y = HEIGHT - 1; y >= 0; y--)
+  {
+		for (x = 0; x < WIDTH; x++)
+    {
+			pixelFB[i++] = fb[x + y * 512];
 		}
 	}
 	glDrawPixels(WIDTH, HEIGHT, GL_RGBA, GL_UNSIGNED_BYTE, pixels);
-
-    glutSwapBuffers();
+  glutSwapBuffers();
 }
 
 void idle(void)
@@ -127,7 +122,7 @@ void specialUp(int key, int x, int y)
 DWORD WINAPI LuaThread(LPVOID pParam)
 {
 	runScript((char*) pParam, 0);
-	
+	unloadMikmod();
 	exit(0);
 	return 0;
 }
@@ -141,6 +136,7 @@ int main(int argc, char** argv)
 	g_vram_base = fb;
 	memset(fb, 0, WIDTH * HEIGHT * 2);
 
+  initMikmod();
 	initGraphics();
 	glutInitDisplayMode(GLUT_DOUBLE | GLUT_RGB);
 	glutInitWindowPosition(50, 50);

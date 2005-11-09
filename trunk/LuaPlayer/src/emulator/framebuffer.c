@@ -1,3 +1,4 @@
 #include <psptypes.h>
+#include "../graphics.h"
+Color* g_vram_base;
 
-u16* g_vram_base;
