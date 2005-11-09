@@ -2,6 +2,7 @@
 #include <psptypes.h>
 #include <pspctrl.h>
 #include <pspsdk.h>
+#include <pspgu.h>
 #include <time.h>
 #include "../framebuffer.h"
 #include "../graphics.h"
@@ -13,9 +14,187 @@
 #include <termios.h> /* POSIX terminal control definitions */
 
 extern int currentControls;
-extern unsigned short* fb;
-u16* currentTexture;
+extern Color* fb;
+Color* currentTexture;
 int currentTextureWidth, currentTextureHeight;
+
+void sceGuClearDepth(unsigned int depth)
+{
+  printf("NOT IMPLEMENTD: sceGuClearDepth\n");
+}
+
+void sceGuBlendFunc(int op, int src, int dest, unsigned int srcfix, unsigned int destfix)
+{
+  printf("NOT IMPLEMENTD: sceGuBlendFunc\n");
+}
+
+void sceGuClearColor(unsigned int color)
+{
+  printf("NOT IMPLEMENTD: sceGuClearColor\n");
+}
+
+void sceGumMatrixMode(int mode)
+{
+  printf("NOT IMPLEMENTD: sceGumMatrixMode\n");
+}
+
+/**
+  * Load identity matrix
+  *
+  * [1 0 0 0]
+  * [0 1 0 0]
+  * [0 0 1 0]
+  * [0 0 0 1]
+**/
+void sceGumLoadIdentity(void)
+{
+  printf("NOT IMPLEMENTD: sceGumLoadIdentity\n");
+}
+
+void sceGumPerspective(float fovy, float aspect, float near, float far)
+{
+  printf("NOT IMPLEMENTD: sceGumPerspective\n");
+}
+
+void sceGumRotateXYZ(const ScePspFVector3* v)
+{
+  printf("NOT IMPLEMENTD: sceGumRotateXYZ\n");
+}
+
+void sceGumTranslate(const ScePspFVector3* v)
+{
+  printf("NOT IMPLEMENTD: sceGumTranslate\n");
+}
+
+void sceGumDrawArray(int prim, int vtype, int count, const void* indices, const void* vertices)
+{
+  printf("NOT IMPLEMENTD: sceGumDrawArray\n");
+}
+
+/**
+  * Specify the texture environment color
+  *
+  * This is used in the texture function when a constant color is needed.
+  *
+  * See sceGuTexFunc() for more information.
+  *
+  * @param color - Constant color (0x00BBGGRR)
+**/
+void sceGuTexEnvColor(unsigned int color)
+{
+  printf("NOT IMPLEMENTD: sceGuTexEnvColor\n");
+}
+
+void sceGuTexOffset(float u, float v)
+{
+  printf("NOT IMPLEMENTD: sceGuTexOffset\n");
+}
+
+/**
+  * Disable GE state
+  *
+  * Look at sceGuEnable() for a list of states
+  *
+  * @param state - Which state to disable
+**/
+void sceGuDisable(int state)
+{
+  printf("NOT IMPLEMENTD: sceGuDisable\n");
+}
+
+/**
+  * Set light parameters
+  *
+  * Available light types are:
+  *   - GU_DIRECTIONAL - Directional light
+  *   - GU_POINTLIGHT - Single point of light
+  *   - GU_SPOTLIGHT - Point-light with a cone
+  *
+  * Available light components are:
+  *   - GU_AMBIENT_AND_DIFFUSE
+  *   - GU_DIFFUSE_AND_SPECULAR
+  *   - GU_UNKNOWN_LIGHT_COMPONENT
+  *
+  * @param light - Light index
+  * @param type - Light type
+  * @param components - Light components
+  * @param position - Light position
+**/
+void sceGuLight(int light, int type, int components, const ScePspFVector3* position)
+{
+  printf("NOT IMPLEMENTD: sceGuLight\n");
+}
+
+/**
+  * Set light attenuation
+  *
+  * @param light - Light index
+  * @param atten0 - Constant attenuation factor
+  * @param atten1 - Linear attenuation factor
+  * @param atten2 - Quadratic attenuation factor
+**/
+void sceGuLightAtt(int light, float atten0, float atten1, float atten2)
+{
+  printf("NOT IMPLEMENTD: sceGuLightAtt\n");
+}
+
+/**
+  * Set light color
+  *
+  * Available light components are:
+  *   - GU_AMBIENT
+  *   - GU_DIFFUSE
+  *   - GU_SPECULAR
+  *   - GU_AMBIENT_AND_DIFFUSE
+  *   - GU_DIFFUSE_AND_SPECULAR
+  *
+  * @param light - Light index
+  * @param component - Which component to set
+  * @param color - Which color to use
+**/
+
+void sceGuLightColor(int light, int component, unsigned int color)
+{
+  printf("NOT IMPLEMENTD: sceGuLightColor\n");
+}
+
+void sceGuLightMode(int mode)
+{
+  printf("NOT IMPLEMENTD: sceGuLightMode\n");
+}
+
+void sceGuLightSpot(int index, const ScePspFVector3* direction, float f12, float f13)
+{
+  printf("NOT IMPLEMENTD: sceGuLightSpot\n");
+}
+
+/**
+ * Save the GE's current state.
+ *
+ * @param context - Pointer to a ::PspGeContext.
+ *
+ * @returns ???
+ */
+int sceGeSaveContext(PspGeContext *context)
+{
+  printf("NOT IMPLEMENTD: sceGeSaveContext\n");
+  return (0);
+}
+
+/**
+ * Restore a previously saved GE context.
+ *
+ * @param context - Pointer to a ::PspGeContext.
+ *
+ * @returns ???
+ */
+int sceGeRestoreContext(const PspGeContext *context)
+{
+  printf("NOT IMPLEMENTD: sceGeRestoreContext\n");
+  return (0);
+}
+
+
 
 int sceIoIoctl(SceUID fd, unsigned int cmd, void *indata, int inlen, void *outdata, int outlen)
 {
@@ -151,7 +330,7 @@ void sceGuCopyImage(int psm, int sx, int sy, int width, int height, int srcw, vo
 	int x, y;
 	for (y = 0; y < height; y++) {
 		for (x = 0; x < width; x++) {
-			((u16*)dest)[x + dx + (y + dy) * destw] = ((u16*)src)[x + sx + (y + sy) * srcw];
+			((Color*)dest)[x + dx + (y + dy) * destw] = ((Color*)src)[x + sx + (y + sy) * srcw];
 		}
 	}
 }
@@ -166,7 +345,7 @@ int sceGuSync(int mode, int a1)
 
 void sceGuTexImage(int mipmap, int width, int height, int tbw, const void* tbp)
 {
-	currentTexture = (u16*) tbp;
+	currentTexture = (Color*) tbp;
 	currentTextureWidth = width;
 	currentTextureHeight = height;
 }
@@ -185,7 +364,6 @@ void* sceGuGetMemory(int size)
 typedef struct 
 {
 	unsigned short u, v;
-	unsigned short color;
 	short x, y, z;
 } Vertex;
 
@@ -199,11 +377,12 @@ void sceGuDrawArray(int prim, int vtype, int count, const void* indices, const v
 	int width = v[1].x - v[0].x;
 	int height = v[1].y - v[0].y;
 	int x, y;
-	u16* dest = getVramDrawBuffer();
+	Color* dest = getVramDrawBuffer();
 	for (y = 0; y < height; y++) {
 		for (x = 0; x < width; x++) {
-			u16 color = ((u16*)currentTexture)[x + sx + (y + sy) * currentTextureWidth];
-			if (color & 0x8000) ((u16*)dest)[x + dx + (y + dy) * 512] = color;
+			Color color = ((Color*)currentTexture)[x + sx + (y + sy) * currentTextureWidth];
+			if (color & 0xFF000000) dest[x + dx + (y + dy) * 512] = color;
+      //printf("sceGuDrawArray: x: %d, y:%d, dx: %d, dy: %d\n", x, y, dx, dy);
 		}
 	}
 }
@@ -431,6 +610,7 @@ void sceGuAmbientColor(unsigned int color)
 {
 }
 
+/*
 BOOL   MikMod_Init(void)
 {
 }
@@ -603,12 +783,15 @@ void _mm_RegisterErrorHandler(void (*proc)(void))
 {
     _mm_errorhandler = proc;
 }
-
+*/
 
 
 int sceCtrlReadBufferPositive(SceCtrlData *pad_data, int count)
 {
 	pad_data->Buttons = currentControls;
+  pad_data->Lx = 128;
+  pad_data->Ly = 128;
+  
 	return 0;
 }
 
