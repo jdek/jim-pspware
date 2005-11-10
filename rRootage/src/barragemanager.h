@@ -18,7 +18,7 @@
 
 typedef struct {
   BulletMLParser *bulletml;
-  double maxRank, rank;
+  float maxRank, rank;
 } Barrage;
 
 #define BARRAGE_TYPE_NUM 6

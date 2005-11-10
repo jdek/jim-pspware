@@ -112,9 +112,9 @@ static Foe* addFoe(Foe *foe, int d, int spd, int color) {
   return fe;
 }
 
-Foe* addFoeBattery(int x, int y, double rank, int d, int spd, int xReverse, 
-		   BulletMLParser *morphParser[], int morphCnt, int morphHalf, double morphRank,
-		   double speedRank,
+Foe* addFoeBattery(int x, int y, float rank, int d, int spd, int xReverse, 
+		   BulletMLParser *morphParser[], int morphCnt, int morphHalf, float morphRank,
+		   float speedRank,
 		   int color, int bulletShape[], float bulletSize[],
 		   struct limiter *limiter,
 		   int ikaType,

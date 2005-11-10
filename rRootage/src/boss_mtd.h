@@ -11,7 +11,7 @@
  */
 #include "vector.h"
 
-void createBoss(int seed, double rank, int round);
+void createBoss(int seed, float rank, int round);
 void initBoss();
 void moveBoss();
 void drawBoss();

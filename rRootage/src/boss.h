@@ -23,14 +23,14 @@
 
 typedef struct {
   int barrageType, barrageIdx;
-  double rank;
+  float rank;
   int xReverse ,xrAlter;
   int morphIdx[MORPH_PATTERN_MAX];
   int morphCnt;
   int morphHalf;
   int morphType;
-  double morphRank;
-  double speedRank;
+  float morphRank;
+  float speedRank;
   int ikaType;
 } Attack;
 
