@@ -34,7 +34,7 @@ struct foe {
   Vector pos, vel, ppos, spos, mv;
   int d, spd;
   FoeCommand *cmd;
-  double rank;
+  float rank;
   int spc;
   int cnt, cntTotal;
   int xReverse;
@@ -45,8 +45,8 @@ struct foe {
   BulletMLParser *morphParser[MORPH_PATTERN_MAX];
   int morphCnt;
   int morphHalf;
-  double morphRank;
-  double speedRank;
+  float morphRank;
+  float speedRank;
 
   int color;
   int shapeType;
@@ -62,9 +62,9 @@ struct foe {
 
 typedef struct foe Foe;
 
-Foe* addFoeBattery(int x, int y, double rank, int d, int spd, int xReverse, 
-		   BulletMLParser *morphParser[], int morphCnt, int morphHalf, double morphRank,
-		   double speedRank,
+Foe* addFoeBattery(int x, int y, float rank, int d, int spd, int xReverse, 
+		   BulletMLParser *morphParser[], int morphCnt, int morphHalf, float morphRank,
+		   float speedRank,
 		   int color, int bulletShape[], float bulletSize[],
 		   struct limiter *limiter,
 		   int ikaType,

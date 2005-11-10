@@ -146,7 +146,7 @@ static void setAttackIndex(Attack *at, int center) {
   }
 }
 
-static void setAttackRank(Attack *at, double rank) {
+static void setAttackRank(Attack *at, float rank) {
   if ( rank <= 0.3 ) {
     at->rank = rank;
     at->morphCnt = 0;
@@ -158,11 +158,11 @@ static void setAttackRank(Attack *at, double rank) {
     }
     rank /= (at->rank+2);
     if ( mode == IKA_MODE ) {
-      at->speedRank = sqrt(rank)*(randN(80)+256)/256;
+      at->speedRank = sqrtf(rank)*(randN(80)+256)/256;
     } else if ( mode == GW_MODE ) {
-      at->speedRank = sqrt(rank)*(randN(92)+236)/256;
+      at->speedRank = sqrtf(rank)*(randN(92)+236)/256;
     } else {
-      at->speedRank = sqrt(rank)*(randN(128)+192)/256;
+      at->speedRank = sqrtf(rank)*(randN(128)+192)/256;
     }
     if ( at->speedRank < 0.8 ) at->speedRank = 0.8;
     at->morphRank = rank / at->speedRank;
@@ -209,7 +209,7 @@ static void setAttackRank(Attack *at, double rank) {
   }
 }
 
-static void setAttack(Attack *at, double rank, int center) {
+static void setAttack(Attack *at, float rank, int center) {
   setAttackIndex(at, center);
   setAttackRank(at, rank);
 }
@@ -310,11 +310,11 @@ static void setBossTree(BatteryGroup *bg, BossTree *left, BossTree *right) {
 #define BOSS_TIME_UP (1000*90)
 static int bossDstBaseTime;
 
-void createBoss(int seed, double rank, int round) {
+void createBoss(int seed, float rank, int round) {
   int bn, bgn = 0, lbn, bgni = 0;
   int i, j;
   int wx, wy, cx, cy;
-  double tr, sr, sra;
+  float tr, sr, sra;
   int bx, by;
   int idx1, idx2;
   int maxX = -999999, maxXY;
@@ -420,7 +420,7 @@ void createBoss(int seed, double rank, int round) {
     sra = tr/vbgn;
     for ( i=0 ; i<bgn ; i++ ) {
       if ( tr > 0 && vbg[i] ) {
-	sr = ((double)randN(((int)(sra*256+1))))/256 + sra/2;
+	sr = ((float)randN(((int)(sra*256+1))))/256 + sra/2;
 	if ( sr > tr ) sr = tr;
 	bn = boss.batteryGroup[i*2].batteryNum;
 	tr -= sr;
