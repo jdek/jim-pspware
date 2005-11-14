@@ -614,7 +614,9 @@ int getButtonState() {
       btn |= PAD_BUTTON1;
     }
   }
-  if (btn3 || btn4)
+  if (btn3)
       Mix_PauseMusic();
+  if (btn4)
+      Mix_ResumeMusic();
   return btn;
 }
