@@ -163,32 +163,55 @@ void drawScore() {
   if ( dsc == score ) return;
   dsc = score;
   clearLPanel();
+#ifndef PSP
   drawNum(score, 118, 24, 28, 16*1-12, 16*1-3);
   drawNum(bonusScore, 24, 14, 16, 16*1-12, 16*1-3);
+#else
+  drawNum(score, 60, 24, 7, 16*1-12, 16*1-3);
+  drawNum(bonusScore, 24, 24, 16, 16*1-12, 16*1-3);
+#endif
+  SDL_BlitSurface(lpanel, NULL, video, &lpanelRect);
 }
 
+#ifndef PSP
 #define SCENE_STAT_X 77
 #define SCENE_STAT_SIZE 9
+#else
+#define SCENE_STAT_X 64
+#define SCENE_STAT_SIZE 9
+#endif
 
 void drawRPanel() {
-  int y;
+  int x, y, size;
   char *str = "LEFT";
   clearRPanel();
   if ( left >= 0 ) {
+#ifndef PSP
     drawString(str, 34, 272, 24, 3, 16*1-12, 16*1-3, rpbuf);
     drawLetter(left, 34, 450, 24, 3, 16*2-10, 16*2-1, rpbuf);
+#else
+    drawString(str, 25, 138, 16, 3, 16*1-12, 16*1-3, rpbuf);
+    drawLetter(left, 25, 250, 16, 3, 16*2-10, 16*2-1, rpbuf);
+#endif
   }
   y = 24;
+#ifndef PSP
+  x = 124;
+  size = 24;
+#else
+  x = 25;
+  size = 12;
+#endif
   if ( !endless ) {
-    y = drawNumRight(stage+1, 124, y, 24, 16*1-12, 16*1-3);
-    drawLetter(38, 124, y, 24, 3,  16*1-12, 16*1-3, rpbuf);
+    y = drawNumRight(stage+1, x, y, size, 16*1-12, 16*1-3);
+    drawLetter(38, x, y, size, 3,  16*1-12, 16*1-3, rpbuf);
     y += 24*1.7f;
     if ( scene >= 10 ) {
-      drawLetter('E'-'A'+10, 124, y, 24, 3, 16*1-12, 16*1-3, rpbuf);
+      drawLetter('E'-'A'+10, x, y, size, 3, 16*1-12, 16*1-3, rpbuf);
       return;
     }
   }
-  drawNumRight(scene+1, 124, y, 24, 16*1-12, 16*1-3);
+  drawNumRight(scene+1, x, y, size, 16*1-12, 16*1-3);
   if ( hsScene >= 0 ) {
     y = SCENE_STAT_SIZE;
     y = drawNumRight(stage+1, SCENE_STAT_X, y, SCENE_STAT_SIZE, 16*1-12, 16*1-3);
@@ -208,9 +231,14 @@ void drawRPanel() {
       drawNumRight(-hsOfs, SCENE_STAT_X, y, SCENE_STAT_SIZE, 16*4-12, 16*4-3);
     }
   }
+  SDL_BlitSurface(rpanel, NULL, video, &rpanelRect);
 }
 
+#ifndef PSP
 #define STG_BOX_SIZE 40
+#else
+#define STG_BOX_SIZE 24
+#endif
 #define STG_BOX_NUM 15
 
 static int stageX[STG_BOX_NUM], stageY[STG_BOX_NUM];
@@ -311,7 +339,7 @@ void moveTitleMenu() {
 }
 
 void drawTitleMenu() {
-  int i;
+  int i, size;
   char *stgChr = "STAGE";
   char *endlessChr = "ENDLESS";
   char *hardChr = "HARD";
@@ -319,31 +347,36 @@ void drawTitleMenu() {
   char *insChr = "INSANE";
   char *quitChr = "QUIT";
   for ( i=0 ; i<STG_BOX_NUM ; i++ ) {
+#ifdef PSP
+    size = 8;
+#else
+    size = 12;
+#endif
     if ( i == slcStg ) {
       int sz = STG_BOX_SIZE+6+sctbl[(titleCnt*16)&(DIV-1)]/24;
-      drawBox(stageX[i], stageY[i], sz, sz, 16*2-14, 16*2-3, buf);
+      drawBox(stageX[i], stageY[i], sz, sz, 16*2-14, 16*2-3, layer);
       if ( i < STAGE_NUM ) {
-	drawStringBuf(stgChr, 180, 80, 12, 2, 16*1-14, 16*1-2, buf, 0);
-	drawNumCenter(i+1, 308, 80, 12, 16*1-14, 16*1-2);
+	drawStringBuf(stgChr, 180, 80, size, 2, 16*1-14, 16*1-2, buf, 0);
+	drawNumCenter(i+1, 308, 80, size, 16*1-14, 16*1-2);
       } else {
 	switch ( i ) {
 	case 10:
-	  drawStringBuf(endlessChr, 188, 80, 12, 2, 16*1-14, 16*1-2, buf, 0);
+	  drawStringBuf(endlessChr, 188, 80, size, 2, 16*1-14, 16*1-2, buf, 0);
 	  break;
 	case 11:
-	  drawStringBuf(endlessChr, 93, 80, 12, 2, 16*1-14, 16*1-2, buf, 0);
-	  drawStringBuf(hardChr, 248, 80, 12, 2, 16*1-14, 16*1-2, buf, 0);
+	  drawStringBuf(endlessChr, 93, 80, size, 2, 16*1-14, 16*1-2, buf, 0);
+	  drawStringBuf(hardChr, 248, 80, size, 2, 16*1-14, 16*1-2, buf, 0);
 	  break;
 	case 12:
-	  drawStringBuf(endlessChr, 36, 80, 12, 2, 16*1-14, 16*1-2, buf, 0);
-	  drawStringBuf(extChr, 190, 80, 12, 2, 16*1-14, 16*1-2, buf, 0);
+	  drawStringBuf(endlessChr, 36, 80, size, 2, 16*1-14, 16*1-2, buf, 0);
+	  drawStringBuf(extChr, 190, 80, size, 2, 16*1-14, 16*1-2, buf, 0);
 	  break;
 	case 13:
-	  drawStringBuf(endlessChr, 56, 80, 12, 2, 16*1-14, 16*1-2, buf, 0);
-	  drawStringBuf(insChr, 210, 80, 12, 2, 16*1-14, 16*1-2, buf, 0);
+	  drawStringBuf(endlessChr, 56, 80, size, 2, 16*1-14, 16*1-2, buf, 0);
+	  drawStringBuf(insChr, 210, 80, size, 2, 16*1-14, 16*1-2, buf, 0);
 	  break;
 	case 14:
-	  drawStringBuf(quitChr, 230, 80, 12, 2, 16*1-14, 16*1-2, buf, 0);
+	  drawStringBuf(quitChr, 230, 80, size, 2, 16*1-14, 16*1-2, buf, 0);
 	  break;
 	}
       }
@@ -351,31 +384,32 @@ void drawTitleMenu() {
 	drawNumCenter(hiScore.stageScore[i], 308, 112, 12, 16*1-14, 16*1-2);
       }
     }
-    drawBox(stageX[i], stageY[i], STG_BOX_SIZE, STG_BOX_SIZE, 16*1-14, 16*1-3, buf);
+    drawBox(stageX[i], stageY[i], STG_BOX_SIZE, STG_BOX_SIZE, 16*1-14, 16*1-3, layer);
     if ( i < 9 ) {
-      drawNumCenter(i+1, stageX[i], stageY[i], 12, 16*1-16, 16*1-1);
+      drawNumCenter(i+1, stageX[i], stageY[i], size, 16*1-16, 16*1-1);
     } else {
+      size = 7;
       switch ( i ) {
       case 9:
-	drawNumCenter(10, stageX[i]+8, stageY[i], 12, 16*1-16, 16*1-1);
+	drawNumCenter(10, stageX[i]+8, stageY[i], size, 16*1-16, 16*1-1);
 	break;
       case 10:
-	drawLetterBuf('E'-'A'+10, stageX[i], stageY[i], 12, 2, 16*1-16, 16*1-1, buf, 0);
+	drawLetterBuf('E'-'A'+10, stageX[i], stageY[i], size, 2, 16*1-16, 16*1-1, buf, 0);
 	break;
       case 11:
-	drawLetterBuf('E'-'A'+10, stageX[i]-8, stageY[i], 12, 2, 16*1-16, 16*1-1, buf, 0);
-	drawLetterBuf('H'-'A'+10, stageX[i]+8, stageY[i], 12, 2, 16*1-16, 16*1-1, buf, 0);
+	drawLetterBuf('E'-'A'+10, stageX[i]-8, stageY[i], size, 2, 16*1-16, 16*1-1, buf, 0);
+	drawLetterBuf('H'-'A'+10, stageX[i]+8, stageY[i], size, 2, 16*1-16, 16*1-1, buf, 0);
 	break;
       case 12:
-	drawLetterBuf('E'-'A'+10, stageX[i]-8, stageY[i], 12, 2, 16*1-16, 16*1-1, buf, 0);
-	drawLetterBuf('E'-'A'+10, stageX[i]+8, stageY[i], 12, 2, 16*1-16, 16*1-1, buf, 0);
+	drawLetterBuf('E'-'A'+10, stageX[i]-8, stageY[i], size, 2, 16*1-16, 16*1-1, buf, 0);
+	drawLetterBuf('E'-'A'+10, stageX[i]+8, stageY[i], size, 2, 16*1-16, 16*1-1, buf, 0);
 	break;
       case 13:
-	drawLetterBuf('E'-'A'+10, stageX[i]-8, stageY[i], 12, 2, 16*1-16, 16*1-1, buf, 0);
-	drawLetterBuf('I'-'A'+10, stageX[i]+8, stageY[i], 12, 2, 16*1-16, 16*1-1, buf, 0);
+	drawLetterBuf('E'-'A'+10, stageX[i]-8, stageY[i], size, 2, 16*1-16, 16*1-1, buf, 0);
+	drawLetterBuf('I'-'A'+10, stageX[i]+8, stageY[i], size, 2, 16*1-16, 16*1-1, buf, 0);
 	break;
       case 14:
-	drawLetterBuf('Q'-'A'+10, stageX[i], stageY[i], 12, 2, 16*1-16, 16*1-1, buf, 0);
+	drawLetterBuf('Q'-'A'+10, stageX[i], stageY[i], size, 2, 16*1-16, 16*1-1, buf, 0);
 	break;
       }
     }

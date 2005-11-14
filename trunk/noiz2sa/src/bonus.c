@@ -132,12 +132,12 @@ void drawBonuses() {
     ox = sctbl[d]>>5;
     oy = sctbl[d+DIV/4]>>5;
     drawBox(x+ox, y+oy, BONUS_DRAW_WIDTH, BONUS_DRAW_WIDTH,
-	    BONUS_COLOR_1, BONUS_COLOR_2, l1buf);
+	    BONUS_COLOR_1, BONUS_COLOR_2, l1);
     drawBox(x-ox, y-oy, BONUS_DRAW_WIDTH, BONUS_DRAW_WIDTH,
-	    BONUS_COLOR_1, BONUS_COLOR_2, l1buf);
+	    BONUS_COLOR_1, BONUS_COLOR_2, l1);
     drawBox(x+oy, y-ox, BONUS_DRAW_WIDTH, BONUS_DRAW_WIDTH,
-	    BONUS_COLOR_1, BONUS_COLOR_2, l1buf);
+	    BONUS_COLOR_1, BONUS_COLOR_2, l1);
     drawBox(x-oy, y+ox, BONUS_DRAW_WIDTH, BONUS_DRAW_WIDTH,
-	    BONUS_COLOR_1, BONUS_COLOR_2, l1buf);
+	    BONUS_COLOR_1, BONUS_COLOR_2, l1);
   }
 }

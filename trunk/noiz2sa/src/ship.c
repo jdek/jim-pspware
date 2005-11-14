@@ -136,20 +136,20 @@ void drawShip() {
   d = (ship.cnt*8)&(DIV/8-1); d -= DIV/4;
   ic = ship.invCnt&31;
   if ( ic > 0 && ic < 16 ) {
-    drawBox(x, y, SHIP_DRAW_WIDTH, SHIP_DRAW_WIDTH, 16*2-1, 16*4-5, buf);
+    drawBox(x, y, SHIP_DRAW_WIDTH, SHIP_DRAW_WIDTH, 16*2-1, 16*4-5, layer);
     return;
   }
   for ( i=0 ; i<4 ; i++ ) {
     d &= (DIV-1);
     drawBox(x+((sctbl[d]*SHIP_DRUM_WIDTH)>>8), y-((sctbl[d+DIV/4]*SHIP_DRUM_WIDTH)>>10), 
-	    SHIP_DRUM_SIZE, SHIP_DRUM_WIDTH*2, 16*3-10, 16*3-12, buf);
+	    SHIP_DRUM_SIZE, SHIP_DRUM_WIDTH*2, 16*3-10, 16*3-12, layer);
     d += DIV/8;
   }
-  drawBox(x, y, SHIP_DRAW_WIDTH, SHIP_DRAW_WIDTH, 16*2-1, 16*4-5, buf);
+  drawBox(x, y, SHIP_DRAW_WIDTH, SHIP_DRAW_WIDTH, 16*2-1, 16*4-5, layer);
   for ( i=0 ; i<4 ; i++ ) {
     d &= (DIV-1);
     drawBox(x+((sctbl[d]*SHIP_DRUM_WIDTH)>>8), y-((sctbl[d+DIV/4]*SHIP_DRUM_WIDTH)>>10), 
-	    SHIP_DRUM_SIZE, SHIP_DRUM_WIDTH*2, 16*3-7, 16*4-11, buf);
+	    SHIP_DRUM_SIZE, SHIP_DRUM_WIDTH*2, 16*3-7, 16*4-11, layer);
     d += DIV/8;
   }
 }

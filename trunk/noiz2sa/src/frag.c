@@ -145,6 +145,6 @@ void drawFrags() {
     fr = &(frag[i]);
     c = fr->cnt&1;
     drawBox(fr->pos.x, fr->pos.y, fr->width, fr->height, 
-	    fragColor[fr->spc][c][0],fragColor[fr->spc][c][1], l2buf);
+	    fragColor[fr->spc][c][0],fragColor[fr->spc][c][1], l2);
   }
 }

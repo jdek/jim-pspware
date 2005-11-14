@@ -53,10 +53,10 @@ void drawLetterBuf(int idx, int lx, int ly, int ltSize, int d,
     } else {
       if ( deg <= 45 || deg > 135 ) {
 	drawBox((int)(x*ltSize)+lx, (int)(y*ltSize)+ly, 
-		     (int)(size*ltSize), (int)(length*ltSize), color1, color2, buf);
+		     (int)(size*ltSize), (int)(length*ltSize), color1, color2, layer);
       } else {
 	drawBox((int)(x*ltSize)+lx, (int)(y*ltSize)+ly, 
-		     (int)(length*ltSize), (int)(size*ltSize), color1, color2, buf);
+		     (int)(length*ltSize), (int)(size*ltSize), color1, color2, layer);
       }
     }
   }
