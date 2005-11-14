@@ -163,7 +163,7 @@ void drawScore() {
   if ( dsc == score ) return;
   dsc = score;
   clearLPanel();
-#ifndef PSP
+#if !PSP_SCREEN
   drawNum(score, 118, 24, 28, 16*1-12, 16*1-3);
   drawNum(bonusScore, 24, 14, 16, 16*1-12, 16*1-3);
 #else
@@ -173,7 +173,7 @@ void drawScore() {
   SDL_BlitSurface(lpanel, NULL, video, &lpanelRect);
 }
 
-#ifndef PSP
+#if !PSP_SCREEN
 #define SCENE_STAT_X 77
 #define SCENE_STAT_SIZE 9
 #else
@@ -186,7 +186,7 @@ void drawRPanel() {
   char *str = "LEFT";
   clearRPanel();
   if ( left >= 0 ) {
-#ifndef PSP
+#if !PSP_SCREEN
     drawString(str, 34, 272, 24, 3, 16*1-12, 16*1-3, rpbuf);
     drawLetter(left, 34, 450, 24, 3, 16*2-10, 16*2-1, rpbuf);
 #else
@@ -195,7 +195,7 @@ void drawRPanel() {
 #endif
   }
   y = 24;
-#ifndef PSP
+#if !PSP_SCREEN
   x = 124;
   size = 24;
 #else
@@ -234,7 +234,7 @@ void drawRPanel() {
   SDL_BlitSurface(rpanel, NULL, video, &rpanelRect);
 }
 
-#ifndef PSP
+#if !PSP_SCREEN
 #define STG_BOX_SIZE 40
 #else
 #define STG_BOX_SIZE 24
@@ -347,7 +347,7 @@ void drawTitleMenu() {
   char *insChr = "INSANE";
   char *quitChr = "QUIT";
   for ( i=0 ; i<STG_BOX_NUM ; i++ ) {
-#ifdef PSP
+#if PSP_SCREEN
     size = 8;
 #else
     size = 12;
