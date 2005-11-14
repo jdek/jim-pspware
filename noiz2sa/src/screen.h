@@ -13,21 +13,12 @@
 #include "vector.h"
 
 #if !PSP_SCREEN
-#if !LOWRES
 #define SCREEN_WIDTH 640
 #define SCREEN_HEIGHT 480
 #define LAYER_WIDTH 320
 #define LAYER_HEIGHT 480
 #define PANEL_WIDTH 160
 #define PANEL_HEIGHT 480
-#else
-#define SCREEN_WIDTH 320
-#define SCREEN_HEIGHT 240
-#define LAYER_WIDTH 160
-#define LAYER_HEIGHT 240
-#define PANEL_WIDTH 80
-#define PANEL_HEIGHT 240
-#endif
 #else
 #define SCREEN_WIDTH 480
 #define SCREEN_HEIGHT 272
@@ -39,11 +30,7 @@
 
 #define SCAN_WIDTH 320
 #if !PSP_SCREEN
-#if !LOWRES
 #define SCAN_HEIGHT 480
-#else
-#define SCAN_HEIGHT 240
-#endif
 #else
 #define SCAN_HEIGHT 272
 #endif
