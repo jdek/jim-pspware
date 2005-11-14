@@ -101,7 +101,7 @@ static void makeSmokeBuf() {
   lyrSize = sizeof(LayerBit)*pitch*LAYER_HEIGHT;
   if ( NULL == (smokeBuf = (LayerBit**)malloc(sizeof(LayerBit*)*pitch*LAYER_HEIGHT)) ) {
     fprintf(stderr, "Couldn't malloc smokeBuf.");
-//    exit(1);
+    exit(1);
   }
   if ( NULL == ( p = SDL_CreateRGBSurface
 		(SDL_SWSURFACE, LAYER_WIDTH, LAYER_HEIGHT, BPP,
@@ -113,7 +113,7 @@ static void makeSmokeBuf() {
 		(SDL_SWSURFACE, LAYER_WIDTH, LAYER_HEIGHT, BPP,
 		 pfrm->Rmask, pfrm->Gmask, pfrm->Bmask, pfrm->Amask)) ) {
       fprintf(stderr, "Couldn't create surface: %s\n", SDL_GetError());
-//      exit(1);
+      exit(1);
   }
   pbuf = (LayerBit *)p->pixels;
   l1buf = (LayerBit *)l1->pixels;
