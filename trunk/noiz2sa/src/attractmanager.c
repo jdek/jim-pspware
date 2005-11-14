@@ -388,7 +388,9 @@ void drawTitleMenu() {
     if ( i < 9 ) {
       drawNumCenter(i+1, stageX[i], stageY[i], size, 16*1-16, 16*1-1);
     } else {
+#if PSP_SCREEN
       size = 7;
+#endif
       switch ( i ) {
       case 9:
 	drawNumCenter(10, stageX[i]+8, stageY[i], size, 16*1-16, 16*1-1);
