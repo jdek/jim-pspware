@@ -349,12 +349,12 @@ void drawFoes() {
     if ( fe->hit ) {
       cl1 = FOE_HIT_COLOR;
     }
-    drawBox(x, y, sz, sz, cl1, cl2, l1buf);
+    drawBox(x, y, sz, sz, cl1, cl2, l1);
     d = (fe->cnt*8)<<4; md = (DIV<<4)/fe->shield;
     sz /= 3;
     for ( j=0 ; j<fe->shield ; j++, d+=md ) {
       di = (d>>4)&(DIV-1);
-      drawBox(x+((sctbl[di]*sz)>>7), y+((sctbl[di+DIV/4]*sz)>>7), sz, sz, cl1, cl2, l1buf);
+      drawBox(x+((sctbl[di]*sz)>>7), y+((sctbl[di+DIV/4]*sz)>>7), sz, sz, cl1, cl2, l1);
     }
   }
 }

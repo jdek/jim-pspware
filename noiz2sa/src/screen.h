@@ -12,15 +12,15 @@
 #include "SDL.h"
 #include "vector.h"
 
-#define SCREEN_WIDTH 640
-#define SCREEN_HEIGHT 480
+#define SCREEN_WIDTH 480
+#define SCREEN_HEIGHT 272
 #define LAYER_WIDTH 320
-#define LAYER_HEIGHT 480
-#define PANEL_WIDTH 160
-#define PANEL_HEIGHT 480
+#define LAYER_HEIGHT 272
+#define PANEL_WIDTH 80
+#define PANEL_HEIGHT 272
 
 #define SCAN_WIDTH 320
-#define SCAN_HEIGHT 480
+#define SCAN_HEIGHT 272
 #define SCAN_WIDTH_8 (SCAN_WIDTH<<8)
 #define SCAN_HEIGHT_8 (SCAN_HEIGHT<<8)
 
@@ -40,6 +40,8 @@
 extern int windowMode;
 extern LayerBit *l1buf, *l2buf;
 extern LayerBit *buf;
+extern SDL_Surface *layer, *lpanel, *rpanel, *video, *l1, *l2, *p;
+extern SDL_Rect lpanelRect, rpanelRect;
 extern LayerBit *lpbuf, *rpbuf;
 extern Uint8 *keys;
 extern SDL_Joystick *stick;
@@ -57,7 +59,7 @@ void smokeScreen();
 void drawThickLine(int x1, int y1, int x2, int y2, LayerBit color1, LayerBit color2, int width);
 void drawLine(int x1, int y1, int x2, int y2, LayerBit color, int width, LayerBit *buf);
 void drawBox(int x, int y, int width, int height, 
-	     LayerBit color1, LayerBit color2, LayerBit *buf);
+	     LayerBit color1, LayerBit color2, SDL_Surface *dst);
 void drawBoxPanel(int x, int y, int width, int height, 
 		  LayerBit color1, LayerBit color2, LayerBit *buf);
 int drawNum(int n, int x ,int y, int s, int c1, int c2);

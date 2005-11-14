@@ -68,8 +68,8 @@ void drawShots() {
     x = (st->pos.x/SCAN_WIDTH*LAYER_WIDTH)>>8;
     y = (st->pos.y/SCAN_HEIGHT*LAYER_HEIGHT)>>8;
     d = (st->cnt*16)&(DIV/8-1);
-    drawBox(x+((sctbl[d]*SHOT_WIDTH)>>8), y, SHOT_WIDTH, SHOT_HEIGHT, 16*7-8, 16*7-1, buf);
-    drawBox(x-((sctbl[d]*SHOT_WIDTH)>>8), y, SHOT_WIDTH, SHOT_HEIGHT, 16*7-8, 16*7-1, buf);
+    drawBox(x+((sctbl[d]*SHOT_WIDTH)>>8), y, SHOT_WIDTH, SHOT_HEIGHT, 16*7-8, 16*7-1, layer);
+    drawBox(x-((sctbl[d]*SHOT_WIDTH)>>8), y, SHOT_WIDTH, SHOT_HEIGHT, 16*7-8, 16*7-1, layer);
   }
 }
 

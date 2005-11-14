@@ -183,7 +183,7 @@ void drawBackground() {
       oy = osy;
       for ( ry = 0 ; ry < boardRepYn ; ry++, oy += boardRepy ) {
 	drawBox((bd->x+ox)/bd->z+LAYER_WIDTH/2, (bd->y+oy)/bd->z+LAYER_HEIGHT/2, 
-		 bd->width, bd->height, 1, 3, l1buf);
+		 bd->width, bd->height, 1, 3, l1);
       }
     }
   }

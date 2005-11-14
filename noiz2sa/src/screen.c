@@ -26,14 +26,14 @@
 int windowMode = 0;
 int brightness = DEFAULT_BRIGHTNESS;
 
-static SDL_Surface *video, *layer, *lpanel, *rpanel;
 static LayerBit **smokeBuf;
 static LayerBit *pbuf;
+SDL_Surface *layer, *lpanel, *rpanel, *video, *l1, *l2, *p;
 LayerBit *l1buf, *l2buf;
 LayerBit *buf;
 LayerBit *lpbuf, *rpbuf;
 static SDL_Rect screenRect, layerRect, layerClearRect;
-static SDL_Rect lpanelRect, rpanelRect, panelClearRect;
+SDL_Rect lpanelRect, rpanelRect, panelClearRect;
 static int pitch, ppitch;
 
 // Handle BMP images.
@@ -96,17 +96,28 @@ static int lyrSize;
 
 static void makeSmokeBuf() {
   int x, y, mx, my;
+  SDL_PixelFormat *pfrm;
+  pfrm = video->format;
   lyrSize = sizeof(LayerBit)*pitch*LAYER_HEIGHT;
   if ( NULL == (smokeBuf = (LayerBit**)malloc(sizeof(LayerBit*)*pitch*LAYER_HEIGHT)) ) {
     fprintf(stderr, "Couldn't malloc smokeBuf.");
-    exit(1);
+//    exit(1);
   }
-  if ( NULL == (pbuf  = (LayerBit*)malloc(lyrSize+sizeof(LayerBit))) ||
-       NULL == (l1buf = (LayerBit*)malloc(lyrSize+sizeof(LayerBit))) ||
-       NULL == (l2buf = (LayerBit*)malloc(lyrSize+sizeof(LayerBit))) ) {
-    fprintf(stderr, "Couldn't malloc buffer.");
-    exit(1);
+  if ( NULL == ( p = SDL_CreateRGBSurface
+		(SDL_SWSURFACE, LAYER_WIDTH, LAYER_HEIGHT, BPP,
+		 pfrm->Rmask, pfrm->Gmask, pfrm->Bmask, pfrm->Amask)) ||
+       NULL == ( l1 = SDL_CreateRGBSurface
+		(SDL_SWSURFACE, LAYER_WIDTH, LAYER_HEIGHT, BPP,
+		 pfrm->Rmask, pfrm->Gmask, pfrm->Bmask, pfrm->Amask)) ||
+       NULL == ( l2 = SDL_CreateRGBSurface
+		(SDL_SWSURFACE, LAYER_WIDTH, LAYER_HEIGHT, BPP,
+		 pfrm->Rmask, pfrm->Gmask, pfrm->Bmask, pfrm->Amask)) ) {
+      fprintf(stderr, "Couldn't create surface: %s\n", SDL_GetError());
+//      exit(1);
   }
+  pbuf = (LayerBit *)p->pixels;
+  l1buf = (LayerBit *)l1->pixels;
+  l2buf = (LayerBit *)l2->pixels;
   pbuf[pitch*LAYER_HEIGHT] = 0;
   for ( y=0 ; y<LAYER_HEIGHT ; y++ ) {
     for ( x=0 ; x<LAYER_WIDTH ; x++ ) {
@@ -210,8 +221,7 @@ void blendScreen() {
 
 void flipScreen() {
   SDL_BlitSurface(layer, NULL, video, &layerRect);
-  SDL_BlitSurface(lpanel, NULL, video, &lpanelRect);
-  SDL_BlitSurface(rpanel, NULL, video, &rpanelRect);
+
   if ( status == TITLE ) {
     drawTitle();
   }
@@ -232,7 +242,7 @@ void clearRPanel() {
 
 void smokeScreen() {
   int i;
-  memcpy(pbuf, l2buf, lyrSize);
+  SDL_BlitSurface(l2, NULL, p, NULL);
   for ( i = lyrSize-1 ; i >= 0 ; i-- ) {
     l1buf[i] = colorDfs[l1buf[i]];
     l2buf[i] = colorDfs[*(smokeBuf[i])];
@@ -412,10 +422,11 @@ void drawThickLine(int x1, int y1, int x2, int y2,
 }
 
 void drawBox(int x, int y, int width, int height, 
-	     LayerBit color1, LayerBit color2, LayerBit *buf) {
+	     LayerBit color1, LayerBit color2, SDL_Surface *dst) {
   int i, j;
   LayerBit cl;
   int ptr;
+  SDL_Rect rect;
 
   x -= width>>1; y -= height>>1;
   if ( x < 0 ) {
@@ -433,18 +444,25 @@ void drawBox(int x, int y, int width, int height,
   }
   if ( height <= 1 ) return;
 
-  ptr = x + y*LAYER_WIDTH;
-  memset(&(buf[ptr]), color2, width);
-  y++;
-  for ( i=0 ; i<height-2 ; i++, y++ ) {
-    ptr = x + y*LAYER_WIDTH;
-    buf[ptr] = color2; ptr++;
-    memset(&(buf[ptr]), color1, width-2);
-    ptr += width-2;
-    buf[ptr] = color2;
-  }
-  ptr = x + y*LAYER_WIDTH;
-  memset(&(buf[ptr]), color2, width);
+  // outline
+  rect.x = x;
+  rect.y = y;
+  rect.w = width;
+  rect.h = height;
+  SDL_FillRect(dst, &rect, color2);
+/*
+  drawLine(x, y, x, y + height, color2, 1, (LayerBit *)dst->pixels);
+  drawLine(x, y + height, x + width, y + height, color2, 1, (LayerBit *)dst->pixels);
+  drawLine(x + width, y + height, x + width, y, color2, 1, (LayerBit *)dst->pixels);
+  drawLine(x + width, y, x, y, color2, 1, (LayerBit *)dst->pixels);
+*/
+
+  // inner rect
+  rect.x++;
+  rect.y++;
+  rect.w -= 2;
+  rect.h -= 2;
+  SDL_FillRect(dst, &rect, color1);
 }
 
 void drawBoxPanel(int x, int y, int width, int height, 
@@ -582,19 +600,21 @@ int getButtonState() {
     btn4 = SDL_JoystickGetButton(stick, 3);
 #endif
   }
-  if ( keys[SDLK_z] == SDL_PRESSED || btn1 || btn4 ) {
+  if ( keys[SDLK_z] == SDL_PRESSED || btn1) {
     if ( !buttonReversed ) {
       btn |= PAD_BUTTON1;
     } else {
       btn |= PAD_BUTTON2;
     }
   }
-  if ( keys[SDLK_x] == SDL_PRESSED || btn2 || btn3 ) {
+  if ( keys[SDLK_x] == SDL_PRESSED || btn2) {
     if ( !buttonReversed ) {
       btn |= PAD_BUTTON2;
     } else {
       btn |= PAD_BUTTON1;
     }
   }
+  if (btn3 || btn4)
+      Mix_PauseMusic();
   return btn;
 }
