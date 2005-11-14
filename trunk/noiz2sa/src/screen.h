@@ -39,7 +39,11 @@
 
 #define SCAN_WIDTH 320
 #if !PSP_SCREEN
+#if !LOWRES
 #define SCAN_HEIGHT 480
+#else
+#define SCAN_HEIGHT 240
+#endif
 #else
 #define SCAN_HEIGHT 272
 #endif
