@@ -144,7 +144,11 @@ void initSDL(int window) {
   atexit(SDL_Quit);
 
   videoBpp = BPP;
+#if PSP && !PSP_SCREEN
+  videoFlags = SDL_SWSURFACE;
+#else
   videoFlags = SDL_DOUBLEBUF | SDL_HWSURFACE | SDL_HWPALETTE;
+#endif
   if ( !window ) videoFlags |= SDL_FULLSCREEN;
 
   if ( (video = SDL_SetVideoMode(SCREEN_WIDTH, SCREEN_HEIGHT, videoBpp, videoFlags)) == NULL ) {
