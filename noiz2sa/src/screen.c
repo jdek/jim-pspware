@@ -104,13 +104,13 @@ static void makeSmokeBuf() {
     exit(1);
   }
   if ( NULL == ( p = SDL_CreateRGBSurface
-		(SDL_SWSURFACE, LAYER_WIDTH, LAYER_HEIGHT, BPP,
+		(SDL_HWSURFACE, LAYER_WIDTH, LAYER_HEIGHT, BPP,
 		 pfrm->Rmask, pfrm->Gmask, pfrm->Bmask, pfrm->Amask)) ||
        NULL == ( l1 = SDL_CreateRGBSurface
-		(SDL_SWSURFACE, LAYER_WIDTH, LAYER_HEIGHT, BPP,
+		(SDL_HWSURFACE, LAYER_WIDTH, LAYER_HEIGHT, BPP,
 		 pfrm->Rmask, pfrm->Gmask, pfrm->Bmask, pfrm->Amask)) ||
        NULL == ( l2 = SDL_CreateRGBSurface
-		(SDL_SWSURFACE, LAYER_WIDTH, LAYER_HEIGHT, BPP,
+		(SDL_HWSURFACE, LAYER_WIDTH, LAYER_HEIGHT, BPP,
 		 pfrm->Rmask, pfrm->Gmask, pfrm->Bmask, pfrm->Amask)) ) {
       fprintf(stderr, "Couldn't create surface: %s\n", SDL_GetError());
       exit(1);
@@ -160,13 +160,13 @@ void initSDL(int window) {
   screenRect.w = SCREEN_WIDTH; screenRect.h = SCREEN_HEIGHT;
   pfrm = video->format;
   if ( NULL == ( layer = SDL_CreateRGBSurface
-		(SDL_SWSURFACE, LAYER_WIDTH, LAYER_HEIGHT, videoBpp,
+		(SDL_HWSURFACE, LAYER_WIDTH, LAYER_HEIGHT, videoBpp,
 		 pfrm->Rmask, pfrm->Gmask, pfrm->Bmask, pfrm->Amask)) ||
        NULL == ( lpanel = SDL_CreateRGBSurface
-		(SDL_SWSURFACE, PANEL_WIDTH, PANEL_HEIGHT, videoBpp,
+		(SDL_HWSURFACE, PANEL_WIDTH, PANEL_HEIGHT, videoBpp,
 		 pfrm->Rmask, pfrm->Gmask, pfrm->Bmask, pfrm->Amask)) ||
        NULL == ( rpanel = SDL_CreateRGBSurface
-		(SDL_SWSURFACE, PANEL_WIDTH, PANEL_HEIGHT, videoBpp,
+		(SDL_HWSURFACE, PANEL_WIDTH, PANEL_HEIGHT, videoBpp,
 		 pfrm->Rmask, pfrm->Gmask, pfrm->Bmask, pfrm->Amask)) ) {
       fprintf(stderr, "Couldn't create surface: %s\n", SDL_GetError());
       exit(1);
