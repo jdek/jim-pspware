@@ -188,7 +188,7 @@ Image* loadJpegImage(const char* filename)
 			jpeg_read_scanlines(&dinfo, &line, 1);
 			for (int x = 0; x < width; x++) {
 				Color c = line[x];
-				image->data[x + image->textureWidth * y] = c || (c << 8) || (c << 16);
+				image->data[x + image->textureWidth * y] = c | (c << 8) | (c << 16) | 0xff000000;;
 			}
 		}
 	} else {
@@ -200,7 +200,7 @@ Image* loadJpegImage(const char* filename)
 				Color c = *(linePointer++);
 				c |= (*(linePointer++)) << 8;
 				c |= (*(linePointer++)) << 16;
-				image->data[x + image->textureWidth * y] = c;
+				image->data[x + image->textureWidth * y] = c | 0xff000000;
 			}
 		}
 	}
