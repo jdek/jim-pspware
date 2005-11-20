@@ -2,7 +2,7 @@ v0.13
 ==========
  - screen:clear bugfix (was always black) [Shine]
  - updated Windows version with sound [sweetlilmre]
-
+ - JPEG image/screen load and save functionality [Shine]
 
 v0.12
 ==========
