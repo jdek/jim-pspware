@@ -26,19 +26,26 @@
 #include "graphics.h"
 #include "sound.h"
 #include "luaplayer.h"
+
+#ifndef LUAPLAYER_USERMODE
 #include "sio.h"
+#endif
 
 /* the boot.lua */
-#include "boot.c"
+#include "boot.cpp"
 
 /* Define the module info section */
+#ifdef LUAPLAYER_USERMODE
+PSP_MODULE_INFO("LUAPLAYER", 0, 1, 1);
+#else
 PSP_MODULE_INFO("LUAPLAYER", 0x1000, 1, 1);
+#endif
 
 /* Define the main thread's attribute value (optional) */
 PSP_MAIN_THREAD_ATTR(THREAD_ATTR_USER | THREAD_ATTR_VFPU);
 
 /* Exit callback */
-int exit_callback(void)
+int exit_callback(int arg1, int arg2, void *common)
 {
 
 // Unload modules
@@ -53,7 +60,7 @@ int CallbackThread(SceSize args, void *argp)
 {
 	int cbid;
 
-	cbid = sceKernelCreateCallback("Exit Callback", (void *) exit_callback, NULL);
+	cbid = sceKernelCreateCallback("Exit Callback", exit_callback, NULL);
 	sceKernelRegisterExitCallback(cbid);
 
 	sceKernelSleepThreadCB();
@@ -75,6 +82,7 @@ int SetupCallbacks(void)
 	return thid;
 }
 
+#ifndef LUAPLAYER_USERMODE
 int nullOutput(const char *buff, int size)
 {
 	return size;
@@ -105,6 +113,7 @@ __attribute__((constructor)) void stdoutInit()
 	// ignore startup messages from kernel, but install the tty driver in kernel mode
 	pspDebugInstallStdoutHandler(nullOutput); 
 } 
+#endif
 
 int main(int argc, char** argv)
 {
@@ -116,8 +125,10 @@ int main(int argc, char** argv)
 	initMikmod();
 
 	// install new output handlers	
+#ifndef LUAPLAYER_USERMODE
 	pspDebugInstallStdoutHandler(debugOutput); 
 	pspDebugInstallStderrHandler(debugOutput); 
+#endif
 
 	// execute Lua script (according to boot sequence)
 	char path[256];
@@ -131,16 +142,24 @@ int main(int argc, char** argv)
 		clearScreen(0);
 
 		if (runScript(bootStringWith0, true))
+#ifndef LUAPLAYER_USERMODE
+		{
 			debugOutput("Error: No script file found.\n", 29);
-		
+		}
 		debugOutput("\nPress start to restart\n", 26);
+#else
+;
+#endif
+		
 		SceCtrlData pad; int i;
 		sceCtrlReadBufferPositive(&pad, 1); 
 		for(i = 0; i < 40; i++) sceDisplayWaitVblankStart();
 		while(!(pad.Buttons&PSP_CTRL_START)) sceCtrlReadBufferPositive(&pad, 1); 
 		
 		chdir(path); // set base path luaplater/
+#ifndef LUAPLAYER_USERMODE
 		debugOutput(0,0);
+#endif
 		initGraphics();
 	}
 	free(bootStringWith0);

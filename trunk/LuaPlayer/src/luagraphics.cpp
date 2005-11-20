@@ -554,6 +554,13 @@ static int lua_sceGuAmbientColor(lua_State *L) {
 	return 0;
 }
 
+static int lua_sceGuAmbient(lua_State *L) {
+	int argc = lua_gettop(L); 
+	if (argc != 1) return luaL_error(L, "wrong number of arguments"); 
+	sceGuAmbient(*toColor(L, 1));
+	return 0;
+}
+
 static int lua_sceGuEnable(lua_State *L) {
 	int argc = lua_gettop(L); 
 	if (argc != 1) return luaL_error(L, "wrong number of arguments"); 
@@ -638,7 +645,7 @@ static int lua_sceGumDrawArray(lua_State *L) {
 	if (vtype & GU_VERTEX_32BITF) quads += 3;
 
 	void* vertices = memalign(16, n * quads*4);
-	float* vertex = vertices;
+	float* vertex = (float*) vertices;
 	int i;
 	for (i = 1; i <= n; ++i) {
 		// get vertice table
@@ -875,6 +882,7 @@ void luaGraphics_init(lua_State *L) {
 	lua_register(L, "sceGuTexScale", lua_sceGuTexScale);
 	lua_register(L, "sceGuTexOffset", lua_sceGuTexOffset);
 	lua_register(L, "sceGuAmbientColor", lua_sceGuAmbientColor);
+	lua_register(L, "sceGuAmbient", lua_sceGuAmbient);
 	lua_register(L, "sceGuEnable", lua_sceGuEnable);
 	lua_register(L, "sceGuDisable", lua_sceGuDisable);
 	lua_register(L, "sceGuBlendFunc", lua_sceGuBlendFunc);

@@ -1,16 +1,22 @@
 #include <stdlib.h>
 #include <pspkernel.h>
+
+#ifndef LUAPLAYER_USERMODE
 #include <pspusb.h>
 #include <pspusbstor.h>
+#endif
+
 #include <psppower.h>
 #include <pspdebug.h>
 #include <unistd.h>
 #include "luaplayer.h"
 #include "sio.h"
 
+#ifndef LUAPLAYER_USERMODE
 static int usbActivated = 0;
 static SceUID sio_fd = -1;
 static const char* sioNotInitialized = "SIO not initialized.";
+#endif
 
 static int lua_getCurrentDirectory(lua_State *L)
 {
@@ -87,6 +93,7 @@ static int lua_dir(lua_State *L)
 	return 1;  /* table is already on top */
 }
 
+#ifndef LUAPLAYER_USERMODE
 static int LoadStartModule(char *path)
 {
     u32 loadResult;
@@ -153,6 +160,7 @@ static int lua_usbDeactivate(lua_State *L)
 	usbActivated = 0;
 	return 0;
 }
+#endif
 
 // battery functions
  
@@ -235,6 +243,7 @@ static int lua_md5sum(lua_State *L)
 	return 1;
 }
 
+#ifndef LUAPLAYER_USERMODE
 static int lua_sioInit(lua_State *L)
 {
 	if (lua_gettop(L) != 1) return luaL_error(L, "baud rate expected.");
@@ -271,6 +280,7 @@ static int lua_sioRead(lua_State *L)
 	
 	return 1;
 }
+#endif
 
 static int lua_sleep(lua_State *L)
 {
@@ -283,8 +293,10 @@ static int lua_sleep(lua_State *L)
 static const luaL_reg System_functions[] = {
   {"currentDirectory",              lua_curdir},
   {"listDirectory",           	    lua_dir},
+#ifndef LUAPLAYER_USERMODE
   {"usbDiskModeActivate",           lua_usbActivate},
   {"usbDiskModeDeactivate",    	    lua_usbDeactivate},
+#endif
   {"powerIsPowerOnline",            lua_powerIsPowerOnline},
   {"powerIsBatteryExist",           lua_powerIsBatteryExist},
   {"powerIsBatteryCharging",        lua_powerIsBatteryCharging},
@@ -295,9 +307,11 @@ static const luaL_reg System_functions[] = {
   {"powerGetBatteryTemp",           lua_powerGetBatteryTemp},
   {"powerGetBatteryVolt",           lua_powerGetBatteryVolt},
   {"md5sum",                        lua_md5sum},
+#ifndef LUAPLAYER_USERMODE
   {"sioInit",                       lua_sioInit},
   {"sioRead",                       lua_sioRead},
   {"sioWrite",                      lua_sioWrite},
+#endif
   {"sleep",                         lua_sleep},
   {0, 0}
 };

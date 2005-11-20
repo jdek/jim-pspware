@@ -23,4 +23,3 @@ $(TARGET).exe: $(OBJS)
     
 clean: 
 	rm -f luaplayer.exe $(OBJS)
-  

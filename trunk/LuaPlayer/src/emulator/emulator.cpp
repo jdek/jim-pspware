@@ -1,15 +1,25 @@
+extern "C" {
 #include <pspkernel.h>
 #include <psptypes.h>
 #include <pspctrl.h>
 #include <pspsdk.h>
-#include <pspgu.h>
+#include <pspge.h>
+#include "mikmod.h"
+}
+
 #include <time.h>
+#include <string.h>
 #include "../framebuffer.h"
 #include "../graphics.h"
 #include "../sio.h"
-#include "mikmod.h"
 #include "md5.h"
-#include <fcntl.h>   /* File control definitions */
+
+/* includes from host system, not PSPSDK */
+#include </usr/include/unistd.h>
+#include </usr/include/sys/types.h>
+#include </usr/include/sys/stat.h>
+#include </usr/include/fcntl.h>   /* File control definitions */
+
 #include <errno.h>   /* Error number definitions */
 #include <termios.h> /* POSIX terminal control definitions */
 
@@ -17,6 +27,8 @@ extern int currentControls;
 extern Color* fb;
 Color* currentTexture;
 int currentTextureWidth, currentTextureHeight;
+
+extern "C" {
 
 void sceGuClearDepth(unsigned int depth)
 {
@@ -166,6 +178,11 @@ void sceGuLightMode(int mode)
 void sceGuLightSpot(int index, const ScePspFVector3* direction, float f12, float f13)
 {
   printf("NOT IMPLEMENTD: sceGuLightSpot\n");
+}
+
+void sceGuAmbient(int color)
+{
+  printf("NOT IMPLEMENTD: sceGuAmbient\n");
 }
 
 /**
@@ -895,7 +912,7 @@ int scePowerGetBatteryTemp()
 	return 0;
 }
 
-scePowerGetBatteryVolt()
+int scePowerGetBatteryVolt()
 {
 	return 0;
 }
@@ -906,4 +923,6 @@ int sceKernelUtilsMd5Digest(u8 *data, u32 size, u8 *digest)
   MD5Init( &ctx );
   MD5Update( &ctx, data, size );
   MD5Final( digest, &ctx );
+}
+
 }

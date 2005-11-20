@@ -34,6 +34,7 @@
 #include <sys/cdefs.h>
 #include <sys/time.h>
 //#include <sys/systm.h>
+#include <string.h>
 #include "md5.h"
  
 #define SHIFT(X, s) (((X) << (s)) | ((X) >> (32 - (s))))
@@ -129,8 +130,7 @@ static const u_int8_t md5_paddat[MD5_BUFLEN] = {
  
 static void md5_calc __P((u_int8_t *, md5_ctxt *));
  
-void md5_init(ctxt)
-	md5_ctxt *ctxt;
+void md5_init(md5_ctxt *ctxt)
 {
 	ctxt->md5_n = 0;
 	ctxt->md5_i = 0;
@@ -141,10 +141,7 @@ void md5_init(ctxt)
 	bzero(ctxt->md5_buf, sizeof(ctxt->md5_buf));
 }
  
-void md5_loop(ctxt, input, len)
-	md5_ctxt *ctxt;
-	u_int8_t *input;
-	u_int len; /* number of bytes */
+void md5_loop(md5_ctxt *ctxt, u_int8_t *input, u_int len /* number of bytes */)
 {
 	u_int gap, i;
  
@@ -169,8 +166,7 @@ void md5_loop(ctxt, input, len)
 	}
 }
  
-void md5_pad(ctxt)
-	md5_ctxt *ctxt;
+void md5_pad(md5_ctxt *ctxt)
 {
 	u_int gap;
  
@@ -208,9 +204,7 @@ void md5_pad(ctxt)
 	md5_calc(ctxt->md5_buf, ctxt);
 }
  
-void md5_result(digest, ctxt)
-	u_int8_t *digest;
-	md5_ctxt *ctxt;
+void md5_result(u_int8_t *digest, md5_ctxt *ctxt)
 {
 	/* 4 byte words */
 #if BYTE_ORDER == LITTLE_ENDIAN
@@ -232,9 +226,7 @@ void md5_result(digest, ctxt)
 u_int32_t X[16];
 #endif
  
-static void md5_calc(b64, ctxt)
-	u_int8_t *b64;
-	md5_ctxt *ctxt;
+static void md5_calc(u_int8_t *b64, md5_ctxt *ctxt)
 {
 	u_int32_t A = ctxt->md5_sta;
 	u_int32_t B = ctxt->md5_stb;

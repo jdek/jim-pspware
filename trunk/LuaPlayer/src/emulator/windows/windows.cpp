@@ -7,6 +7,7 @@
 #include "../../sound.h"
 #include "graphics.h"
 #include "framebuffer.h"
+#include "luaplayer.h"
 
 #define WIDTH 480
 #define HEIGHT 272
