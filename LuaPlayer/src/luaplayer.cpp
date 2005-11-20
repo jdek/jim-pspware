@@ -6,10 +6,6 @@
 #include <pspdebug.h>
 #include <pspdisplay.h>
 
-#include "lua.h"
-#include "lualib.h"
-#include "lauxlib.h"
-
 #include "luaplayer.h"
 
 

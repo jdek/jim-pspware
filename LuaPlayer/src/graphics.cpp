@@ -57,8 +57,8 @@ Image* loadImage(const char* filename)
 	png_structp png_ptr;
 	png_infop info_ptr;
 	unsigned int sig_read = 0;
-	png_uint_32 width, height;
-	int bit_depth, color_type, interlace_type, x, y;
+	png_uint_32 width, height, x, y;
+	int bit_depth, color_type, interlace_type;
 	u32* line;
 	FILE *fp;
 	Image* image = (Image*) malloc(sizeof(Image));
@@ -235,6 +235,7 @@ void clearScreen(Color color)
 {
 	if (!initialized) return;
 	guStart();
+	sceGuClearColor(color);
 	sceGuClearDepth(0);
 	sceGuClear(GU_COLOR_BUFFER_BIT|GU_DEPTH_BUFFER_BIT);
 	sceGuFinish();
@@ -286,14 +287,14 @@ Color getPixelImage(int x, int y, Image* image)
 
 void printTextScreen(int x, int y, const char* text, u32 color)
 {
-	int c, i, j, l;
+	int i, j, l;
 	u8 *font;
 	Color *vram_ptr;
 	Color *vram;
 	
 	if (!initialized) return;
 
-	for (c = 0; c < strlen(text); c++) {
+	for (size_t c = 0; c < strlen(text); c++) {
 		if (x < 0 || x + 8 > SCREEN_WIDTH || y < 0 || y + 8 > SCREEN_HEIGHT) break;
 		char ch = text[c];
 		vram = getVramDrawBuffer() + x + y * PSP_LINE_SIZE;
@@ -313,14 +314,14 @@ void printTextScreen(int x, int y, const char* text, u32 color)
 
 void printTextImage(int x, int y, const char* text, u32 color, Image* image)
 {
-	int c, i, j, l;
+	int i, j, l;
 	u8 *font;
 	Color *data_ptr;
 	Color *data;
 	
 	if (!initialized) return;
 
-	for (c = 0; c < strlen(text); c++) {
+	for (size_t c = 0; c < strlen(text); c++) {
 		if (x < 0 || x + 8 > image->imageWidth || y < 0 || y + 8 > image->imageHeight) break;
 		char ch = text[c];
 		data = image->data + x + y * image->textureWidth;

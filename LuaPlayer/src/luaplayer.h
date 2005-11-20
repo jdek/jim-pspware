@@ -3,9 +3,13 @@
 
 #include <stdlib.h>
 #include <tdefs.h>
+
+extern "C" {
 #include "lua.h"
 #include "lualib.h"
 #include "lauxlib.h"
+extern void luaC_collectgarbage (lua_State *L);
+}
 
 #define true 1
 #define false 0

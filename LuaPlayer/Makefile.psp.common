@@ -13,11 +13,11 @@ PSPSDK=$(shell psp-config --pspsdk-path)
 
 include $(PSPSDK)/lib/build.mak
 
-src/main.o: boot.c
+src/main.o: boot.cpp
 
-boot.c: src/auxiliary/boot.lua
+boot.cpp: src/auxiliary/boot.lua
 	$(shell psp-config --pspdev-path)/bin/bin2c $< $@ bootString
 
 .PHONY: moreclean
 moreclean:
-	-rm -f boot.c
+	-rm -f boot.cpp

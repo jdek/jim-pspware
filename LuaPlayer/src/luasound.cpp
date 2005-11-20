@@ -79,7 +79,7 @@ static int Music_volume(lua_State *L)
 	int argc = lua_gettop(L);
 	if(argc != 1 && argc != 0 ) return luaL_error(L, "wrong number of arguments");
 	if(argc)
-		lua_pushnumber(L, setMusicVolume(luaL_checknumber(L, 1)));
+		lua_pushnumber(L, setMusicVolume((unsigned int) luaL_checknumber(L, 1)));
 	else
 		lua_pushnumber(L, setMusicVolume(9999));
 
@@ -105,7 +105,7 @@ static int lua_setSFXVolume(lua_State *L)
 {
 	int argc = lua_gettop(L);
 	if(argc != 1 ) return luaL_error(L, "wrong number of arguments");
-	int arg = luaL_checknumber(L, 1);
+	int arg = (int) luaL_checknumber(L, 1);
 
 	setSFXVolume(arg);
 
@@ -115,7 +115,7 @@ static int lua_setReverb(lua_State *L)
 {
 	int argc = lua_gettop(L);
 	if(argc != 1 ) return luaL_error(L, "wrong number of arguments");
-	int arg = luaL_checknumber(L, 1);
+	int arg = (int) luaL_checknumber(L, 1);
 
 	setReverb(arg);
 
@@ -125,7 +125,7 @@ static int lua_setPanSep(lua_State *L)
 {
 	int argc = lua_gettop(L);
 	if(argc != 1 ) return luaL_error(L, "wrong number of arguments");
-	int arg = luaL_checknumber(L, 1);
+	int arg = (int) luaL_checknumber(L, 1);
 
 	setPanSep(arg);
 
@@ -266,7 +266,7 @@ static int Voice_setVolume(lua_State *L)
 		return luaL_error(L, "Voice:setVolume() takes one argument.");
 	
 	unsigned handle = *toVoice(L, 1);
-	int arg = luaL_checknumber(L, 2);
+	int arg = (int) luaL_checknumber(L, 2);
 
 	setVoiceVolume(handle, arg);
 
@@ -280,7 +280,7 @@ static int Voice_setPanning(lua_State *L)
 		return luaL_error(L, "Voice:setPanning() takes one argument.");
 	
 	unsigned handle = *toVoice(L, 1);
-	int arg = luaL_checknumber(L, 2);
+	int arg = (int) luaL_checknumber(L, 2);
 	
 	setVoicePanning(handle, arg);
 
@@ -294,7 +294,7 @@ static int Voice_setFrequency(lua_State *L)
 		return luaL_error(L, "Voice:setFrequency() takes one argument.");
 	
 	unsigned handle = *toVoice(L, 1);
-	int arg = luaL_checknumber(L, 2);
+	int arg = (int) luaL_checknumber(L, 2);
 
 	
 	setVoiceFrequency(handle, arg);
