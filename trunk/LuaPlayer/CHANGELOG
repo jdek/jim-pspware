@@ -1,3 +1,7 @@
+v0.14
+==========
+ - IRDA support [Shine]
+
 v0.13
 ==========
  - screen:clear bugfix (was always black) [Shine]

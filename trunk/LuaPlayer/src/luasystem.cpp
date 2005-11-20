@@ -18,6 +18,8 @@ static SceUID sio_fd = -1;
 static const char* sioNotInitialized = "SIO not initialized.";
 #endif
 
+SceUID irda_fd = -1;
+
 static int lua_getCurrentDirectory(lua_State *L)
 {
 	char path[256];
@@ -282,6 +284,41 @@ static int lua_sioRead(lua_State *L)
 }
 #endif
 
+static int lua_irdaInit(lua_State *L)
+{
+	if (lua_gettop(L) != 0) return luaL_error(L, "no arguments expected.");
+	if (irda_fd < 0) irda_fd = sceIoOpen("irda0:", PSP_O_RDWR, 0);
+	if (irda_fd < 0) return luaL_error(L, "failed create IRDA handle.");
+	
+	return 0;
+}
+
+static int lua_irdaWrite(lua_State *L)
+{
+	if (irda_fd < 0) return luaL_error(L, "irda not initialized");
+	size_t size;
+	const char *string = luaL_checklstring(L, 1, &size);
+	if (!string) return luaL_error(L, "Argument error: System.sioWrite(string) takes a string as argument.");
+	sceIoWrite(irda_fd, string, size);
+	
+	return 0;
+}
+
+static int lua_irdaRead(lua_State *L)
+{
+	if (irda_fd < 0) return luaL_error(L, "irda not initialized");
+	if (lua_gettop(L) != 0) return luaL_error(L, "no arguments expected.");
+	char data[256];
+	int count = sceIoRead(irda_fd, &data, 256);
+	if (count > 0) {
+		lua_pushlstring(L, data, count);
+	} else {
+		lua_pushstring(L, "");
+	}
+	
+	return 1;
+}
+
 static int lua_sleep(lua_State *L)
 {
 	if (lua_gettop(L) != 1) return luaL_error(L, "milliseconds expected.");
@@ -312,6 +349,9 @@ static const luaL_reg System_functions[] = {
   {"sioRead",                       lua_sioRead},
   {"sioWrite",                      lua_sioWrite},
 #endif
+  {"irdaInit",                      lua_irdaInit},
+  {"irdaRead",                      lua_irdaRead},
+  {"irdaWrite",                     lua_irdaWrite},
   {"sleep",                         lua_sleep},
   {0, 0}
 };
