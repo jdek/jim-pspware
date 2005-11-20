@@ -5,6 +5,11 @@
 #include <png.h>
 #include <pspgu.h>
 
+extern "C" {
+#include <jpeglib.h>
+#include <jerror.h>
+}
+
 #include "graphics.h"
 #include "framebuffer.h"
 
@@ -52,7 +57,25 @@ void user_warning_fn(png_structp png_ptr, png_const_charp warning_msg)
 {
 }
 
+static bool isJpegFile(const char* filename)
+{
+	char* suffix = strrchr(filename, '.');
+	if (suffix) {
+		if (stricmp(suffix, ".jpg") == 0 || stricmp(suffix, ".jpeg") == 0) return true;
+	}
+	return false;
+}
+
 Image* loadImage(const char* filename)
+{
+	if (isJpegFile(filename)) {
+		return loadJpegImage(filename);
+	} else {
+		return loadPngImage(filename);
+	}
+}
+
+Image* loadPngImage(const char* filename)
 {
 	png_structp png_ptr;
 	png_infop info_ptr;
@@ -125,6 +148,65 @@ Image* loadImage(const char* filename)
 	png_read_end(png_ptr, info_ptr);
 	png_destroy_read_struct(&png_ptr, &info_ptr, png_infopp_NULL);
 	fclose(fp);
+	return image;
+}
+
+Image* loadJpegImage(const char* filename)
+{
+	struct jpeg_decompress_struct dinfo;
+	struct jpeg_error_mgr jerr;
+	dinfo.err = jpeg_std_error(&jerr);
+	jpeg_create_decompress(&dinfo);
+	FILE* inFile = fopen(filename, "rb");
+	if (!inFile) {
+		jpeg_destroy_decompress(&dinfo);
+		return NULL;
+	}
+	jpeg_stdio_src(&dinfo, inFile);
+	jpeg_read_header(&dinfo, TRUE);
+	int width = dinfo.image_width;
+	int height = dinfo.image_height;
+	jpeg_start_decompress(&dinfo);
+	Image* image = (Image*) malloc(sizeof(Image));
+	if (!image) {
+		jpeg_destroy_decompress(&dinfo);
+		return NULL;
+	}
+	image->imageWidth = width;
+	image->imageHeight = height;
+	image->textureWidth = getNextPower2(width);
+	image->textureHeight = getNextPower2(height);
+	image->data = (Color*) memalign(16, image->textureWidth * image->textureHeight * sizeof(Color));
+	u8* line = (u8*) malloc(width * 3);
+	if (!line) {
+		jpeg_destroy_decompress(&dinfo);
+		return NULL;
+	}
+	if (dinfo.jpeg_color_space == JCS_GRAYSCALE) {
+		while (dinfo.output_scanline < dinfo.output_height) {
+			int y = dinfo.output_scanline;
+			jpeg_read_scanlines(&dinfo, &line, 1);
+			for (int x = 0; x < width; x++) {
+				Color c = line[x];
+				image->data[x + image->textureWidth * y] = c || (c << 8) || (c << 16);
+			}
+		}
+	} else {
+		while (dinfo.output_scanline < dinfo.output_height) {
+			int y = dinfo.output_scanline;
+			jpeg_read_scanlines(&dinfo, &line, 1);
+			u8* linePointer = line;
+			for (int x = 0; x < width; x++) {
+				Color c = *(linePointer++);
+				c |= (*(linePointer++)) << 8;
+				c |= (*(linePointer++)) << 16;
+				image->data[x + image->textureWidth * y] = c;
+			}
+		}
+	}
+	jpeg_finish_decompress(&dinfo);
+	jpeg_destroy_decompress(&dinfo);
+	free(line);
 	return image;
 }
 
@@ -341,6 +423,15 @@ void printTextImage(int x, int y, const char* text, u32 color, Image* image)
 
 void saveImage(const char* filename, Color* data, int width, int height, int lineSize, int saveAlpha)
 {
+	if (isJpegFile(filename)) {
+		saveJpegImage(filename, data, width, height, lineSize);
+	} else {
+		savePngImage(filename, data, width, height, lineSize, saveAlpha);
+	}
+}
+
+void savePngImage(const char* filename, Color* data, int width, int height, int lineSize, int saveAlpha)
+{
 	png_structp png_ptr;
 	png_infop info_ptr;
 	FILE* fp;
@@ -379,6 +470,40 @@ void saveImage(const char* filename, Color* data, int width, int height, int lin
 	png_write_end(png_ptr, info_ptr);
 	png_destroy_write_struct(&png_ptr, (png_infopp)NULL);
 	fclose(fp);
+}
+
+void saveJpegImage(const char* filename, Color* data, int width, int height, int lineSize)
+{
+	FILE* outFile = fopen(filename, "wb");
+	if (!outFile) return;
+	struct jpeg_error_mgr jerr;
+	struct jpeg_compress_struct cinfo;
+	cinfo.err = jpeg_std_error(&jerr);
+	jpeg_create_compress(&cinfo);
+	jpeg_stdio_dest(&cinfo, outFile);
+	cinfo.image_width = width;
+	cinfo.image_height = height;
+	cinfo.input_components = 3;
+	cinfo.in_color_space = JCS_RGB;
+	jpeg_set_defaults(&cinfo);
+	jpeg_set_quality(&cinfo, 100, TRUE);
+	jpeg_start_compress(&cinfo, TRUE);
+	u8* row = (u8*) malloc(width * 3);
+	if (!row) return;
+	for (int y = 0; y < height; y++) {
+		u8* rowPointer = row;
+		for (int x = 0; x < width; x++) {
+			Color c = data[x + cinfo.next_scanline * lineSize];
+			*(rowPointer++) = c & 0xff;
+			*(rowPointer++) = (c >> 8) & 0xff;
+			*(rowPointer++) = (c >> 16) & 0xff;
+		}
+		jpeg_write_scanlines(&cinfo, &row, 1);
+	}
+	jpeg_finish_compress(&cinfo);
+	jpeg_destroy_compress(&cinfo);
+	fclose(outFile);
+	free(row);
 }
 
 void flipScreen()
