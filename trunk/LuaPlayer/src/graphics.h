@@ -23,13 +23,31 @@ typedef struct
 } Image;
 
 /**
- * Load a PNG image.
+ * Load a PNG or JPEG image (depends on the filename suffix).
  *
  * @pre filename != NULL
  * @param filename - filename of the PNG image to load
  * @return pointer to a new allocated Image struct, or NULL on failure
  */
 extern Image* loadImage(const char* filename);
+
+/**
+ * Load a PNG image.
+ *
+ * @pre filename != NULL
+ * @param filename - filename of the PNG image to load
+ * @return pointer to a new allocated Image struct, or NULL on failure
+ */
+extern Image* loadPngImage(const char* filename);
+
+/**
+ * Load a JPEG image.
+ *
+ * @pre filename != NULL
+ * @param filename - filename of the JPEG image to load
+ * @return pointer to a new allocated Image struct, or NULL on failure
+ */
+extern Image* loadJpegImage(const char* filename);
 
 /**
  * Blit a rectangle part of an image to another image.
@@ -226,7 +244,7 @@ extern void printTextScreen(int x, int y, const char* text, u32 color);
 extern void printTextImage(int x, int y, const char* text, u32 color, Image* image);
 
 /**
- * Save an image or the screen in PNG format.
+ * Save an image or the screen in PNG or JPEG format (depends on the filename suffix).
  *
  * @pre filename != NULL
  * @param filename - filename of the PNG image
@@ -237,6 +255,31 @@ extern void printTextImage(int x, int y, const char* text, u32 color, Image* ima
  * @param saveAlpha - if 0, image is saved without alpha channel
  */
 extern void saveImage(const char* filename, Color* data, int width, int height, int lineSize, int saveAlpha);
+
+/**
+ * Save an image or the screen in PNG format.
+ *
+ * @pre filename != NULL
+ * @param filename - filename of the PNG image
+ * @param data - start of Color type pixel data (can be getVramDisplayBuffer())
+ * @param width - logical width of the image or SCREEN_WIDTH
+ * @param height - height of the image or SCREEN_HEIGHT
+ * @param lineSize - physical width of the image or PSP_LINE_SIZE
+ * @param saveAlpha - if 0, image is saved without alpha channel
+ */
+extern void savePngImage(const char* filename, Color* data, int width, int height, int lineSize, int saveAlpha);
+
+/**
+ * Save an image or the screen in JPEG format.
+ *
+ * @pre filename != NULL
+ * @param filename - filename of the JPEG image
+ * @param data - start of Color type pixel data (can be getVramDisplayBuffer())
+ * @param width - logical width of the image or SCREEN_WIDTH
+ * @param height - height of the image or SCREEN_HEIGHT
+ * @param lineSize - physical width of the image or PSP_LINE_SIZE
+ */
+extern void saveJpegImage(const char* filename, Color* data, int width, int height, int lineSize);
 
 /**
  * Exchange display buffer and drawing buffer.
