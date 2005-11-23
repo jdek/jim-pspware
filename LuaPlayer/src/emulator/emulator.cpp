@@ -19,6 +19,7 @@ extern "C" {
 #include </usr/include/sys/types.h>
 #include </usr/include/sys/stat.h>
 #include </usr/include/fcntl.h>   /* File control definitions */
+#include </usr/include/dirent.h>
 
 #include <errno.h>   /* Error number definitions */
 #include <termios.h> /* POSIX terminal control definitions */
@@ -27,27 +28,29 @@ extern int currentControls;
 extern Color* fb;
 Color* currentTexture;
 int currentTextureWidth, currentTextureHeight;
+extern void emuRefreshDisplay();
 
 extern "C" {
 
 void sceGuClearDepth(unsigned int depth)
 {
-  printf("NOT IMPLEMENTD: sceGuClearDepth\n");
+  //printf("NOT IMPLEMENTD: sceGuClearDepth\n");
 }
 
 void sceGuBlendFunc(int op, int src, int dest, unsigned int srcfix, unsigned int destfix)
 {
-  printf("NOT IMPLEMENTD: sceGuBlendFunc\n");
+  //printf("NOT IMPLEMENTD: sceGuBlendFunc\n");
 }
 
+unsigned int clear_color = 0;
 void sceGuClearColor(unsigned int color)
 {
-  printf("NOT IMPLEMENTD: sceGuClearColor\n");
+  clear_color = color;
 }
 
 void sceGumMatrixMode(int mode)
 {
-  printf("NOT IMPLEMENTD: sceGumMatrixMode\n");
+  //printf("NOT IMPLEMENTD: sceGumMatrixMode\n");
 }
 
 /**
@@ -60,27 +63,27 @@ void sceGumMatrixMode(int mode)
 **/
 void sceGumLoadIdentity(void)
 {
-  printf("NOT IMPLEMENTD: sceGumLoadIdentity\n");
+  //printf("NOT IMPLEMENTD: sceGumLoadIdentity\n");
 }
 
 void sceGumPerspective(float fovy, float aspect, float near, float far)
 {
-  printf("NOT IMPLEMENTD: sceGumPerspective\n");
+  //printf("NOT IMPLEMENTD: sceGumPerspective\n");
 }
 
 void sceGumRotateXYZ(const ScePspFVector3* v)
 {
-  printf("NOT IMPLEMENTD: sceGumRotateXYZ\n");
+  //printf("NOT IMPLEMENTD: sceGumRotateXYZ\n");
 }
 
 void sceGumTranslate(const ScePspFVector3* v)
 {
-  printf("NOT IMPLEMENTD: sceGumTranslate\n");
+  //printf("NOT IMPLEMENTD: sceGumTranslate\n");
 }
 
 void sceGumDrawArray(int prim, int vtype, int count, const void* indices, const void* vertices)
 {
-  printf("NOT IMPLEMENTD: sceGumDrawArray\n");
+  //printf("NOT IMPLEMENTD: sceGumDrawArray\n");
 }
 
 /**
@@ -94,12 +97,12 @@ void sceGumDrawArray(int prim, int vtype, int count, const void* indices, const 
 **/
 void sceGuTexEnvColor(unsigned int color)
 {
-  printf("NOT IMPLEMENTD: sceGuTexEnvColor\n");
+  //printf("NOT IMPLEMENTD: sceGuTexEnvColor\n");
 }
 
 void sceGuTexOffset(float u, float v)
 {
-  printf("NOT IMPLEMENTD: sceGuTexOffset\n");
+  //printf("NOT IMPLEMENTD: sceGuTexOffset\n");
 }
 
 /**
@@ -111,7 +114,7 @@ void sceGuTexOffset(float u, float v)
 **/
 void sceGuDisable(int state)
 {
-  printf("NOT IMPLEMENTD: sceGuDisable\n");
+  //printf("NOT IMPLEMENTD: sceGuDisable\n");
 }
 
 /**
@@ -134,7 +137,7 @@ void sceGuDisable(int state)
 **/
 void sceGuLight(int light, int type, int components, const ScePspFVector3* position)
 {
-  printf("NOT IMPLEMENTD: sceGuLight\n");
+  //printf("NOT IMPLEMENTD: sceGuLight\n");
 }
 
 /**
@@ -147,7 +150,7 @@ void sceGuLight(int light, int type, int components, const ScePspFVector3* posit
 **/
 void sceGuLightAtt(int light, float atten0, float atten1, float atten2)
 {
-  printf("NOT IMPLEMENTD: sceGuLightAtt\n");
+  //printf("NOT IMPLEMENTD: sceGuLightAtt\n");
 }
 
 /**
@@ -167,22 +170,22 @@ void sceGuLightAtt(int light, float atten0, float atten1, float atten2)
 
 void sceGuLightColor(int light, int component, unsigned int color)
 {
-  printf("NOT IMPLEMENTD: sceGuLightColor\n");
+  //printf("NOT IMPLEMENTD: sceGuLightColor\n");
 }
 
 void sceGuLightMode(int mode)
 {
-  printf("NOT IMPLEMENTD: sceGuLightMode\n");
+  //printf("NOT IMPLEMENTD: sceGuLightMode\n");
 }
 
 void sceGuLightSpot(int index, const ScePspFVector3* direction, float f12, float f13)
 {
-  printf("NOT IMPLEMENTD: sceGuLightSpot\n");
+  //printf("NOT IMPLEMENTD: sceGuLightSpot\n");
 }
 
 void sceGuAmbient(int color)
 {
-  printf("NOT IMPLEMENTD: sceGuAmbient\n");
+  //printf("NOT IMPLEMENTD: sceGuAmbient\n");
 }
 
 /**
@@ -194,7 +197,7 @@ void sceGuAmbient(int color)
  */
 int sceGeSaveContext(PspGeContext *context)
 {
-  printf("NOT IMPLEMENTD: sceGeSaveContext\n");
+  //printf("NOT IMPLEMENTD: sceGeSaveContext\n");
   return (0);
 }
 
@@ -207,7 +210,7 @@ int sceGeSaveContext(PspGeContext *context)
  */
 int sceGeRestoreContext(const PspGeContext *context)
 {
-  printf("NOT IMPLEMENTD: sceGeRestoreContext\n");
+  //printf("NOT IMPLEMENTD: sceGeRestoreContext\n");
   return (0);
 }
 
@@ -399,7 +402,6 @@ void sceGuDrawArray(int prim, int vtype, int count, const void* indices, const v
 		for (x = 0; x < width; x++) {
 			Color color = ((Color*)currentTexture)[x + sx + (y + sy) * currentTextureWidth];
 			if (color & 0xFF000000) dest[x + dx + (y + dy) * 512] = color;
-      //printf("sceGuDrawArray: x: %d, y:%d, dx: %d, dy: %d\n", x, y, dx, dy);
 		}
 	}
 }
@@ -536,6 +538,7 @@ u8 msx[]=
 
 void* sceGuSwapBuffers(void)
 {
+  emuRefreshDisplay();
 }
 
 void sceDisplaySetFrameBuf(void *topaddr, int bufferwidth, int pixelformat, int sync)
@@ -548,6 +551,7 @@ int sceDisplaySetMode(int mode, int width, int height)
 
 int sceDisplayWaitVblankStart(void)
 {
+  emuRefreshDisplay();
 	static float lastTime = 0;
 	float t = ((float) clock()) / ((float) CLOCKS_PER_SEC);
 	if (t - lastTime < 1.0/60.0) {
@@ -569,6 +573,11 @@ void sceGuDispBuffer(int width, int height, void* dispbp, int dispbw)
 
 void sceGuClear(int flags)
 {
+	Color* dest = getVramDrawBuffer();
+	for (int n = 0; n  < PSP_LINE_SIZE*SCREEN_HEIGHT; n++)
+  {
+    dest[n] = clear_color;
+	}
 }
 
 void sceGuDepthBuffer(void* zbp, int zbw)
@@ -627,182 +636,6 @@ void sceGuAmbientColor(unsigned int color)
 {
 }
 
-/*
-BOOL   MikMod_Init(void)
-{
-}
-
-void   MikMod_Exit(void)
-{
-}
-
-BOOL   MikMod_Reset(void)
-{
-}
-
-int    MikMod_PlaySample(SAMPLE *s, ULONG start, UBYTE flags)
-{
-}
-
-BOOL   MikMod_SetNumVoices(int music, int sndfx)
-{
-}
-
-BOOL   MikMod_Active(void)
-{
-}
-
-BOOL   MikMod_EnableOutput(void)
-{
-}
-
-void   MikMod_DisableOutput(void)
-{
-}
-
-void   MikMod_RegisterPlayer(void (*plr)(void))
-{
-}
-
-void   MikMod_RegisterAllDrivers(void)
-{
-}
-
-void   MikMod_RegisterAllLoaders(void)
-{
-}
-
-void   MikMod_Update(void)
-{
-}
-
-void Player_Start(UNIMOD *mf)
-{
-}
-
-void MikMod_FreeSong(UNIMOD *mf)
-{
-}
-
-void Player_Stop(void)
-{
-}
-
-CHAR *MikMod_LoadSongTitle(CHAR *filename)
-{
-}
-
-void Player_HandleTick(void)
-{
-}
-
-SAMPLE *WAV_LoadFN(CHAR *filename)
-{
-}
-
-void WAV_Free(SAMPLE *si)
-{
-}
-
-BOOL Player_Active(void)
-{
-}
-
-UNIMOD *MikMod_LoadSong(CHAR *filename, int maxchan)
-{
-}
-
-void   Voice_SetVolume(int voice, UWORD ivol)
-{
-}
-
-void   Voice_SetFrequency(int voice, ULONG frq)
-{
-}
-
-void   Voice_SetPanning(int voice, ULONG pan)
-{
-}
-
-void   Voice_Play(int voice,SAMPLE *s, ULONG start)
-{
-}
-
-void   Voice_Stop(int voice)
-{
-}
-
-void   Voice_ReleaseSustain(int voice)
-{
-}
-
-BOOL   Voice_Stopped(int voice)
-{
-}
-
-SLONG  Voice_GetPosition(int voice)
-{
-}
-
-ULONG  Voice_RealVolume(int voice)
-{
-}
-
-
-void   MD_InfoDriver(void)
-{
-}
-
-void   MD_RegisterDriver(MDRIVER *drv)
-{
-}
-
-SWORD  MD_SampleLoad(SAMPLOAD *s, int type, FILE *fp)
-{
-}
-
-void   MD_SampleUnLoad(SWORD handle)
-{
-}
-
-void   MD_SetBPM(UBYTE bpm)
-{
-}
-
-ULONG  MD_SampleSpace(int type)
-{
-}
-
-ULONG  MD_SampleLength(int type, SAMPLE *s)
-{
-}
-
-
-UBYTE md_bpm;
-UBYTE md_volume;
-UBYTE md_musicvolume;
-UBYTE md_sndfxvolume;
-UBYTE md_reverb;
-UBYTE md_pansep;
-
-UWORD md_device;
-UWORD md_mixfreq;
-UWORD md_dmabufsize;
-UWORD md_mode;
-
-int   _mm_errno;
-BOOL  _mm_critical;
-CHAR  *_mm_errmsg[100];
-
-void (*_mm_errorhandler)(void) = NULL;
-
-void _mm_RegisterErrorHandler(void (*proc)(void))
-{
-    _mm_errorhandler = proc;
-}
-*/
-
-
 int sceCtrlReadBufferPositive(SceCtrlData *pad_data, int count)
 {
 	pad_data->Buttons = currentControls;
@@ -820,16 +653,59 @@ int sceCtrlSetSamplingMode(int mode)
 
 SceUID sceIoDopen(const char *dirname)
 {
+  DIR* dir = NULL;
+  if (dirname && (strlen(dirname) == 0))
+  {
+    dir = opendir(".");
+  }
+  else
+  {
+    dir = opendir(dirname);
+  }
+  if (NULL != dir)
+  {
+    return ((SceUID) dir);
+  }
+  return (-1);
 }
 
 
 int sceIoDread(SceUID fd, SceIoDirent *dir)
 {
+  struct stat statbuf;
+  dirent* ent = readdir((DIR*)fd);
+  if (NULL != ent)
+  {
+    strcpy(dir->d_name, ent->d_name);
+    stat(dir->d_name, &statbuf);
+    dir->d_stat.st_size = statbuf.st_size;
+    dir->d_stat.st_attr = 0;
+    if (S_ISDIR(statbuf.st_mode))
+    {
+      dir->d_stat.st_attr |= FIO_SO_IFDIR;
+    }
+    if (S_ISLNK(statbuf.st_mode))
+    {
+      dir->d_stat.st_attr |= FIO_SO_IFLNK;
+    }
+    if (S_ISREG(statbuf.st_mode))
+    {
+      dir->d_stat.st_attr |= FIO_SO_IFREG;
+    }
+    
+    // TODO: Read, Write, Execute flags mapping
+    
+    return (1);
+  }
+  return (-1);
 }
 
 
 int sceIoDclose(SceUID fd)
 {
+  if (0 == closedir((DIR*)fd))
+    return (0);
+  return (-1);
 }
 
 
