@@ -1,6 +1,11 @@
 v0.14
 ==========
  - IRDA support [Shine]
+ - Windows Emulator [sweetlilmre]
+     sceIoD* functionality added.
+     sceGuClearColor and sceGuClear implemented.
+     flicker reduction via GL / PSP drawing sync
+     attempt to improve sound sync by yeilding in glutIdleFunc() func.
 
 v0.13
 ==========

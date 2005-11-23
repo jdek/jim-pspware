@@ -2,6 +2,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <time.h>
 #include <GL/glut.h>
 #include <pspctrl.h>
 #include "../../sound.h"
@@ -54,28 +55,34 @@ void reshape(int width, int height)
   glViewport(0, 0, width, height);
 }
 
-
 void display(void)
 {
-	int i = 0;
-	int x, y;
-	Color* fb = getVramDisplayBuffer();
-  Color* pixelFB = (Color*)pixels;
-  
-	for (y = HEIGHT - 1; y >= 0; y--)
-  {
-		for (x = 0; x < WIDTH; x++)
-    {
-			pixelFB[i++] = fb[x + y * 512];
-		}
-	}
 	glDrawPixels(WIDTH, HEIGHT, GL_RGBA, GL_UNSIGNED_BYTE, pixels);
   glutSwapBuffers();
+  glutPostRedisplay();
+}
+
+void emuRefreshDisplay()
+{
+  int i = 0;
+  int x, y;
+  Color* fb = getVramDisplayBuffer();
+  Color* pixelFB = (Color*)pixels;
+  for (y = HEIGHT - 1; y >= 0; y--)
+  {
+    for (x = 0; x < WIDTH; x++)
+    {
+      pixelFB[i++] = fb[x + y * 512];
+    }
+  }
 }
 
 void idle(void)
 {
-    glutPostRedisplay();
+  struct timespec w;
+  w.tv_sec  = 0;
+  w.tv_nsec = (int) (1000000 * 10);
+  nanosleep(&w, NULL);
 }
 
 void keyboard(unsigned char key, int x, int y)
