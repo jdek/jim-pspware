@@ -13,15 +13,15 @@
 
 typedef struct
 {
-	int measuredTime;
-	int offset;
+	clock_t measuredTime;
+	clock_t offset;
 } Timer;
 
 UserdataStubs(Timer, Timer*)
 
-static int getCurrentMilliseconds()
+static clock_t getCurrentMilliseconds()
 {
-	return clock() / (CLOCKS_PER_SEC / 1000);
+	return clock() / clock_t(CLOCKS_PER_SEC / 1000);
 }
 
 static int Timer_new(lua_State *L)
@@ -45,7 +45,7 @@ static int Timer_start(lua_State *L)
 	Timer* timer = *toTimer(L, 1);
 	if (timer->measuredTime) {
 		// timer is running
-		int currentTime = getCurrentMilliseconds();
+		clock_t currentTime = getCurrentMilliseconds();
 		lua_pushnumber(L, currentTime - timer->measuredTime + timer->offset);
 	} else {
 		// timer is stopped
@@ -63,7 +63,7 @@ static int Timer_time(lua_State *L)
 	Timer* timer = *toTimer(L, 1);
 	if (timer->measuredTime) {
 		// timer is running
-		int currentTime = getCurrentMilliseconds();
+		clock_t currentTime = getCurrentMilliseconds();
 		lua_pushnumber(L, currentTime - timer->measuredTime + timer->offset);
 	} else {
 		// timer is stopped
@@ -80,7 +80,7 @@ static int Timer_stop(lua_State *L)
 	Timer* timer = *toTimer(L, 1);
 	if (timer->measuredTime) {
 		// timer is running
-		int currentTime = getCurrentMilliseconds();
+		clock_t currentTime = getCurrentMilliseconds();
 		timer->offset = currentTime - timer->measuredTime + timer->offset;
 		timer->measuredTime = 0;
 	}
@@ -97,7 +97,7 @@ static int Timer_reset(lua_State *L)
 	Timer* timer = *toTimer(L, 1);
 	if (timer->measuredTime) {
 		// timer is running
-		int currentTime = getCurrentMilliseconds();
+		clock_t currentTime = getCurrentMilliseconds();
 		lua_pushnumber(L, currentTime - timer->measuredTime + timer->offset);
 	} else {
 		// timer is stopped
@@ -118,10 +118,10 @@ static int Timer_free(lua_State *L)
 static int Timer_tostring (lua_State *L)
 {
 	Timer* timer = *toTimer(L, 1);
-	int t;
+	clock_t t;
 	if (timer->measuredTime) {
 		// timer is running
-		int currentTime = getCurrentMilliseconds();
+		clock_t currentTime = getCurrentMilliseconds();
 		t = currentTime - timer->measuredTime + timer->offset;
 	} else {
 		// timer is stopped
