@@ -1,11 +1,12 @@
 v0.14
 ==========
- - IRDA support [Shine]
+ - IrDA support [Shine]
  - Windows Emulator [sweetlilmre]
-     sceIoD* functionality added.
+     sceIoD* functionality added for System.listDirectory().
      sceGuClearColor and sceGuClear implemented.
      flicker reduction via GL / PSP drawing sync
      attempt to improve sound sync by yeilding in glutIdleFunc() func.
+ - possible signed bug for timer fixed [Shine]
 
 v0.13
 ==========
