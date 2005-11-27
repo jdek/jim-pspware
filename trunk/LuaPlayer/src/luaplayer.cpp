@@ -29,6 +29,9 @@ int runScript(const char* script, BOOL isStringBuffer )
 	luaGraphics_init(L);
 	luaTimer_init(L);
 	luaSystem_init(L);
+#ifndef LUAPLAYER_USERMODE
+	luaWlan_init(L);
+#endif
 	
 	int s = 0;
 	if(!isStringBuffer) 
