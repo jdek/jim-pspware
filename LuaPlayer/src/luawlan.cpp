@@ -26,9 +26,21 @@ static bool wlanInitialized = false;
 static int Wlan_init(lua_State* L)
 {
 	if (lua_gettop(L) != 0) return luaL_error(L, "no arguments expected.");
+	if (wlanInitialized) return 0;
 	int err = pspSdkInetInit();
 	if (err != 0) return luaL_error(L, "pspSdkInetInit failed.");
 	wlanInitialized = true;
+	return 0;
+}
+
+static int Wlan_term(lua_State* L)
+{
+	// TODO: doesn't term; another call to pspSdkInetInit fails
+	if (lua_gettop(L) != 0) return luaL_error(L, "no arguments expected.");
+	if (!wlanInitialized) return 0;
+	sceNetApctlDisconnect();
+	pspSdkInetTerm();
+	wlanInitialized = false;
 	return 0;
 }
 
@@ -69,9 +81,8 @@ static int Wlan_useConnectionConfig(lua_State* L)
 	if (argc != 1) return luaL_error(L, "Argument error: index to connection config expected."); 
 	
 	int connectionConfig = luaL_checkint(L, 1);
-	int err = sceNetApctlConnect(connectionConfig);
-    	if (err != 0) return luaL_error(L, "sceNetApctlConnect error");
-	return 0;
+	lua_pushnumber(L, sceNetApctlConnect(connectionConfig));
+	return 1;
 }
 
 static int Wlan_getIPAddress(lua_State* L)
@@ -82,6 +93,7 @@ static int Wlan_getIPAddress(lua_State* L)
 
 	char szMyIPAddr[32];
 	if (sceNetApctlGetInfo(8, szMyIPAddr) != 0) {
+		// TODO: gets garbage
 		lua_pushstring(L, szMyIPAddr);
 		return 1;
 	}
@@ -126,7 +138,6 @@ static int Socket_connect(lua_State *L)
 	int err;
 	socket->sock = sceNetInetSocket(AF_INET, SOCK_STREAM, 0);
 	if (socket->sock & 0x80000000) {
-		Socket_free(L);
 		return luaL_error(L, "invalid socket."); 
 	}
 	
@@ -139,14 +150,15 @@ static int Socket_connect(lua_State *L)
 	
 	setSockNoBlock(socket->sock, 1);
 	err = sceNetInetConnect(socket->sock, &socket->addrTo, sizeof(socket->addrTo));
-	Socket_free(L);
 	
-	if (err == -1 && sceNetInetGetErrno() != 0x77) {
-		Socket_free(L);
-		return luaL_error(L, "connection failed."); 
+	int inetErr = sceNetInetGetErrno();
+	if (err == -1 /*&& sceNetInetGetErrno() != 0x77 */) {  // returns 0x7d, I don't know why
+		lua_pushnumber(L, inetErr);
+	} else {
+		lua_pushnumber(L, 0);
 	}
 
-	return 1;
+	return 2;
 }
 
 static int Socket_isConnected(lua_State *L)
@@ -228,7 +240,6 @@ static int Socket_tostring (lua_State *L)
 }
 
 static const luaL_reg Socket_methods[] = {
-	{"connect", Socket_connect},
 	{"isConnected", Socket_isConnected},
 	{"send", Socket_send},
 	{"recv", Socket_recv},
@@ -246,9 +257,15 @@ UserdataRegister(Socket, Socket_methods, Socket_meta)
 
 static const luaL_reg Wlan_functions[] = {
 	{"init", Wlan_init},
+	{"term", Wlan_term},
 	{"getConnectionConfigs", Wlan_getConnectionConfigs},
 	{"useConnectionConfig", Wlan_useConnectionConfig},
 	{"getIPAddress", Wlan_getIPAddress},
+	{0, 0}
+};
+
+static const luaL_reg Socket_functions[] = {
+	{"connect", Socket_connect},
 	{0, 0}
 };
 
@@ -256,6 +273,7 @@ void luaWlan_init(lua_State *L)
 {
 	luaL_openlib(L, "Wlan", Wlan_functions, 0);
 	Socket_register(L);
+	luaL_openlib(L, "Socket", Socket_functions, 0);
 }
 
 #endif
