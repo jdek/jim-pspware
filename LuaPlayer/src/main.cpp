@@ -48,7 +48,7 @@ PSP_MAIN_THREAD_ATTR(THREAD_ATTR_USER | THREAD_ATTR_VFPU);
 int exit_callback(int arg1, int arg2, void *common)
 {
 
-// Unload modules
+	// Unload modules
 	unloadMikmod();
 		
 	sceKernelExitGame();
@@ -105,6 +105,13 @@ int debugOutput(const char *buff, int size)
 
 __attribute__((constructor)) void stdoutInit() 
 { 
+	pspKernelSetKernelPC();
+	int err = pspSdkLoadInetModules();
+	if (err != 0) {
+		pspDebugScreenInit();
+		pspDebugScreenPrintf("pspSdkLoadInetModules failed with %x\n", err);
+	        sceKernelDelayThread(5*1000000); // 5 sec to read error
+	}
 	pspKernelSetKernelPC();
 	pspSdkInstallNoDeviceCheckPatch();
 	pspDebugInstallKprintfHandler(NULL);

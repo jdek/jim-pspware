@@ -63,6 +63,9 @@ extern void luaControls_init(lua_State *L);
 extern void luaGraphics_init(lua_State *L);
 extern void luaTimer_init(lua_State *L);
 extern void luaSystem_init(lua_State *L);
+#ifndef LUAPLAYER_USERMODE
+extern void luaWlan_init(lua_State *L);
+#endif
 
 extern void stackDump (lua_State *L);
 

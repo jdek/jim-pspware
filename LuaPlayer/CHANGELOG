@@ -1,3 +1,8 @@
+v0.15
+==========
+ - timer bug fixed (was bug in PSPSDK) [mrbrown]
+ - outgoing wlan socket support (based on PspPet's "WiFi Multi-Test .03") [Shine]
+
 v0.14
 ==========
  - IrDA support [Shine]

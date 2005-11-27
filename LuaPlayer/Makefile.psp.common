@@ -1,5 +1,5 @@
 OBJS = src/graphics.o src/sound.o src/luaplayer.o src/utility.o src/main.o src/framebuffer.o src/sio.o \
-	src/luacontrols.o src/luagraphics.o src/luasound.o src/luatimer.o src/luasystem.o
+	src/luacontrols.o src/luagraphics.o src/luasound.o src/luatimer.o src/luasystem.o src/luawlan.o
 INCDIR =
 CFLAGS = -G0 -Wall -O2 -fno-strict-aliasing $(EXTRA_CFLAGS)
 CXXFLAGS = $(CFLAGS) -fno-exceptions -fno-rtti
@@ -7,7 +7,10 @@ ASFLAGS = $(CFLAGS)
 LIBDIR =
 LDFLAGS =
 LIBS= -llua -llualib -lpng -ljpeg -lz -lpspgum -lpspgu -lm -lmikmod -lmmio \
-	-lpspaudiolib -lpspaudio -lpspusb -lpspusbstor -lpsppower -lpspdebug -lpsphprm_driver -lpsputility
+	-lpspaudiolib -lpspaudio -lpspusb -lpspusbstor -lpsppower -lpspdebug -lpsphprm_driver -lpsputility \
+	-lpspwlan -lpspsdk -lpspnet_apctl -lpspnet_resolver -lpspnet_inet -lpspnet
+# TODO: without -lpspsdk it says: libpspsdk.a(inethelper.o): In function `pspSdkInetInit': inethelper.c:67: undefined reference to `sceNetInit'
+
 EXTRA_TARGETS = EBOOT.PBP
 EXTRA_CLEAN = moreclean
 PSPSDK=$(shell psp-config --pspsdk-path)
