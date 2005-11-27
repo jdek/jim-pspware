@@ -37,12 +37,15 @@
 /* Define the module info section */
 #ifdef LUAPLAYER_USERMODE
 PSP_MODULE_INFO("LUAPLAYER", 0, 1, 1);
+PSP_MAIN_THREAD_ATTR(THREAD_ATTR_USER | THREAD_ATTR_VFPU);
 #else
 PSP_MODULE_INFO("LUAPLAYER", 0x1000, 1, 1);
+PSP_MAIN_THREAD_ATTR(0);
+PSP_MAIN_THREAD_STACK_SIZE_KB(32); /* smaller stack for kernel thread */
 #endif
 
-/* Define the main thread's attribute value (optional) */
-PSP_MAIN_THREAD_ATTR(THREAD_ATTR_USER | THREAD_ATTR_VFPU);
+// startup path
+char path[256];
 
 /* Exit callback */
 int exit_callback(int arg1, int arg2, void *common)
@@ -82,7 +85,9 @@ int SetupCallbacks(void)
 	return thid;
 }
 
-#ifndef LUAPLAYER_USERMODE
+#ifdef LUAPLAYER_USERMODE
+int main(int argc, char** argv)
+#else
 int nullOutput(const char *buff, int size)
 {
 	return size;
@@ -103,26 +108,8 @@ int debugOutput(const char *buff, int size)
 	return pspDebugScreenPrintData(buff, size);
 }
 
-__attribute__((constructor)) void stdoutInit() 
-{ 
-	pspKernelSetKernelPC();
-	int err = pspSdkLoadInetModules();
-	if (err != 0) {
-		pspDebugScreenInit();
-		pspDebugScreenPrintf("pspSdkLoadInetModules failed with %x\n", err);
-	        sceKernelDelayThread(5*1000000); // 5 sec to read error
-	}
-	pspKernelSetKernelPC();
-	pspSdkInstallNoDeviceCheckPatch();
-	pspDebugInstallKprintfHandler(NULL);
-	registerSIODriver();
-
-	// ignore startup messages from kernel, but install the tty driver in kernel mode
-	pspDebugInstallStdoutHandler(nullOutput); 
-} 
+int user_main(SceSize argc, void* argv)
 #endif
-
-int main(int argc, char** argv)
 {
 	SetupCallbacks();
 	tzset();
@@ -138,12 +125,14 @@ int main(int argc, char** argv)
 #endif
 
 	// execute Lua script (according to boot sequence)
-	char path[256];
+#ifndef LUAPLAYER_USERMODE
 	getcwd(path, 256);
+#endif
 	char* bootStringWith0 = (char*) malloc(size_bootString + 1);
 	memcpy(bootStringWith0, bootString, size_bootString);
 	bootString[size_bootString] = 0;
 	while(1) { // reload on error
+		chdir(path); // set base path luaplater/
 		clearScreen(0);
 		flipScreen();
 		clearScreen(0);
@@ -163,7 +152,6 @@ int main(int argc, char** argv)
 		for(i = 0; i < 40; i++) sceDisplayWaitVblankStart();
 		while(!(pad.Buttons&PSP_CTRL_START)) sceCtrlReadBufferPositive(&pad, 1); 
 		
-		chdir(path); // set base path luaplater/
 #ifndef LUAPLAYER_USERMODE
 		debugOutput(0,0);
 #endif
@@ -176,3 +164,45 @@ int main(int argc, char** argv)
 
 	return 0;
 }
+
+#ifndef LUAPLAYER_USERMODE
+int main(void)
+{
+	getcwd(path, 256);
+	int err = pspSdkLoadInetModules();
+	if (err != 0) {
+		pspDebugScreenInit();
+		pspDebugScreenPrintf("pspSdkLoadInetModules failed with %x\n", err);
+	        sceKernelDelayThread(5*1000000); // 5 sec to read error
+	}
+
+	// create user thread, tweek stack size here if necessary
+	SceUID thid = sceKernelCreateThread("User Mode Thread", user_main,
+	    0x11, // default priority
+	    256 * 1024, // stack size (256KB is regular default)
+	    PSP_THREAD_ATTR_USER, NULL);
+	
+	// start user thread, then wait for it to do everything else
+	sceKernelStartThread(thid, 0, NULL);
+	sceKernelWaitThreadEnd(thid, NULL);
+	
+	sceKernelExitGame();
+	return 0;
+}
+
+__attribute__((constructor)) void stdoutInit() 
+{ 
+	pspKernelSetKernelPC();
+	pspSdkInstallNoDeviceCheckPatch();
+	pspSdkInstallNoPlainModuleCheckPatch();
+	pspKernelSetKernelPC();
+	pspKernelSetKernelPC();
+	pspSdkInstallNoDeviceCheckPatch();
+	pspDebugInstallKprintfHandler(NULL);
+	registerSIODriver();
+
+	// ignore startup messages from kernel, but install the tty driver in kernel mode
+	pspDebugInstallStdoutHandler(nullOutput); 
+} 
+#endif
+
