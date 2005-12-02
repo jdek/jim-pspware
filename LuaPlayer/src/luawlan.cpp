@@ -168,6 +168,10 @@ static int Socket_isConnected(lua_State *L)
 	if (argc != 1) return luaL_error(L, "no argument expected.");
 
 	Socket* socket = *toSocket(L, 1);
+	if (socket->serverSocket) {
+		lua_pushboolean(L, 1);
+		return 1;
+	}
 
 	// try connect again, which should always fail
 	// look at why it failed to figure out if it is connected
@@ -182,6 +186,75 @@ static int Socket_isConnected(lua_State *L)
 	return 1;
 }
 
+static int Socket_createServerSocket(lua_State *L)
+{
+	if (!wlanInitialized) return luaL_error(L, wlanNotInitialized);
+	int argc = lua_gettop(L); 
+	if (argc != 1) return luaL_error(L, "port expected."); 
+	
+	int port = luaL_checkint(L, 1);
+
+	Socket** luaSocket = pushSocket(L);
+	Socket* socket = (Socket*) malloc(sizeof(Socket));
+	*luaSocket = socket;
+	socket->serverSocket = true;
+	
+        socket->sock = sceNetInetSocket(AF_INET, SOCK_STREAM, 0);
+        if (socket->sock <= 0) {
+		return luaL_error(L, "invalid socket."); 
+        }
+
+        socket->addrTo.sin_family = AF_INET;
+        socket->addrTo.sin_port = htons(port);
+        socket->addrTo.sin_addr[0] = 0;
+        socket->addrTo.sin_addr[1] = 0;
+        socket->addrTo.sin_addr[2] = 0;
+        socket->addrTo.sin_addr[3] = 0;
+
+        int err = sceNetInetBind(socket->sock, &socket->addrTo, sizeof(socket->addrTo));
+        if (err != 0) {
+		return luaL_error(L, "bind error."); 
+        }
+
+	setSockNoBlock(socket->sock, 1);
+
+        err = sceNetInetListen(socket->sock, 1);
+        if (err != 0) {
+		return luaL_error(L, "listen error."); 
+        }
+        
+        return 1;
+}
+
+static int Socket_accept(lua_State *L)
+{
+	if (!wlanInitialized) return luaL_error(L, wlanNotInitialized);
+	int argc = lua_gettop(L);
+	if (argc != 1) return luaL_error(L, "no argument expected.");
+
+	Socket* socket = *toSocket(L, 1);
+
+	if (!socket->serverSocket) return luaL_error(L, "accept allowed for server sockets only.");
+
+	// check for waiting incoming connections
+        struct sockaddr_in addrAccept;
+        int cbAddrAccept = sizeof(addrAccept);
+        SOCKET sockClient = sceNetInetAccept(socket->sock, &addrAccept, &cbAddrAccept);
+        if (sockClient <= 0) {
+        	return 0;
+        }
+
+	// create new lua socket
+	Socket** luaSocket = pushSocket(L);
+	Socket* incomingSocket = (Socket*) malloc(sizeof(Socket));
+	*luaSocket = incomingSocket;
+	incomingSocket->serverSocket = false;
+	incomingSocket->sock = sockClient;
+	incomingSocket->addrTo = addrAccept;
+
+	return 1;
+}
+
 static int Socket_recv(lua_State *L)
 {
 	if (!wlanInitialized) return luaL_error(L, wlanNotInitialized);
@@ -189,6 +262,8 @@ static int Socket_recv(lua_State *L)
 	if (argc != 1) return luaL_error(L, "no argument expected.");
 
 	Socket* socket = *toSocket(L, 1);
+
+	if (socket->serverSocket) return luaL_error(L, "recv not allowed for server sockets.");
 
 	char data[256];
 	int count = sceNetInetRecv(socket->sock, (u8*) &data, 256, 0);
@@ -207,6 +282,8 @@ static int Socket_send(lua_State *L)
 	if (argc != 2) return luaL_error(L, "one argument expected.");
 
 	Socket* socket = *toSocket(L, 1);
+
+	if (socket->serverSocket) return luaL_error(L, "send not allowed for server sockets.");
 
 	size_t size;
 	const char *string = luaL_checklstring(L, 2, &size);
@@ -241,6 +318,7 @@ static int Socket_tostring (lua_State *L)
 
 static const luaL_reg Socket_methods[] = {
 	{"isConnected", Socket_isConnected},
+	{"accept", Socket_accept},
 	{"send", Socket_send},
 	{"recv", Socket_recv},
 	{"close", Socket_close},
@@ -266,6 +344,7 @@ static const luaL_reg Wlan_functions[] = {
 
 static const luaL_reg Socket_functions[] = {
 	{"connect", Socket_connect},
+	{"createServerSocket", Socket_createServerSocket},
 	{0, 0}
 };
 
