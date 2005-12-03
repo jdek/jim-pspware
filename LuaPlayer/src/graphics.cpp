@@ -421,6 +421,48 @@ void printTextImage(int x, int y, const char* text, u32 color, Image* image)
 	}
 }
 
+static void fontPrintTextImpl(FT_Bitmap* bitmap, int xofs, int yofs, Color color, Color* framebuffer, int width, int height, int lineSize)
+{
+	u8 rf = color & 0xff; 
+	u8 gf = (color >> 8) & 0xff;
+	u8 bf = (color >> 16) & 0xff;
+	
+	u8* line = bitmap->buffer;
+	Color* fbLine = framebuffer + xofs + yofs * lineSize;
+	for (int y = 0; y < bitmap->rows; y++) {
+		u8* column = line;
+		Color* fbColumn = fbLine;
+		for (int x = 0; x < bitmap->width; x++) {
+			if (x + xofs < width && x + xofs >= 0 && y + yofs < height && y + yofs >= 0) {
+				u8 val = *column;
+				color = *fbColumn;
+				u8 r = color & 0xff; 
+				u8 g = (color >> 8) & 0xff;
+				u8 b = (color >> 16) & 0xff;
+				u8 a = (color >> 24) & 0xff;
+				r = rf * val / 255 + (255 - val) * r / 255;
+				g = gf * val / 255 + (255 - val) * g / 255;
+				b = bf * val / 255 + (255 - val) * b / 255;
+				*fbColumn = r | (g << 8) | (b << 16) | (a << 24);
+			}
+			column++;
+			fbColumn++;
+		}
+		line += bitmap->pitch;
+		fbLine += lineSize;
+	}
+}
+
+void fontPrintTextImage(FT_Bitmap* bitmap, int x, int y, Color color, Image* image)
+{
+	fontPrintTextImpl(bitmap, x, y, color, image->data, image->imageWidth, image->imageHeight, image->textureWidth);
+}
+
+void fontPrintTextScreen(FT_Bitmap* bitmap, int x, int y, Color color)
+{
+	fontPrintTextImpl(bitmap, x, y, color, getVramDrawBuffer(), SCREEN_WIDTH, SCREEN_HEIGHT, PSP_LINE_SIZE);
+}
+
 void saveImage(const char* filename, Color* data, int width, int height, int lineSize, int saveAlpha)
 {
 	if (isJpegFile(filename)) {

@@ -3,6 +3,8 @@ v0.15
  - timer bug fixed (was bug in PSPSDK) [mrbrown]
  - wlan socket support (based on PspPet's "WiFi Multi-Test .03") [Shine]
  - changed sceGu* and sceGum* functions to Gu.* and Gum.* [Shine]
+ - System.getFreeMemory added [Shine]
+ - Freetype added, with 2 default fonts (see http://www.gnome.org/fonts/ for the licence) [Shine]
 
 v0.14
 ==========

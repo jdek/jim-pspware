@@ -318,6 +318,25 @@ static int lua_sleep(lua_State *L)
 	return 0;
 }
 
+static int lua_getFreeMemory(lua_State *L)
+{
+	if (lua_gettop(L) != 0) return luaL_error(L, "no arguments expected.");
+	
+	// for a realistic number, try to allocate 1 mb blocks until out of memory
+	void* buf[64];
+	int i = 0;
+	for (i = 0; i < 64; i++) {
+		buf[i] = malloc(1024 * 1024);
+		if (!buf[i]) break;
+	}
+	int result = i;
+	for (; i >= 0; i--) {
+		free(buf[i]);
+	}
+	lua_pushnumber(L, result * 1024 * 1024);
+	return 1;
+}
+
 static const luaL_reg System_functions[] = {
   {"currentDirectory",              lua_curdir},
   {"listDirectory",           	    lua_dir},
@@ -340,6 +359,7 @@ static const luaL_reg System_functions[] = {
   {"irdaRead",                      lua_irdaRead},
   {"irdaWrite",                     lua_irdaWrite},
   {"sleep",                         lua_sleep},
+  {"getFreeMemory",                 lua_getFreeMemory},
   {0, 0}
 };
 void luaSystem_init(lua_State *L) {
