@@ -11,7 +11,7 @@
 
 static lua_State *L;
 
-int runScript(const char* script, BOOL isStringBuffer )
+int runScript(const char* script, bool isStringBuffer )
 {
 	L = lua_open();
 	
@@ -27,11 +27,10 @@ int runScript(const char* script, BOOL isStringBuffer )
 	luaSound_init(L);
 	luaControls_init(L);
 	luaGraphics_init(L);
+	lua3D_init(L);
 	luaTimer_init(L);
 	luaSystem_init(L);
-#ifndef LUAPLAYER_USERMODE
 	luaWlan_init(L);
-#endif
 	
 	int s = 0;
 	if(!isStringBuffer) 

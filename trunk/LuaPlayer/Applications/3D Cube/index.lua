@@ -75,56 +75,56 @@ plane = {
 }
 
 while true do
-	start3d()
+	Gu.start3d()
 
 	-- clear screen
-	sceGuClearDepth(0);
-	sceGuClear(GU_COLOR_BUFFER_BIT|GU_DEPTH_BUFFER_BIT)
+	Gu.clearDepth(0);
+	Gu.clear(Gu.COLOR_BUFFER_BIT|Gu.DEPTH_BUFFER_BIT)
 
 	-- setup projection and view matrices
 
-	sceGumMatrixMode(GU_PROJECTION)
-	sceGumLoadIdentity()
-	sceGumPerspective(75, 16/9, 0.5, 1000)
+	Gum.matrixMode(Gu.PROJECTION)
+	Gum.loadIdentity()
+	Gum.perspective(75, 16/9, 0.5, 1000)
 
-	sceGumMatrixMode(GU_VIEW)
-	sceGumLoadIdentity()
+	Gum.matrixMode(Gu.VIEW)
+	Gum.loadIdentity()
 
 	-- setup matrix for triangle
-	sceGumMatrixMode(GU_MODEL)
-	sceGumLoadIdentity()
-	sceGumTranslate(0, 0, -3);
+	Gum.matrixMode(Gu.MODEL)
+	Gum.loadIdentity()
+	Gum.translate(0, 0, -3);
 
 	-- draw triangle without texture
 
-	sceGuDisable(GU_TEXTURE_2D)
-	sceGumDrawArray(GU_TRIANGLES, GU_COLOR_8888|GU_VERTEX_32BITF|GU_TRANSFORM_3D, plane)
+	Gu.disable(Gu.TEXTURE_2D)
+	Gum.drawArray(Gu.TRIANGLES, Gu.COLOR_8888|Gu.VERTEX_32BITF|Gu.TRANSFORM_3D, plane)
 
 	-- setup texture
 
-	sceGuEnable(GU_BLEND)
-	sceGuBlendFunc(GU_ADD, GU_SRC_ALPHA, GU_ONE_MINUS_SRC_ALPHA, 0, 0)
-	sceGuEnable(GU_TEXTURE_2D);
-	sceGuTexImage(logo)
-	sceGuTexFunc(GU_TFX_MODULATE, GU_TCC_RGBA)
-	sceGuTexEnvColor(white)
-	sceGuTexFilter(GU_LINEAR, GU_LINEAR)
-	sceGuTexScale(1, 1)
-	sceGuTexOffset(0, 0)
-	sceGuAmbientColor(white)
+	Gu.enable(Gu.BLEND)
+	Gu.blendFunc(Gu.ADD, Gu.SRC_ALPHA, Gu.ONE_MINUS_SRC_ALPHA, 0, 0)
+	Gu.enable(Gu.TEXTURE_2D);
+	Gu.texImage(logo)
+	Gu.texFunc(Gu.TFX_MODULATE, Gu.TCC_RGBA)
+	Gu.texEnvColor(white)
+	Gu.texFilter(Gu.LINEAR, Gu.LINEAR)
+	Gu.texScale(1, 1)
+	Gu.texOffset(0, 0)
+	Gu.ambientColor(white)
 
 	-- setup matrix for cube
 
-	sceGumMatrixMode(GU_MODEL)
-	sceGumLoadIdentity()
-	sceGumTranslate(0, 0, -3.5);
-	sceGumRotateXYZ(val * 0.79 * (GU_PI/180), val * 0.98 * (GU_PI/180.0), val * 1.32 * (GU_PI/180.0))
+	Gum.matrixMode(Gu.MODEL)
+	Gum.loadIdentity()
+	Gum.translate(0, 0, -3.5);
+	Gum.rotateXYZ(val * 0.79 * (Gu.PI/180), val * 0.98 * (Gu.PI/180.0), val * 1.32 * (Gu.PI/180.0))
 
 	-- draw cube
 
-	sceGumDrawArray(GU_TRIANGLES, GU_TEXTURE_32BITF|GU_COLOR_8888|GU_VERTEX_32BITF|GU_TRANSFORM_3D, cube)
+	Gum.drawArray(Gu.TRIANGLES, Gu.TEXTURE_32BITF|Gu.COLOR_8888|Gu.VERTEX_32BITF|Gu.TRANSFORM_3D, cube)
 
-	end3d()
+	Gu.end3d()
 
 	val = val + 1
 
