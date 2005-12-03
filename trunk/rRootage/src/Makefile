@@ -19,7 +19,7 @@ CFLAGS = $(DEFAULT_CFLAGS) $(MORE_CFLAGS)
 CXXFLAGS = $(DEFAULT_CFLAGS) $(MORE_CFLAGS) -fno-exceptions
 
 LDFLAGS = -L$(PSPPREFIX)/lib
-LIBS = -lbulletml -lSDL_mixer -lvorbisidec -lGLU $(shell $(SDL_CONFIG) --libs) -lstdc++ -lpsprtc -lm
+LIBS = -lbulletml -lSDL_mixer -lvorbisidec -lGLU $(shell $(SDL_CONFIG) --libs) -lstdc++ -lm
 
 EXTRA_TARGETS = EBOOT.PBP
 PSP_EBOOT_TITLE = rRootage
