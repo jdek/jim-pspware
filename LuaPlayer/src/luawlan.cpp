@@ -1,5 +1,3 @@
-#ifndef LUAPLAYER_USERMODE
-
 #include <pspsdk.h>
 #include <psputility.h>
 #include <pspnet_apctl.h>
@@ -354,5 +352,3 @@ void luaWlan_init(lua_State *L)
 	Socket_register(L);
 	luaL_openlib(L, "Socket", Socket_functions, 0);
 }
-
-#endif

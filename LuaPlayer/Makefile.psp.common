@@ -1,5 +1,5 @@
 OBJS = src/graphics.o src/sound.o src/luaplayer.o src/utility.o src/main.o src/framebuffer.o src/sio.o \
-	src/luacontrols.o src/luagraphics.o src/luasound.o src/luatimer.o src/luasystem.o src/luawlan.o
+	src/luacontrols.o src/luagraphics.o src/luasound.o src/luatimer.o src/luasystem.o src/luawlan.o src/lua3d.o
 INCDIR =
 CFLAGS = -G0 -Wall -O2 -fno-strict-aliasing $(EXTRA_CFLAGS)
 CXXFLAGS = $(CFLAGS) -fno-exceptions -fno-rtti

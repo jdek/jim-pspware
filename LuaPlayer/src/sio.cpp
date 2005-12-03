@@ -2,8 +2,6 @@
  * SIO driver, based on TyRaNiD's SIO driver for GDB support.
  */
 
-#ifndef LUAPLAYER_USERMODE
-
 #include <pspkernel.h>
 #include <pspdebug.h>
 #include <string.h>
@@ -195,5 +193,3 @@ int registerSIODriver(void)
 
 	return 0;
 }
-
-#endif

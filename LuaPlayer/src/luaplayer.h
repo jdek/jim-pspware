@@ -11,19 +11,17 @@ extern "C" {
 extern void luaC_collectgarbage (lua_State *L);
 }
 
-#define true 1
-#define false 0
 #define MAX(a, b) ((a) > (b) ? (a) : (b))
 #define CLAMP(val, min, max) ((val)>(max)?(max):((val)<(min)?(min):(val)))
 
 #define UserdataStubs(HANDLE, DATATYPE) \
-static DATATYPE *to##HANDLE (lua_State *L, int index) \
+DATATYPE *to##HANDLE (lua_State *L, int index) \
 { \
   DATATYPE* handle  = (DATATYPE*)lua_touserdata(L, index); \
   if (handle == NULL) luaL_typerror(L, index, #HANDLE); \
   return handle; \
 } \
-static DATATYPE* push##HANDLE(lua_State *L) { \
+DATATYPE* push##HANDLE(lua_State *L) { \
 	DATATYPE * newvalue = (DATATYPE*)lua_newuserdata(L, sizeof(DATATYPE)); \
 	luaL_getmetatable(L, #HANDLE); \
 	lua_pushvalue(L, -1); \
@@ -53,7 +51,7 @@ int HANDLE##_register(lua_State *L) { \
 	return 1; \
 }
 
-extern int runScript(const char* script, int isStringBuffer);
+extern int runScript(const char* script, bool isStringBuffer);
 extern void luaC_collectgarbage (lua_State *L);
 
 
@@ -61,11 +59,10 @@ extern void luaC_collectgarbage (lua_State *L);
 extern void luaSound_init(lua_State *L);
 extern void luaControls_init(lua_State *L);
 extern void luaGraphics_init(lua_State *L);
+extern void lua3D_init(lua_State *L);
 extern void luaTimer_init(lua_State *L);
 extern void luaSystem_init(lua_State *L);
-#ifndef LUAPLAYER_USERMODE
 extern void luaWlan_init(lua_State *L);
-#endif
 
 extern void stackDump (lua_State *L);
 

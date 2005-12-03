@@ -26,23 +26,15 @@
 #include "graphics.h"
 #include "sound.h"
 #include "luaplayer.h"
-
-#ifndef LUAPLAYER_USERMODE
 #include "sio.h"
-#endif
 
 /* the boot.lua */
 #include "boot.cpp"
 
 /* Define the module info section */
-#ifdef LUAPLAYER_USERMODE
-PSP_MODULE_INFO("LUAPLAYER", 0, 1, 1);
-PSP_MAIN_THREAD_ATTR(THREAD_ATTR_USER | THREAD_ATTR_VFPU);
-#else
 PSP_MODULE_INFO("LUAPLAYER", 0x1000, 1, 1);
 PSP_MAIN_THREAD_ATTR(0);
 PSP_MAIN_THREAD_STACK_SIZE_KB(32); /* smaller stack for kernel thread */
-#endif
 
 // startup path
 char path[256];
@@ -85,9 +77,6 @@ int SetupCallbacks(void)
 	return thid;
 }
 
-#ifdef LUAPLAYER_USERMODE
-int main(int argc, char** argv)
-#else
 int nullOutput(const char *buff, int size)
 {
 	return size;
@@ -109,7 +98,6 @@ int debugOutput(const char *buff, int size)
 }
 
 int user_main(SceSize argc, void* argv)
-#endif
 {
 	SetupCallbacks();
 	tzset();
@@ -119,15 +107,11 @@ int user_main(SceSize argc, void* argv)
 	initMikmod();
 
 	// install new output handlers	
-#ifndef LUAPLAYER_USERMODE
 	pspDebugInstallStdoutHandler(debugOutput); 
 	pspDebugInstallStderrHandler(debugOutput); 
-#endif
 
 	// execute Lua script (according to boot sequence)
-#ifndef LUAPLAYER_USERMODE
 	getcwd(path, 256);
-#endif
 	char* bootStringWith0 = (char*) malloc(size_bootString + 1);
 	memcpy(bootStringWith0, bootString, size_bootString);
 	bootString[size_bootString] = 0;
@@ -138,23 +122,17 @@ int user_main(SceSize argc, void* argv)
 		clearScreen(0);
 
 		if (runScript(bootStringWith0, true))
-#ifndef LUAPLAYER_USERMODE
 		{
 			debugOutput("Error: No script file found.\n", 29);
 		}
 		debugOutput("\nPress start to restart\n", 26);
-#else
-;
-#endif
-		
+
 		SceCtrlData pad; int i;
 		sceCtrlReadBufferPositive(&pad, 1); 
 		for(i = 0; i < 40; i++) sceDisplayWaitVblankStart();
 		while(!(pad.Buttons&PSP_CTRL_START)) sceCtrlReadBufferPositive(&pad, 1); 
 		
-#ifndef LUAPLAYER_USERMODE
 		debugOutput(0,0);
-#endif
 		initGraphics();
 	}
 	free(bootStringWith0);
@@ -165,7 +143,6 @@ int user_main(SceSize argc, void* argv)
 	return 0;
 }
 
-#ifndef LUAPLAYER_USERMODE
 int main(void)
 {
 	getcwd(path, 256);
@@ -204,5 +181,4 @@ __attribute__((constructor)) void stdoutInit()
 	// ignore startup messages from kernel, but install the tty driver in kernel mode
 	pspDebugInstallStdoutHandler(nullOutput); 
 } 
-#endif
 
