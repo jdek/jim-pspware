@@ -1,6 +1,9 @@
 #ifndef GRAPHICS_H
 #define GRAPHICS_H
 
+#include <ft2build.h>
+#include FT_FREETYPE_H
+
 #include <psptypes.h>
 
 #define	PSP_LINE_SIZE 512
@@ -228,9 +231,9 @@ extern Color getPixelImage(int x, int y, Image* image);
  * @param x - left position of text
  * @param y - top position of text
  * @param text - the text to print
- * @param color - new color for the pixels
+ * @param color - text color
  */
-extern void printTextScreen(int x, int y, const char* text, u32 color);
+extern void printTextScreen(int x, int y, const char* text, Color color);
 
 /**
  * Print a text (pixels out of the screen or image are clipped).
@@ -238,10 +241,31 @@ extern void printTextScreen(int x, int y, const char* text, u32 color);
  * @param x - left position of text
  * @param y - top position of text
  * @param text - the text to print
- * @param color - new color for the pixels
+ * @param color - text color
  * @param image - image
  */
-extern void printTextImage(int x, int y, const char* text, u32 color, Image* image);
+extern void printTextImage(int x, int y, const char* text, Color color, Image* image);
+
+/**
+ * Print a text, which was rendered to a bitmap with Freetype.
+ *
+ * @param x - left position of text
+ * @param y - top position of text
+ * @param text - the text to print
+ * @param color - text color
+ * @param image - image
+ */
+extern void fontPrintTextImage(FT_Bitmap* bitmap, int x, int y, Color color, Image* image);
+
+/**
+ * Print a text, which was rendered to a bitmap with Freetype.
+ *
+ * @param x - left position of text
+ * @param y - top position of text
+ * @param text - the text to print
+ * @param color - text color
+ */
+extern void fontPrintTextScreen(FT_Bitmap* bitmap, int x, int y, Color color);
 
 /**
  * Save an image or the screen in PNG or JPEG format (depends on the filename suffix).

@@ -8,8 +8,18 @@
 #include "luaplayer.h"
 
 #include "graphics.h"
+#include "vera.cpp"
+#include "veraMono.cpp"
 
 UserdataStubs(Color, Color)
+
+FT_Library  ft_library;
+
+struct Font {
+	char* name;
+	FT_Face face;
+	u8* data;
+};
 
 /// screen.*
 /// ====================
@@ -72,6 +82,156 @@ static int adjustBlitRectangle(
 	return 1; 
 } 	
 
+
+
+
+UserdataStubs(Font, Font*) //==========================
+static int Font_load(lua_State *L) {
+	if (lua_gettop(L) != 1) return luaL_error(L, "Argument error: Font.load(filename) takes one argument.");
+	luaC_collectgarbage(L);
+	Font* font = (Font*) malloc(sizeof(Font));
+	const char* filename = luaL_checkstring(L, 1);
+	
+	// cache font for faster access. This might be a bad idea for big fonts
+	FILE* fontFile = fopen(filename, "rb");
+	if (!fontFile) return luaL_error(L, "Font.load: can't open font file.");
+	fseek(fontFile, 0, SEEK_END);
+	int filesize = ftell(fontFile);
+	u8* fontData = (u8*) malloc(filesize);
+	if (!fontData) {
+		fclose(fontFile);
+		return luaL_error(L, "Font.load: not enough memory to cache font file.");
+	}
+	rewind(fontFile);
+	fread(fontData, filesize, 1, fontFile);
+	fclose(fontFile);
+	int error = FT_New_Memory_Face(ft_library, fontData, filesize, 0, &font->face);
+	if (error) {
+		free(font);
+		free(fontData);
+		return luaL_error(L, "Font.load: Error loading font.");
+	}
+	font->data = fontData;
+	font->name = strdup(filename);
+	Font** luaFont = pushFont(L);
+	*luaFont = font;
+	return 1;
+}
+
+static int Font_createMonoSpaced(lua_State *L) {
+	if (lua_gettop(L) != 0) return luaL_error(L, "Argument error: Font.createMonoSpaced() takes no arguments.");
+	luaC_collectgarbage(L);
+	Font* font = (Font*) malloc(sizeof(Font));
+	const char* filename = "Vera mono spaced";
+
+	int error = FT_New_Memory_Face(ft_library, ttfVeraMono, size_ttfVeraMono, 0, &font->face);
+	if (error) {
+		free(font);
+		return luaL_error(L, "Font.load: Error loading font.");
+	}
+	font->data = NULL;
+	font->name = strdup(filename);
+	Font** luaFont = pushFont(L);
+	*luaFont = font;
+	return 1;
+}
+
+static int Font_createProportional(lua_State *L) {
+	if (lua_gettop(L) != 0) return luaL_error(L, "Argument error: Font.createProportional() takes no arguments.");
+	luaC_collectgarbage(L);
+	Font* font = (Font*) malloc(sizeof(Font));
+	const char* filename = "Vera proportional";
+
+	int error = FT_New_Memory_Face(ft_library, ttfVera, size_ttfVera, 0, &font->face);
+	if (error) {
+		free(font);
+		return luaL_error(L, "Font.load: Error loading font.");
+	}
+	font->data = NULL;
+	font->name = strdup(filename);
+	Font** luaFont = pushFont(L);
+	*luaFont = font;
+	return 1;
+}
+
+static int Font_setCharSize(lua_State *L) {
+	int argc = lua_gettop(L); 
+	if (argc != 5) return luaL_error(L, "wrong number of arguments"); 
+	Font* font = *toFont(L, 1);
+	int width = luaL_checkint(L, 2); 
+	int height = luaL_checkint(L, 3); 
+	int dpiX = luaL_checkint(L, 4); 
+	int dpiY = luaL_checkint(L, 5); 
+	lua_pushnumber(L, FT_Set_Char_Size(font->face, width, height, dpiX, dpiY));
+	return 1;
+}
+
+static int Font_setPixelSizes(lua_State *L) {
+	int argc = lua_gettop(L); 
+	if (argc != 3) return luaL_error(L, "wrong number of arguments"); 
+	Font* font = *toFont(L, 1);
+	int width = luaL_checkint(L, 2); 
+	int height = luaL_checkint(L, 3); 
+	lua_pushnumber(L, FT_Set_Pixel_Sizes(font->face, width, height));
+	return 1;
+}
+
+static int Font_getTextSize(lua_State *L) {
+	int argc = lua_gettop(L);
+	if (argc != 2) return luaL_error(L, "wrong number of arguments");
+	Font* font = *toFont(L, 1);
+	const char* text = luaL_checkstring(L, 2);
+
+	int num_chars = strlen(text);
+	FT_GlyphSlot slot = font->face->glyph;
+	int x = 0;
+	int y = 0;
+	int maxHeight = 0;
+	for (int n = 0; n < num_chars; n++) {
+		// TODO: this can be done better with glyph bounding box
+		FT_UInt glyph_index = FT_Get_Char_Index(font->face, text[n]);
+		int error = FT_Load_Glyph(font->face, glyph_index, FT_LOAD_DEFAULT );
+		if (error) continue;
+		error = FT_Render_Glyph(font->face->glyph, ft_render_mode_normal );
+		if (error) continue;
+		if (slot->bitmap.rows > maxHeight) maxHeight = slot->bitmap.rows;
+		x += slot->advance.x >> 6;
+		y += slot->advance.y >> 6;
+	}
+	lua_pushnumber(L, x);
+	lua_pushnumber(L, maxHeight);
+	
+	return 0;
+}
+
+static int Font_free(lua_State *L) {
+	Font* font = *toFont(L, 1);
+	FT_Done_Face(font->face);
+	free(font->name);
+	if (font->data)	free(font->data);
+	free(font);
+	return 0;
+}
+
+static int Font_tostring (lua_State *L) {
+	lua_pushstring(L, (*toFont(L, 1))->name);
+	return 1;
+}
+static const luaL_reg Font_methods[] = {
+	{"load", Font_load},
+	{"createMonoSpaced", Font_createMonoSpaced},
+	{"createProportional", Font_createProportional},
+	{"setCharSize", Font_setCharSize},
+	{"setPixelSizes", Font_setPixelSizes},
+	{"getTextSize", Font_getTextSize},
+	{0,0}
+};
+static const luaL_reg Font_meta[] = {
+	{"__gc", Font_free},
+	{"__tostring", Font_tostring},
+	{0,0}
+};
+UserdataRegister(Font, Font_methods, Font_meta)
 
 
 
@@ -285,6 +445,37 @@ static int Image_print (lua_State *L) {
 	}
 	return 0;
 }
+
+static int Image_fontPrint(lua_State *L) {
+	int argc = lua_gettop(L);
+	if (argc != 5 && argc != 6) return luaL_error(L, "wrong number of arguments");
+	SETDEST
+	Font* font = *toFont(L, 1);
+	int x = luaL_checkint(L, 2);
+	int y = luaL_checkint(L, 3);
+	const char* text = luaL_checkstring(L, 4);
+	Color color = (argc == 6)?*toColor(L, 5):0xFF000000;
+
+	int num_chars = strlen(text);
+	FT_GlyphSlot slot = font->face->glyph;
+	for (int n = 0; n < num_chars; n++) {
+		FT_UInt glyph_index = FT_Get_Char_Index(font->face, text[n]);
+		int error = FT_Load_Glyph(font->face, glyph_index, FT_LOAD_DEFAULT);
+		if (error) continue;
+		error = FT_Render_Glyph(font->face->glyph, ft_render_mode_normal);
+		if (error) continue;
+		if (dest) {
+			fontPrintTextImage(&slot->bitmap, x + slot->bitmap_left, y - slot->bitmap_top, color, dest);
+		} else {
+			fontPrintTextScreen(&slot->bitmap, x + slot->bitmap_left, y - slot->bitmap_top, color);
+		}
+		x += slot->advance.x >> 6;
+		y += slot->advance.y >> 6;
+	}
+
+	return 0;
+}
+
 static int Image_width (lua_State *L) {
 	int argc = lua_gettop(L);
 	if(argc != 1) return luaL_error(L, "Argument error: Image:width() must be called with a colon, and takes no arguments.");
@@ -338,6 +529,7 @@ static const luaL_reg Image_methods[] = {
 	{"drawLine", Image_drawLine},
 	{"pixel", Image_pixel},
 	{"print", Image_print},
+	{"fontPrint", Image_fontPrint},
 	{"width", Image_width},
 	{"height", Image_height},
 	{"save", Image_save},
@@ -419,7 +611,9 @@ static const luaL_reg Color_meta[] = {
 	{"__eq", Color_equal},
 	{0,0}
 };
+
 UserdataRegister(Color, Color_methods, Color_meta)
+
 
 
 static const luaL_reg Screen_functions[] = {
@@ -429,8 +623,16 @@ static const luaL_reg Screen_functions[] = {
 };
 
 void luaGraphics_init(lua_State *L) {
+	static bool ftInitialized = false;
+	
+	if (!ftInitialized) {
+		FT_Init_FreeType(&ft_library);
+		ftInitialized = true;
+	}
+
 	Image_register(L);
 	Color_register(L);
+	Font_register(L);
 	
 	luaL_openlib(L, "screen", Screen_functions, 0);
 	luaL_openlib(L, "screen", Image_methods, 0); // Basically just an ugly hack. What I'd really want to say is metatable(screen).__index = Image, but my lua powress is failing me there.
