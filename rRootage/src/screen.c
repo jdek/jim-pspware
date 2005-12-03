@@ -63,7 +63,9 @@ static void initGL() {
   glDisable(GL_CULL_FACE);
   glDisable(GL_DEPTH_TEST);
   glDisable(GL_TEXTURE_2D);
+#ifndef PSP
   glDisable(GL_COLOR_MATERIAL);
+#endif
 
   resized(screenWidth, screenHeight);
 }
@@ -104,7 +106,11 @@ static GLuint smokeTexture;
 static GLuint titleTexture;
 #define TITLE_BMP "title.bmp"
 
+#ifndef PSP
 int lowres = 0;
+#else
+int lowres = 1;
+#endif
 int windowMode = 0;
 int brightness = DEFAULT_BRIGHTNESS;
 Uint8 *keys;
