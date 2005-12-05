@@ -784,6 +784,9 @@ void startDrawBoards() {
 }
 
 void endDrawBoards() {
+  glMatrixMode(GL_PROJECTION);
+  glPopMatrix();
+  glMatrixMode(GL_MODELVIEW);
   glPopMatrix();
   screenResized();
 }
