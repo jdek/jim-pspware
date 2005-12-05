@@ -23,36 +23,64 @@ function graphicsPrint(text)
 	screen.flip()
 end
 
+function graphicsPrintln(text)
+	graphicsPrint(text .. "\n")
+end
+
 -- init WLAN and choose connection config
 Wlan.init()
 configs = Wlan.getConnectionConfigs()
-graphicsPrint("available connections:\n")
+graphicsPrintln("available connections:")
+graphicsPrintln("")
 for key, value in configs do
-	graphicsPrint(key .. ": " .. value .. "\n")
+	graphicsPrintln(key .. ": " .. value)
 end
-graphicsPrint("using first connection..." .. "\n")
+graphicsPrintln("")
+graphicsPrintln("using first connection...")
 Wlan.useConnectionConfig(0)
--- graphicsPrint("your IP address is " .. Wlan.getIPAddress() .. "\n")   TODO: print garbage
+
+-- start server socket
+graphicsPrintln("open server socket...")
+serverSocket = Socket.createServerSocket(80)
 
 -- start connection and wait until it is connected
-graphicsPrint("loading test page...\n")
-socket, error = Socket.connect("212.227.39.202", 80)  -- connect to www.luaplayer.org for testing
+graphicsPrintln("waiting for WLAN init and determining IP address...")
+while true do
+	ipAddress = Wlan.getIPAddress()
+	if ipAddress then break end
+	System.sleep(100)
+end
+graphicsPrintln("the PSP IP address is: " .. ipAddress)
+graphicsPrintln("try http:// " .. ipAddress .. " on your computer")
+graphicsPrintln("")
+
+graphicsPrintln("connecting to www.luaplayer.org...")
+socket, error = Socket.connect("www.luaplayer.org", 80)
 while not socket:isConnected() do System.sleep(100) end
+graphicsPrintln("connected to " .. tostring(socket))
 
 -- send request
+graphicsPrintln("loading test page...")
 bytesSent = socket:send("GET /wlan-test.txt HTTP/1.0\r\n")
 bytesSent = socket:send("host: www.luaplayer.org\r\n\r\n")
 
--- start server socket
-serverSocket = Socket.createServerSocket(80)
-
 -- read and display result
 requestCount = 0
+header = ""
+headerFinished = false
 while true do
 	-- read from test page
 	buffer = socket:recv()
 	if string.len(buffer) > 0 then 
-		graphicsPrint(buffer)
+		if headerFinished then
+			graphicsPrint(buffer)
+		else
+			header = header .. buffer
+			startIndex, endIndex = string.find(header, "\r\n\r\n")
+			if endIndex then
+				graphicsPrint(string.sub(header, endIndex))
+			end
+		end
 	end
 	
 	-- check for incoming requests
