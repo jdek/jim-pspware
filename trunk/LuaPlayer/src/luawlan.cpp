@@ -20,6 +20,17 @@ UserdataStubs(Socket, Socket*)
 
 static const char* wlanNotInitialized = "WLAN not initialized.";
 static bool wlanInitialized = false;
+static char resolverBuffer[1024];
+static int resolverId;
+
+// hack: this should be moved to PSPSDK, but by someone who knows how to do the in_addr mess the right way :-)
+extern "C" {
+int sceNetResolverCreate(int *rid, void *buf, SceSize buflen);
+int sceNetResolverStartNtoA(int rid, const char *hostname, u32* in_addr, unsigned int timeout, int retry);
+int sceNetResolverStartAtoN(int rid, const u32* in_addr, char *hostname, SceSize hostname_len, unsigned int timeout, int retry);
+int sceNetResolverStop(int rid);
+int sceNetInetInetAton(const char* host, u32* in_addr);
+}
 
 static int Wlan_init(lua_State* L)
 {
@@ -27,6 +38,7 @@ static int Wlan_init(lua_State* L)
 	if (wlanInitialized) return 0;
 	int err = pspSdkInetInit();
 	if (err != 0) return luaL_error(L, "pspSdkInetInit failed.");
+	err = sceNetResolverCreate(&resolverId, resolverBuffer, sizeof(resolverBuffer));
 	wlanInitialized = true;
 	return 0;
 }
@@ -90,12 +102,9 @@ static int Wlan_getIPAddress(lua_State* L)
 	if (argc != 0) return luaL_error(L, "no arguments expected.");
 
 	char szMyIPAddr[32];
-	if (sceNetApctlGetInfo(8, szMyIPAddr) != 0) {
-		// TODO: gets garbage
-		lua_pushstring(L, szMyIPAddr);
-		return 1;
-	}
-	return luaL_error(L, "unknown IP address");
+	if (sceNetApctlGetInfo(8, szMyIPAddr) != 0) return 0;
+	lua_pushstring(L, szMyIPAddr);
+	return 1;
 }
 
 static int Socket_free(lua_State *L)
@@ -128,25 +137,26 @@ static int Socket_connect(lua_State *L)
 	Socket* socket = (Socket*) malloc(sizeof(Socket));
 	*luaSocket = socket;
 	socket->serverSocket = false;
-	
+
+	// resolve host
 	const char *host = luaL_checkstring(L, 1);
 	int port = luaL_checkint(L, 2);
-	u32 ip = sceNetInetInetAddr(host);  // TODO: resolv non-IP addresses
+	socket->addrTo.sin_family = AF_INET;
+	socket->addrTo.sin_port = htons(port);
+	int err = sceNetInetInetAton(host, &socket->addrTo.sin_addr);
+	if (err == 0) {
+		err = sceNetResolverStartNtoA(resolverId, host, &socket->addrTo.sin_addr, 2, 3);
+		if (err < 0) return luaL_error(L, "Socket:connect: DNS resolving failed.");
+	}
 
-	int err;
+	// create non-blocking socket	
 	socket->sock = sceNetInetSocket(AF_INET, SOCK_STREAM, 0);
 	if (socket->sock & 0x80000000) {
 		return luaL_error(L, "invalid socket."); 
 	}
-	
-	socket->addrTo.sin_family = AF_INET;
-	socket->addrTo.sin_port = htons(port);
-	socket->addrTo.sin_addr[0] = ip & 0xff;
-	socket->addrTo.sin_addr[1] = (ip >> 8) & 0xff;
-	socket->addrTo.sin_addr[2] = (ip >> 16) & 0xff;
-	socket->addrTo.sin_addr[3] = (ip >> 24) & 0xff;
-	
 	setSockNoBlock(socket->sock, 1);
+	
+	// connect
 	err = sceNetInetConnect(socket->sock, &socket->addrTo, sizeof(socket->addrTo));
 	
 	int inetErr = sceNetInetGetErrno();
@@ -204,10 +214,7 @@ static int Socket_createServerSocket(lua_State *L)
 
         socket->addrTo.sin_family = AF_INET;
         socket->addrTo.sin_port = htons(port);
-        socket->addrTo.sin_addr[0] = 0;
-        socket->addrTo.sin_addr[1] = 0;
-        socket->addrTo.sin_addr[2] = 0;
-        socket->addrTo.sin_addr[3] = 0;
+        socket->addrTo.sin_addr = 0;
 
         int err = sceNetInetBind(socket->sock, &socket->addrTo, sizeof(socket->addrTo));
         if (err != 0) {
@@ -302,15 +309,16 @@ static int Socket_close(lua_State *L)
 	return 0;
 }
 
-static int Socket_tostring (lua_State *L)
+static int Socket_tostring(lua_State *L)
 {
 	Socket* socket = *toSocket(L, 1);
-	lua_pushfstring(L, "socket: %p, destination IP: %i.%i.%i.%i",
-		socket,
-		socket->addrTo.sin_addr[0],
-		socket->addrTo.sin_addr[1],
-		socket->addrTo.sin_addr[2],
-		socket->addrTo.sin_addr[3]);
+	char buf[128];
+	sprintf(buf, "%i.%i.%i.%i",
+		socket->addrTo.sin_addr & 255,
+		(socket->addrTo.sin_addr >> 8) & 255,
+		(socket->addrTo.sin_addr >> 16) & 255,
+		(socket->addrTo.sin_addr >> 24) & 255);
+	lua_pushstring(L, buf);  // pushfstring doesn't work, returns userdata object
 	return 1;
 }
 
