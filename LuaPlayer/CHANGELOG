@@ -1,3 +1,8 @@
+v0.16
+==========
+ - Wlan:getIPAddress bugfix: now it returns nil on error and the IP address otherwise [Shine]
+ - DNS resolving, thanks to ideas how to use the resolver lib from PSPRadio [Shine]
+
 v0.15
 ==========
  - timer bug fixed (was bug in PSPSDK) [mrbrown]

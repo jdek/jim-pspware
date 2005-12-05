@@ -17,8 +17,8 @@ struct sockaddr_in {
         unsigned char sin_size; // size, not used
         unsigned char sin_family; // usually AF_INET
         unsigned short sin_port; // use htons()
-        unsigned char sin_addr[4];
-        char    sin_zero[8];
+        u32 sin_addr;
+        char sin_zero[8];
 };
 
 SOCKET sceNetInetSocket(int af, int type, int protocol);
