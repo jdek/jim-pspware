@@ -101,7 +101,10 @@ void savePreference() {
 
 static void gotoNextScene() {
   scene++;
-  seed = seed*8513L + 179L;
+  if (seed < 504518) // avoid 32bit overflow (psp workaround)
+    seed = seed*8513L + 179L;
+  else
+    seed = 1;
   createBoss(seed, rank, scene);
   bombUsed = shipUsed = 0;
 }
