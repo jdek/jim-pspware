@@ -101,21 +101,25 @@ void savePreference() {
 
 static void gotoNextScene() {
   scene++;
-  if (seed < 504518) // avoid 32bit overflow (psp workaround)
-    seed = seed*8513L + 179L;
-  else
-    seed = 1;
+  seed = seed*8513L + 179L;
   createBoss(seed, rank, scene);
   bombUsed = shipUsed = 0;
 }
 
 #define RANK_UP_BASE 1.25
 
+#ifdef PSP
+extern _DisableFPUExceptions();
+#endif
+
 void initStageState(int stg) {
   float rb;
   int rn, sn;
   int i;
   scene = -1;
+#ifdef PSP
+  _DisableFPUExceptions();
+#endif
   rn = stg/SAME_RANK_STAGE_NUM; sn = stg%SAME_RANK_STAGE_NUM;
   if ( sn == SAME_RANK_STAGE_NUM-1 ) {
     seed = rand();

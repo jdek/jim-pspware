@@ -9,7 +9,7 @@ OBJS =	$(TARGET).$(O) \
 	foe.$(O) foecommand.$(O) barragemanager.$(O) boss.$(O) ship.$(O) laser.$(O) \
 	frag.$(O) background.$(O) letterrender.$(O) shot.$(O) \
 	screen.$(O) vector.$(O) degutil.$(O) rand.$(O) mt19937int.$(O) \
-	soundmanager.$(O) attractmanager.$(O)
+	soundmanager.$(O) attractmanager.$(O) movetosdk.$(O)
 
 DEFAULT_CFLAGS = $(shell $(SDL_CONFIG) --cflags)
 
