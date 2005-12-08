@@ -236,6 +236,7 @@ int main(int argc, char *argv[]) {
   int done = 0;
   long prvTickCount = 0;
   int i;
+  int btn;
   SDL_Event event;
   long nowTick;
   int frame;
@@ -251,7 +252,8 @@ int main(int argc, char *argv[]) {
     SDL_PollEvent(&event);
     keys = SDL_GetKeyState(NULL);
     if ( keys[SDLK_ESCAPE] == SDL_PRESSED || event.type == SDL_QUIT ) done = 1;
-    if ( keys[SDLK_p] == SDL_PRESSED ) {
+    btn = getButtonState();
+    if ( keys[SDLK_p] == SDL_PRESSED || (btn & PAD_START) ) {
       if ( !pPrsd ) {
 	if ( status == IN_GAME ) {
 	  status = PAUSE;
