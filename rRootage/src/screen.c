@@ -29,8 +29,13 @@
 
 #define SCREEN_WIDTH 640
 #define SCREEN_HEIGHT 480
+#ifdef PSP
+#define LOWRES_SCREEN_WIDTH 480
+#define LOWRES_SCREEN_HEIGHT 272
+#else
 #define LOWRES_SCREEN_WIDTH 320
 #define LOWRES_SCREEN_HEIGHT 240
+#endif
 
 static int screenWidth, screenHeight;
 
@@ -932,6 +937,20 @@ int getPadState() {
   if ( stick != NULL ) {
     x = SDL_JoystickGetAxis(stick, 0);
     y = SDL_JoystickGetAxis(stick, 1);
+#ifdef PSP
+    if ( SDL_JoystickGetButton(stick, 9) ) {
+      x = JOYSTICK_AXIS + 1; /* PSP Right */
+    }
+    if ( SDL_JoystickGetButton(stick, 7) ) {
+      x = -JOYSTICK_AXIS - 1; /* PSP Left */
+    }
+    if ( SDL_JoystickGetButton(stick, 6) ) {
+      y = JOYSTICK_AXIS + 1; /* PSP Down */
+    }
+    if ( SDL_JoystickGetButton(stick, 8) ) {
+      y = -JOYSTICK_AXIS - 1; /* PSP Up */
+    }
+#endif
   }
   if ( keys[SDLK_RIGHT] == SDL_PRESSED || keys[SDLK_KP6] == SDL_PRESSED || x > JOYSTICK_AXIS ) {
     pad |= PAD_RIGHT;
@@ -954,10 +973,20 @@ int getButtonState() {
   int btn = 0;
   int btn1 = 0, btn2 = 0, btn3 = 0, btn4 = 0;
   if ( stick != NULL ) {
+#ifdef PSP
+    btn1 = SDL_JoystickGetButton(stick, 2); /* PSP Cross */
+    btn2 = SDL_JoystickGetButton(stick, 1); /* PSP Circle */
+    btn3 = SDL_JoystickGetButton(stick, 3); /* PSP Square */
+    btn4 = SDL_JoystickGetButton(stick, 0); /* PSP Triangle */
+    if ( SDL_JoystickGetButton(stick, 11) ) {
+      btn |= PAD_START;
+    }
+#else
     btn1 = SDL_JoystickGetButton(stick, 0);
     btn2 = SDL_JoystickGetButton(stick, 1);
     btn3 = SDL_JoystickGetButton(stick, 2);
     btn4 = SDL_JoystickGetButton(stick, 3);
+#endif
   }
   if ( keys[SDLK_z] == SDL_PRESSED || btn1 || btn4 ) {
     if ( !buttonReversed ) {

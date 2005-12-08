@@ -331,7 +331,7 @@ void moveTitleMenu() {
     initTitleStage(slcStg);
     titleCnt = 0;
   }
-  if ( mnp && (btn & PAD_BUTTON1) ) {
+  if ( mnp && ((btn & PAD_BUTTON1) || (btn & PAD_START)) ) {
     if ( slcStg == QUIT_STAGE_NUM  ) {
       quitLast();
     } else if ( slcStg < 0 ) {
