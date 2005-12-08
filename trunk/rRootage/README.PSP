@@ -1,0 +1,48 @@
+rRootage for PSP
+v1.0
+--
+
+I N F O
+
+This is a port of Kenta Cho's addictive PC shooter, rRootage
+(http://www.asahi-net.or.jp/~cs8k-cyu/windows/rr_e.html).
+
+
+I N S T A L L
+
+1.0 & 2.0 users: Copy the 1.5/rRootage directory to /PSP/GAME/.  Copy
+1.0/EBOOT.PBP to /PSP/GAME/rRootage/.
+1.5 users: Copy the 1.5/rRootage and 1.5/rRootage% directories to /PSP/GAME.
+
+
+P L A Y
+
+Press Start to begin a new game.  Use the analog or directional pad to steer
+the ship, use X (or Triangle) to fire, and use O (or Square) to activate your
+Special.
+
+See readme_e.txt for additional information on gameplay.
+
+Press Select to toggle music playback.
+
+Press L + R to take a screenshot.  Screenshots are stored at the root of the
+memory stick.
+
+Select Q (the bottommost menu item) and press Start to exit to the PSP browser.
+
+
+B U G S
+
+Screenshots don't work on 1.0 PSPs due to a bug in PSPGL's glReadPixels().
+
+There are a few graphical differences from the PC version due to missing
+features in PSPGL.  The differences should not affect gameplay.
+
+
+M I S C
+
+The full source code for rRootage lives in the pspdev Subversion repositiory at
+svn://svn.pspdev.org/pspware/trunk/rRootage.
+
+--
+Port contributed by Marcus R. Brown <mrbrown@ocgnet.org>
