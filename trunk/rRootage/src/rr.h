@@ -29,3 +29,6 @@ void initTitleStage(int stg);
 void initTitle();
 void initGame();
 void initGameover();
+
+/* From screenshot.c. */
+void screenshot(const char *basename);

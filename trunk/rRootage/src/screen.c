@@ -984,6 +984,12 @@ int getButtonState() {
     if ( SDL_JoystickGetButton(stick, 10) ) {
       btn |= PAD_SELECT;
     }
+    if ( SDL_JoystickGetButton(stick, 4) ) {
+      btn |= PAD_LTRIG;
+    }
+    if ( SDL_JoystickGetButton(stick, 5) ) {
+      btn |= PAD_RTRIG;
+    }
 #else
     btn1 = SDL_JoystickGetButton(stick, 0);
     btn2 = SDL_JoystickGetButton(stick, 1);
