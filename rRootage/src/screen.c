@@ -138,6 +138,12 @@ void initSDL() {
     exit(1);
   }
 
+  /* Setup OpenGL for 32-bit RGBA (MRB). */
+  SDL_GL_SetAttribute(SDL_GL_RED_SIZE, 8);
+  SDL_GL_SetAttribute(SDL_GL_GREEN_SIZE, 8);
+  SDL_GL_SetAttribute(SDL_GL_BLUE_SIZE, 8);
+  SDL_GL_SetAttribute(SDL_GL_ALPHA_SIZE, 8);
+
   /* Create an OpenGL screen */
   if ( windowMode ) {
     videoFlags = SDL_OPENGL | SDL_RESIZABLE;
