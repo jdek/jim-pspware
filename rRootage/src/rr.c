@@ -283,6 +283,8 @@ int main(int argc, char *argv[]) {
 	musicToggle = 1;
       }
     }
+    if ( btn & (PAD_LTRIG|PAD_RTRIG) )
+      screenshot("rRootage-");
 
     nowTick = SDL_GetTicks();
     frame = (int)(nowTick-prvTickCount) / interval;

@@ -20,8 +20,12 @@
 #define PAD_RIGHT 8
 #define PAD_BUTTON1 16
 #define PAD_BUTTON2 32
+
+/* PSP-specific buttons. */
 #define PAD_START 64
 #define PAD_SELECT 128
+#define PAD_LTRIG 256
+#define PAD_RTRIG 512
 
 #define DEFAULT_BRIGHTNESS 224
 

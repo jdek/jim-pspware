@@ -9,7 +9,7 @@ OBJS =	$(TARGET).$(O) \
 	foe.$(O) foecommand.$(O) barragemanager.$(O) boss.$(O) ship.$(O) laser.$(O) \
 	frag.$(O) background.$(O) letterrender.$(O) shot.$(O) \
 	screen.$(O) vector.$(O) degutil.$(O) rand.$(O) mt19937int.$(O) \
-	soundmanager.$(O) attractmanager.$(O) movetosdk.$(O)
+	soundmanager.$(O) attractmanager.$(O) movetosdk.$(O) screenshot.$(O)
 
 DEFAULT_CFLAGS = $(shell $(SDL_CONFIG) --cflags)
 
@@ -19,7 +19,7 @@ CFLAGS = $(DEFAULT_CFLAGS) $(MORE_CFLAGS)
 CXXFLAGS = $(DEFAULT_CFLAGS) $(MORE_CFLAGS) -fno-exceptions
 
 LDFLAGS = -L$(PSPPREFIX)/lib
-LIBS = -lbulletml -lSDL_mixer -lvorbisidec -lGLU $(shell $(SDL_CONFIG) --libs) -lstdc++ -lm
+LIBS = -lbulletml -lSDL_mixer -lvorbisidec -lpng -lz -lGLU $(shell $(SDL_CONFIG) --libs) -lstdc++ -lm
 
 EXTRA_TARGETS = EBOOT.PBP
 PSP_EBOOT_TITLE = rRootage
