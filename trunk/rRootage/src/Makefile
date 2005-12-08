@@ -13,7 +13,7 @@ OBJS =	$(TARGET).$(O) \
 
 DEFAULT_CFLAGS = $(shell $(SDL_CONFIG) --cflags)
 
-MORE_CFLAGS = -O2 -fsingle-precision-constant #-ffast-math
+MORE_CFLAGS = -O2 -fsingle-precision-constant -mno-check-zero-division #-ffast-math
 
 CFLAGS = $(DEFAULT_CFLAGS) $(MORE_CFLAGS)
 CXXFLAGS = $(DEFAULT_CFLAGS) $(MORE_CFLAGS) -fno-exceptions
