@@ -231,6 +231,7 @@ static void parseArgs(int argc, char *argv[]) {
 int interval = INTERVAL_BASE;
 int tick = 0;
 static int pPrsd = 1;
+static int musicToggle = 1;
 
 int main(int argc, char *argv[]) {
   int done = 0;
@@ -264,6 +265,15 @@ int main(int argc, char *argv[]) {
       pPrsd = 1;
     } else {
       pPrsd = 0;
+    }
+    if ( btn & PAD_SELECT ) {
+      if ( musicToggle ) {
+	Mix_PauseMusic();
+	musicToggle = 0;
+      } else {
+	Mix_ResumeMusic();
+	musicToggle = 1;
+      }
     }
 
     nowTick = SDL_GetTicks();
