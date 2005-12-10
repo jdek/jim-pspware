@@ -108,18 +108,11 @@ static void gotoNextScene() {
 
 #define RANK_UP_BASE 1.25
 
-#ifdef PSP
-extern _DisableFPUExceptions();
-#endif
-
 void initStageState(int stg) {
   float rb;
   int rn, sn;
   int i;
   scene = -1;
-#ifdef PSP
-  _DisableFPUExceptions();
-#endif
   rn = stg/SAME_RANK_STAGE_NUM; sn = stg%SAME_RANK_STAGE_NUM;
   if ( sn == SAME_RANK_STAGE_NUM-1 ) {
     seed = rand();
