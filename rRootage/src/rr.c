@@ -283,8 +283,16 @@ int main(int argc, char *argv[]) {
 	musicToggle = 1;
       }
     }
-    if ( (btn & (PAD_LTRIG|PAD_RTRIG)) == (PAD_LTRIG|PAD_RTRIG) )
+    if ( (btn & (PAD_LTRIG|PAD_RTRIG)) == (PAD_LTRIG|PAD_RTRIG) ) {
+      if ( musicToggle ) {
+	Mix_PauseMusic();
+	SDL_Delay(50);
+      }
       screenshot("rRootage-");
+      if ( musicToggle ) {
+	Mix_ResumeMusic();
+      }
+    }
 
     nowTick = SDL_GetTicks();
     frame = (int)(nowTick-prvTickCount) / interval;
