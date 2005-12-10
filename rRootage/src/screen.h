@@ -26,6 +26,7 @@
 #define PAD_SELECT 128
 #define PAD_LTRIG 256
 #define PAD_RTRIG 512
+#define PAD_HOME 1024
 
 #define DEFAULT_BRIGHTNESS 224
 
