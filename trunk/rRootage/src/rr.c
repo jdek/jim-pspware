@@ -262,11 +262,11 @@ int main(int argc, char *argv[]) {
     keys = SDL_GetKeyState(NULL);
     if ( keys[SDLK_ESCAPE] == SDL_PRESSED || event.type == SDL_QUIT ) done = 1;
     btn = getButtonState();
-    if ( keys[SDLK_p] == SDL_PRESSED || (btn & PAD_START) ) {
+    if ( keys[SDLK_p] == SDL_PRESSED || (btn & PAD_START) || (btn & PAD_HOME) ) {
       if ( !pPrsd ) {
 	if ( status == IN_GAME ) {
 	  status = PAUSE;
-	} else if ( status == PAUSE ) {
+	} else if ( status == PAUSE && !(btn & PAD_HOME) ) {
 	  status = IN_GAME;
 	}
       }
