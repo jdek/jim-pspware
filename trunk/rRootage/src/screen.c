@@ -59,7 +59,12 @@ static void initGL() {
   glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
 
   glLineWidth(1);
+#ifdef PSP
+  /* Antialiasing doesn't seem to work right in PSPGL. */
+  glDisable(GL_LINE_SMOOTH);
+#else
   glEnable(GL_LINE_SMOOTH);
+#endif
 
   glBlendFunc(GL_SRC_ALPHA, GL_ONE);
   glEnable(GL_BLEND);

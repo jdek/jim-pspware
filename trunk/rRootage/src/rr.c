@@ -241,6 +241,10 @@ int tick = 0;
 static int pPrsd = 1;
 static int musicToggle = 1;
 
+#ifdef PSP
+extern _DisableFPUExceptions();
+#endif
+
 int main(int argc, char *argv[]) {
   int done = 0;
   long prvTickCount = 0;
@@ -251,6 +255,10 @@ int main(int argc, char *argv[]) {
   int frame;
 
   parseArgs(argc, argv);
+
+#ifdef PSP
+  _DisableFPUExceptions();
+#endif
 
   initDegutil();
   initSDL();
