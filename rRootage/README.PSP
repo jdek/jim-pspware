@@ -33,9 +33,6 @@ Select Q (the bottommost menu item) and press Start to exit to the PSP browser.
 
 B U G S
 
-Screenshots don't work on 1.0 or 1.5 PSPs due to a bug in PSPGL's
-glReadPixels().
-
 There are a few graphical differences from the PC version due to missing
 features in PSPGL.  The differences should not affect gameplay.
 

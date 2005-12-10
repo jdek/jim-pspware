@@ -7,12 +7,13 @@
 #include <png.h>
 #include <GL/gl.h>
 
-static void writepng(FILE *fp, const unsigned char *image, int width, int height)
+static void writepng(FILE *fp, const unsigned char *image, int width, int height, int invert_alpha)
 {
 	const unsigned char *rows[height];
 	png_structp png_ptr = NULL;
 	png_infop info_ptr = NULL;
 	int row;
+	int transforms;
 
 	png_ptr = png_create_write_struct(PNG_LIBPNG_VER_STRING, NULL, NULL, NULL);
 	if (!png_ptr)
@@ -30,7 +31,8 @@ static void writepng(FILE *fp, const unsigned char *image, int width, int height
 		rows[height-1-row] = &image[row * width * 4];
 
 	png_set_rows(png_ptr, info_ptr, (png_byte**)rows);
-	png_write_png(png_ptr, info_ptr, PNG_TRANSFORM_IDENTITY, NULL);
+	transforms = invert_alpha ? PNG_TRANSFORM_INVERT_ALPHA : PNG_TRANSFORM_IDENTITY;
+	png_write_png(png_ptr, info_ptr, transforms, NULL);
 	png_write_end(png_ptr, info_ptr);
 
   out_free_write_struct:
@@ -45,6 +47,7 @@ void screenshot(const char *basename)
 	int count = 0;
 	FILE *fp = NULL;
 	unsigned char *image;
+	int invert_alpha = 0;
 
 	do {
 		if (fp)
@@ -74,7 +77,10 @@ void screenshot(const char *basename)
 	if (glGetError() != 0)
 		goto out;
 
-	writepng(fp, image, 480, 272);
+	/* Check to see if the opacity is 100%. */
+	if ((*(unsigned int *)image & 0xff000000) == 0)
+	  	invert_alpha = 1;
+	writepng(fp, image, 480, 272, invert_alpha);
 
   out:
 	fclose(fp);
