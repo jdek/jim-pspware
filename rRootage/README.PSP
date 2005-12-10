@@ -1,5 +1,5 @@
 rRootage for PSP
-v1.1
+v1.2
 --
 
 I N F O
@@ -35,8 +35,8 @@ Select Q (the bottommost menu item) and press Start to exit to the PSP browser.
 
 B U G S
 
-There are a few graphical differences from the PC version due to missing
-features in PSPGL.  The differences should not affect gameplay.
+There are a few graphical differences from the PC version.  The differences
+should not affect gameplay.
 
 
 M I S C
@@ -46,6 +46,12 @@ svn://svn.pspdev.org/pspware/trunk/rRootage.
 
 
 C H A N G E S
+
+2005  12/10  v1.2
+
+- Disable antialiasing (support appears to be missing in PSPGL).  The graphics
+  are noticeably improved.
+- Fix a problem with boxes not being drawn correctly.
 
 2005  12/09  v1.1
 
