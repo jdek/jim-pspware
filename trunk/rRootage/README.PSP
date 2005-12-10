@@ -1,5 +1,5 @@
 rRootage for PSP
-v1.0
+v1.1
 --
 
 I N F O
@@ -23,6 +23,8 @@ Special.
 
 See readme_e.txt for additional information on gameplay.
 
+Press Start or Home to pause the game.
+
 Press Select to toggle music playback.
 
 Press L + R to take a screenshot.  Screenshots are stored at the root of the
@@ -41,6 +43,18 @@ M I S C
 
 The full source code for rRootage lives in the pspdev Subversion repositiory at
 svn://svn.pspdev.org/pspware/trunk/rRootage.
+
+
+C H A N G E S
+
+2005  12/09  v1.1
+
+- Fix screenshots for 1.0 and 1.5 users.
+- Pause the game when Home is pressed.
+
+2005  12/07  v1.0
+
+- Initial release.
 
 --
 Port contributed by Marcus R. Brown <mrbrown@ocgnet.org>
