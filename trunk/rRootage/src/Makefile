@@ -22,7 +22,7 @@ LDFLAGS = -L$(PSPPREFIX)/lib
 LIBS = -lbulletml -lSDL_mixer -lvorbisidec -lpng -lz -lGLU $(shell $(SDL_CONFIG) --libs) -lstdc++ -lm
 
 EXTRA_TARGETS = EBOOT.PBP
-PSP_EBOOT_TITLE = rRootage for PSP 1.0
+PSP_EBOOT_TITLE = rRootage for PSP 1.3
 PSP_EBOOT_ICON = rr-icon0.png
 PSP_EBOOT_PIC1 = rr-pic1.png
 
