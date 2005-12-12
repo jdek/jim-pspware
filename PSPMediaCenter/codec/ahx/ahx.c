@@ -1273,8 +1273,9 @@ void AHXOutput_MixBuffer(short *target)
 static short tempmixbuf[BlockLen2 * 3];
 static int tempmixleft;
 static volatile int m_bPlaying;
-static void AHXPlayCallback(short *_buf, unsigned long length)
+static void AHXPlayCallback(void *_buf2, unsigned int length,void *pdata)
 {
+  short *_buf = (short *)_buf2;
     if (m_bPlaying == 1) {
 	while (tempmixleft < length) {	//  Not enough in buffer, so we must mix more
 	    AHXOutput_MixBuffer(&tempmixbuf[tempmixleft]);
@@ -1314,14 +1315,14 @@ void AHXPlayer_Init(int channel)
     }
     m_bPlaying = 0;
     ahx_channel = channel;
-    pspAudioSetChannelCallback(ahx_channel, AHXPlayCallback);
+    pspAudioSetChannelCallback(ahx_channel, AHXPlayCallback,0);
 
     tempmixleft = 0;
 }
 
 void AHXPlayer_End()
 {
-    pspAudioSetChannelCallback(ahx_channel, 0);
+    pspAudioSetChannelCallback(ahx_channel, 0,0);
 }
 
 // AHXPlayStop
