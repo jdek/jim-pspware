@@ -65,6 +65,7 @@ void quitLast() {
 }
 
 int status;
+static int musicEnabled = 1;
 
 void initTitleStage(int stg) {
   initFoes();
@@ -104,6 +105,9 @@ void initGame(int stg) {
     playMusic(rand()%(SAME_RANK_STAGE_NUM-1));
   } else {
     playMusic(sn);
+  }
+  if ( !musicEnabled ) {
+    Mix_PauseMusic();
   }
 }
 
@@ -239,7 +243,7 @@ static void parseArgs(int argc, char *argv[]) {
 int interval = INTERVAL_BASE;
 int tick = 0;
 static int pPrsd = 1;
-static int musicToggle = 1;
+static int mPrsd = 1;
 
 #ifdef PSP
 extern _DisableFPUExceptions();
@@ -283,21 +287,26 @@ int main(int argc, char *argv[]) {
       pPrsd = 0;
     }
     if ( btn & PAD_SELECT ) {
-      if ( musicToggle ) {
-	Mix_PauseMusic();
-	musicToggle = 0;
-      } else {
-	Mix_ResumeMusic();
-	musicToggle = 1;
+      if ( !mPrsd ) {
+	if ( musicEnabled ) {
+	  Mix_PauseMusic();
+	  musicEnabled = 0;
+        } else {
+	  Mix_ResumeMusic();
+	  musicEnabled = 1;
+        }
       }
+      mPrsd = 1;
+    } else {
+      mPrsd = 0;
     }
     if ( (btn & (PAD_LTRIG|PAD_RTRIG)) == (PAD_LTRIG|PAD_RTRIG) ) {
-      if ( musicToggle ) {
+      if ( musicEnabled ) {
 	Mix_PauseMusic();
 	SDL_Delay(50);
       }
       screenshot("rRootage-");
-      if ( musicToggle ) {
+      if ( musicEnabled ) {
 	Mix_ResumeMusic();
       }
     }
