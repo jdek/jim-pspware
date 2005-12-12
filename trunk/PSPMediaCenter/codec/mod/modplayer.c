@@ -157,7 +157,7 @@ void Mod_Init(int channel)
 {
     modplayint_channel = channel;
     m_bPlaying = FALSE;
-    pspAudioSetChannelCallback(modplayint_channel, ModPlayCallback);
+    pspAudioSetChannelCallback(modplayint_channel, ModPlayCallback,0);
     //Mod_Load("",data);
 }
 
@@ -191,12 +191,13 @@ void Mod_FreeTune()
 void Mod_End()
 {
     Mod_Stop();
-    pspAudioSetChannelCallback(modplayint_channel, 0);
+    pspAudioSetChannelCallback(modplayint_channel, 0,0);
     Mod_FreeTune();
 }
 
-static void ModPlayCallback(short *_buf, unsigned long length)
+static void ModPlayCallback(void *_buf2, unsigned int length, void *pdata)
 {
+  short *_buf = (short *)_buf2;
     if (m_bPlaying == TRUE) {	//  Playing , so mix up a buffer
 	MixChunk(length, _buf);
     } else {			//  Not Playing , so clear buffer

@@ -55,8 +55,9 @@ void YMPLAYsetStubs(codecStubs * stubs)
 }
 
 
-static void YMPLAYCallback(short *_buf, unsigned long numSamples)
+static void YMPLAYCallback(void *_buf2, unsigned int numSamples, void *pdata)
 {
+  short *_buf = (short *)_buf2;
     unsigned long samplesOut = 0;
     //      u8 justStarted = 1;
 
@@ -86,7 +87,7 @@ void YMPLAY_Init(int channel)
 {
     myChannel = channel;
     isPlaying = FALSE;
-    pspAudioSetChannelCallback(myChannel, YMPLAYCallback);
+    pspAudioSetChannelCallback(myChannel, YMPLAYCallback,0);
     pMusic = 0;
 }
 
@@ -100,7 +101,7 @@ void YMPLAY_FreeTune()
 void YMPLAY_End()
 {
     YMPLAY_Stop();
-    pspAudioSetChannelCallback(myChannel, 0);
+    pspAudioSetChannelCallback(myChannel, 0,0);
     ymMusicStop(pMusic);
     YMPLAY_FreeTune();
 }

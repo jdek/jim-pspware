@@ -57,8 +57,9 @@ void OGGsetStubs(codecStubs * stubs)
 }
 
 
-static void OGGCallback(short *_buf, unsigned long numSamples)
+static void OGGCallback(void *_buf2, unsigned int numSamples, void *pdata)
 {
+    short *_buf = (short *)_buf2;
     static short tempmixbuf[PSP_NUM_AUDIO_SAMPLES * 2 * 2] __attribute__ ((aligned(64)));
     static unsigned long tempmixleft = 0;
 
@@ -163,7 +164,7 @@ void OGG_Init(int channel)
 {
     myChannel = channel;
     isPlaying = FALSE;
-    pspAudioSetChannelCallback(myChannel, OGGCallback);
+    pspAudioSetChannelCallback(myChannel, OGGCallback,0);
 }
 
 // This function initialises for playing, and starts
@@ -200,7 +201,7 @@ void OGG_FreeTune()
 void OGG_End()
 {
     OGG_Stop();
-    pspAudioSetChannelCallback(myChannel, 0);
+    pspAudioSetChannelCallback(myChannel, 0,0);
     OGG_FreeTune();
 }
 

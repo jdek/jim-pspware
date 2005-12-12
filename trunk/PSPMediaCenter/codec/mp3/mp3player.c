@@ -215,8 +215,9 @@ static signed short MadFixedToSshort(mad_fixed_t Fixed)
     return ((signed short) Fixed);
 }
 
-static void MP3Callback(short *_buf, unsigned long numSamples)
+static void MP3Callback(short *_buf2, unsigned int numSamples, void *pdata)
 {
+  short *_buf = (short *)_buf2;
     unsigned long samplesOut = 0;
     //      u8 justStarted = 1;
 
@@ -470,7 +471,7 @@ void MP3_Init(int channel)
 {
     myChannel = channel;
     isPlaying = FALSE;
-    pspAudioSetChannelCallback(myChannel, MP3Callback);
+    pspAudioSetChannelCallback(myChannel, MP3Callback,0);
     /* First the structures used by libmad must be initialized. */
     mad_stream_init(&Stream);
     mad_frame_init(&Frame);
@@ -543,7 +544,7 @@ void MP3_FreeTune()
 void MP3_End()
 {
     MP3_Stop();
-    pspAudioSetChannelCallback(myChannel, 0);
+    pspAudioSetChannelCallback(myChannel, 0,0);
     MP3_FreeTune();
 }
 

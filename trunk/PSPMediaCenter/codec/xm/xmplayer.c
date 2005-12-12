@@ -109,8 +109,9 @@ static void setparams(int ch, int freq, int bits)
 
 // XMCallback
 static volatile int m_bPlaying;
-static void XMPlayCallback(short *_buf, unsigned long length)
+static void XMPlayCallback(void *_buf2, unsigned int length, void *pdata)
 {
+  short *buf = (short *)_buf2;
     if (m_bPlaying == 1) {
 	mpl__mixer_mix(mixah, (unsigned char *) _buf, length);
     } else {
@@ -139,13 +140,13 @@ void XMPLAY_Init(int channel)
     filedataptr = 0;
     myChannel = channel;
     m_bPlaying = 0;
-    pspAudioSetChannelCallback(myChannel, XMPlayCallback);
+    pspAudioSetChannelCallback(myChannel, XMPlayCallback,0);
 }
 
 void XMPLAY_End()
 {
     XMPLAY_Stop();
-    pspAudioSetChannelCallback(myChannel, 0);
+    pspAudioSetChannelCallback(myChannel, 0,0);
     if (filedataptr != 0) {
 	free(filedataptr);
 	filedataptr = 0;
