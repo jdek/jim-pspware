@@ -215,7 +215,7 @@ static signed short MadFixedToSshort(mad_fixed_t Fixed)
     return ((signed short) Fixed);
 }
 
-static void MP3Callback(short *_buf2, unsigned int numSamples, void *pdata)
+static void MP3Callback(void *_buf2, unsigned int numSamples, void *pdata)
 {
   short *_buf = (short *)_buf2;
     unsigned long samplesOut = 0;
