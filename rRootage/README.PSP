@@ -1,5 +1,5 @@
 rRootage for PSP
-v1.3
+v1.4
 --
 
 I N F O
@@ -35,8 +35,8 @@ Select Q (the bottommost menu item) and press Start to exit to the PSP browser.
 
 B U G S
 
-There are a few graphical differences from the PC version.  The differences
-should not affect gameplay.
+There are a few minor graphical differences from the PC version.  The
+differences should not affect gameplay.
 
 
 M I S C
@@ -46,6 +46,12 @@ svn://svn.pspdev.org/pspware/trunk/rRootage.
 
 
 C H A N G E S
+
+2005  12/14  v1.4
+
+- Fixed the Psyvariar crash that only happened to 1.50 users.
+- Fix GL_LINE_LOOP in PSPGL.  Graphics are improved.
+- Add the performance meter from PSPGL (commented out).
 
 2005  12/11  v1.3
 
