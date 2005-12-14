@@ -242,10 +242,6 @@ void drawBox(GLfloat x, GLfloat y, GLfloat width, GLfloat height,
   glVertex3f( width, -height,  0);
   glVertex3f( width,  height,  0);
   glVertex3f(-width,  height,  0);
-#ifdef PSP
-  /* PSPGL doesn't support GL_LINE_LOOP properly. */
-  glVertex3f(-width, -height,  0);
-#endif
   glEnd();
   glPopMatrix();
 }
