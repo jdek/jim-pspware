@@ -36,7 +36,7 @@ static int readBulletMLFiles(const char *dirPath, Barrage brg[]) {
     exit(1);
   }
   while ((dir = readdir(dp)) != NULL) {
-    if ( strcmp(strrchr(dir->d_name, '.'), ".xml") != 0 ) continue; // Read .xml files.
+    if ( strcasecmp(strrchr(dir->d_name, '.'), ".xml") != 0 ) continue; // Read .xml files.
     strcpy(fileName, dirPath);
     strcat(fileName, "/");
     strncat(fileName, dir->d_name, sizeof(fileName)-strlen(fileName)-1);
