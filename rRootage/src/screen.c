@@ -24,6 +24,7 @@
 #include "attractmanager.h"
 #include "letterrender.h"
 #include "boss_mtd.h"
+#include "perfmeter.h"
 
 #define FAR_PLANE 720
 
@@ -213,12 +214,14 @@ void moveScreenShake() {
 }
 
 void drawGLSceneStart() {
+//  pm_framestart();
   glClear(GL_COLOR_BUFFER_BIT);
   setEyepos();
 }
 
 void drawGLSceneEnd() {
   glPopMatrix();
+//  pm_frameend();
 }
 
 void swapGLScene() {
