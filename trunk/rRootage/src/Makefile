@@ -14,10 +14,10 @@ OBJS =	rr.$(O) \
 
 DEFAULT_CFLAGS = $(shell $(SDL_CONFIG) --cflags)
 
-MORE_CFLAGS = -O2 -fsingle-precision-constant -mno-check-zero-division #-ffast-math
+MORE_CFLAGS = -g -O2 -fsingle-precision-constant -mno-check-zero-division #-ffast-math
 
 CFLAGS = $(DEFAULT_CFLAGS) $(MORE_CFLAGS)
-CXXFLAGS = $(DEFAULT_CFLAGS) $(MORE_CFLAGS) -fno-exceptions
+CXXFLAGS = -fno-exceptions
 
 LDFLAGS = -L$(PSPPREFIX)/lib
 LIBS = -lbulletml -lSDL_mixer -lvorbisidec -lpng -lz -lGLU $(shell $(SDL_CONFIG) --libs) -lstdc++ -lm
