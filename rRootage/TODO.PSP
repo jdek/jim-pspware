@@ -1,0 +1,21 @@
+TODO list for rRootage for PSP (in no particular order):
+
+- Convert OpenGL immediate code to vertex arrays and VBOs
+- 4:3 mode (centered on screen)
+- Tate mode (90 degree rotated screen)
+- Pool allocations of FoeCommand (is this necessary?)
+- Simplify libBulletML:
+  - Remove dependency on boost
+  - Pool allocations made during gameplay (are there any?)
+  - Reduce dependency on STL
+- Fix the tilting title texture
+- In-game menu by pressing Select:
+  - Set in-game options
+  - Toggle music
+  - Change display mode
+  - Exit to main menu
+- Save preferences when exiting through the Home screen (requires PSPSDK
+  support)
+- Standby/resume handling (requires PSPSDK support)
+- Any other optimizations
+- Online scoreboards and stat tracking (more on this later...)
