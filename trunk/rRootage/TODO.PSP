@@ -19,3 +19,4 @@ TODO list for rRootage for PSP (in no particular order):
 - Standby/resume handling (requires PSPSDK support)
 - Any other optimizations
 - Online scoreboards and stat tracking (more on this later...)
+- Replay data?
