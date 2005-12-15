@@ -66,6 +66,7 @@ extern void __pspgl_log (const char *fmt, ...);
 	#define EGLCHK(x) x
 #endif
 
+#if !GL_PSP_statistics
 static unsigned long long start, end, prev;
 
 static long long now(void)
@@ -76,6 +77,7 @@ static long long now(void)
 
 	return t.tv_sec * 1000000ll + t.tv_usec;
 }
+#endif
 
 static void showstats(float drawtime, float frametime, float queuewait)
 {
@@ -221,9 +223,9 @@ void pm_framestart()
 {
 #if GL_PSP_statistics
 	GLCHK(glEnableStatsPSP(GL_STATS_TIMING_PSP));
-#endif
-
+#else
 	start = now();
+#endif
 }
 
 void pm_frameend()
@@ -233,7 +235,6 @@ void pm_frameend()
 	float queuewait;
 
 	glFinish();
-	end = now();
 
 #if GL_PSP_statistics
 	{
@@ -249,6 +250,7 @@ void pm_frameend()
 		glResetStatsPSP(GL_STATS_QUEUEWAITTIME_PSP);
 	}
 #else
+	end = now();
 	drawtime = (end - start);
 	frametime = (end - prev);
 	queuewait = 0;
@@ -260,6 +262,7 @@ void pm_frameend()
 
 	showstats(drawtime, frametime, queuewait);
 
+#if !GL_PSP_statistics
 	prev = now();
-
+#endif
 }
