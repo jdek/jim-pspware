@@ -10,7 +10,7 @@ OBJS =	rr.$(O) \
 	frag.$(O) background.$(O) letterrender.$(O) shot.$(O) \
 	screen.$(O) vector.$(O) degutil.$(O) rand.$(O) mt19937int.$(O) \
 	soundmanager.$(O) attractmanager.$(O) movetosdk.$(O) screenshot.$(O) \
-	perfmeter.$(O)
+	perfmeter.$(O) title.$(O)
 
 DEFAULT_CFLAGS = $(shell $(SDL_CONFIG) --cflags)
 
@@ -28,3 +28,10 @@ PSP_EBOOT_ICON = rr-icon0.png
 PSP_EBOOT_PIC1 = rr-pic1.png
 
 include $(PSPSDK)/lib/build.mak
+
+# Override $(AS) to point to psp-as to get the .raw rule to work.
+AS = psp-as
+
+%.o: %.raw
+	(sym=`echo $(notdir $*) | tr '-' '_'`; \
+	 echo -e ".data\n.global $${sym}_start\n$${sym}_start:\n\t.incbin \"$<\"" | $(AS) -o $@)
