@@ -1,5 +1,5 @@
 rRootage for PSP
-v1.4
+v1.5
 --
 
 I N F O
@@ -47,10 +47,16 @@ svn://svn.pspdev.org/pspware/trunk/rRootage.
 
 C H A N G E S
 
+2005  12/14  v1.5
+
+- Call _init() in libSDL_main's main() if it wasn't already called and make
+  sure that the startup constructor doesn't access kernel mode on 2.0 PSPs.
+- rRootage now works on 2.0 PSPs under Fanjita's EBOOT loader.
+
 2005  12/14  v1.4
 
 - Fixed the Psyvariar crash that only happened to 1.50 users.
-- Fix GL_LINE_LOOP in PSPGL.  Graphics are improved.
+- Fixed GL_LINE_LOOP in PSPGL.  Graphics are improved.
 - Add the performance meter from PSPGL (commented out).
 
 2005  12/11  v1.3
