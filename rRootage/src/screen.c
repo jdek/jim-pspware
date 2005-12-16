@@ -30,12 +30,17 @@
 
 #define SCREEN_WIDTH 640
 #define SCREEN_HEIGHT 480
-#ifdef PSP
-#define LOWRES_SCREEN_WIDTH 480
-#define LOWRES_SCREEN_HEIGHT 272
-#else
 #define LOWRES_SCREEN_WIDTH 320
 #define LOWRES_SCREEN_HEIGHT 240
+
+#ifdef PSP
+// Preserve the 4:3 aspect ratio on the PSP.
+#define PSP_SCREEN_WIDTH 480
+#define PSP_SCREEN_HEIGHT 272
+#define PSP_WINDOW_WIDTH 360
+#define PSP_WINDOW_HEIGHT 270
+#define PSP_WINDOW_X ((PSP_SCREEN_WIDTH - PSP_WINDOW_WIDTH) / 2)
+#define PSP_WINDOW_Y ((PSP_SCREEN_HEIGHT - PSP_WINDOW_HEIGHT) / 2)
 #endif
 
 #define USE_BUILTIN_TITLE_TEX 1
@@ -54,7 +59,9 @@ static int screenWidth, screenHeight;
 
 // Reset viewport when the screen is resized.
 static void screenResized() {
+#ifndef PSP
   glViewport(0, 0, screenWidth, screenHeight);
+#endif
   glMatrixMode(GL_PROJECTION);
   glLoadIdentity();
   gluPerspective(45.0f, (GLfloat)screenWidth/(GLfloat)screenHeight, 0.1f, FAR_PLANE);
@@ -68,7 +75,11 @@ void resized(int width, int height) {
 
 // Init OpenGL.
 static void initGL() {
+#ifdef PSP
+  glViewport(PSP_WINDOW_X, PSP_WINDOW_Y, PSP_WINDOW_WIDTH, PSP_WINDOW_HEIGHT);
+#else
   glViewport(0, 0, screenWidth, screenHeight);
+#endif
   glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
 
   glLineWidth(1);
@@ -88,6 +99,10 @@ static void initGL() {
   glDisable(GL_TEXTURE_2D);
 #ifndef PSP
   glDisable(GL_COLOR_MATERIAL);
+#endif
+#ifdef PSP
+  glScissor(PSP_WINDOW_X, PSP_WINDOW_Y, PSP_WINDOW_WIDTH, PSP_WINDOW_HEIGHT);
+  glEnable(GL_SCISSOR_TEST);
 #endif
 
   resized(screenWidth, screenHeight);
@@ -163,11 +178,7 @@ static GLuint smokeTexture;
 static GLuint titleTexture;
 #define TITLE_BMP "title.bmp"
 
-#ifndef PSP
 int lowres = 0;
-#else
-int lowres = 1;
-#endif
 int windowMode = 0;
 int brightness = DEFAULT_BRIGHTNESS;
 Uint8 *keys;

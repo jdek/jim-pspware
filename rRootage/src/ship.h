@@ -11,13 +11,8 @@
  */
 #include "vector.h"
 
-#ifdef PSP
-#define FIELD_WIDTH 440
-#define FIELD_HEIGHT 500
-#else
 #define FIELD_WIDTH 320
 #define FIELD_HEIGHT 480
-#endif
 #define FIELD_WIDTH_8 (FIELD_WIDTH<<8)
 #define FIELD_HEIGHT_8 (FIELD_HEIGHT<<8)
 
