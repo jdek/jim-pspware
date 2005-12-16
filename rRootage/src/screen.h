@@ -45,6 +45,7 @@ int getButtonState();
 
 void loadModel(char *fileName, GLuint *model);
 void loadGLTexture(char*, GLuint*);
+void loadTitleTexture(GLuint *texture);
 void generateTexture(GLuint*);
 void deleteTexture(GLuint*);
 void initSDL();
