@@ -38,6 +38,18 @@
 #define LOWRES_SCREEN_HEIGHT 240
 #endif
 
+#define USE_BUILTIN_TITLE_TEX 1
+#if USE_BUILTIN_TITLE_TEX
+#define TITLE_TEX_WIDTH 128
+#define TITLE_TEX_HEIGHT 32
+#define TITLE_TEX_BPP 24
+#define TITLE_TEX_PITCH (TITLE_TEX_WIDTH * ((TITLE_TEX_BPP + 7) / 8))
+#define TITLE_TEX_SIZE (TITLE_TEX_HEIGHT * TITLE_TEX_PITCH)
+
+// The embedded title texture.
+extern char title_start[];
+#endif
+
 static int screenWidth, screenHeight;
 
 // Reset viewport when the screen is resized.
@@ -101,6 +113,40 @@ void loadGLTexture(char *fileName, GLuint *texture) {
   glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_MIN_FILTER,GL_LINEAR_MIPMAP_NEAREST);
   gluBuild2DMipmaps(GL_TEXTURE_2D, 3, surface->w, surface->h, GL_RGB, GL_UNSIGNED_BYTE, surface->pixels);
 }
+
+#if USE_BUILTIN_TITLE_TEX
+void loadTitleTexture(GLuint *texture) {
+  SDL_Surface *surface;
+  Uint32 Rmask;
+  Uint32 Gmask;
+  Uint32 Bmask;
+
+#if SDL_BYTEORDER == SDL_BIG_ENDIAN
+  Rmask = 0x000000FF;
+  Gmask = 0x0000FF00;
+  Bmask = 0x00FF0000;
+#else
+  Rmask = 0x00FF0000;
+  Gmask = 0x0000FF00;
+  Bmask = 0x000000FF;
+#endif
+
+  surface = SDL_CreateRGBSurfaceFrom(title_start,
+				     TITLE_TEX_WIDTH, TITLE_TEX_HEIGHT, TITLE_TEX_BPP, TITLE_TEX_PITCH,
+				     Rmask, Gmask, Bmask, 0);
+  if ( !surface ) {
+    fprintf(stderr, "Unable to load builtin title texture: %s\n", SDL_GetError());
+    SDL_Quit();
+    exit(1);
+  }
+
+  glGenTextures(1, texture);
+  glBindTexture(GL_TEXTURE_2D, *texture);
+  glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_MAG_FILTER,GL_LINEAR);
+  glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_MIN_FILTER,GL_LINEAR_MIPMAP_NEAREST);
+  gluBuild2DMipmaps(GL_TEXTURE_2D, 3, surface->w, surface->h, GL_RGB, GL_UNSIGNED_BYTE, surface->pixels);
+}
+#endif
 
 void generateTexture(GLuint *texture) {
   glGenTextures(1, texture);
@@ -170,7 +216,11 @@ void initSDL() {
   initGL();
   loadGLTexture(STAR_BMP, &starTexture);
   loadGLTexture(SMOKE_BMP, &smokeTexture);
+#if !USE_BUILTIN_TITLE_TEX
   loadGLTexture(TITLE_BMP, &titleTexture);
+#else
+  loadTitleTexture(&titleTexture);
+#endif
 
   SDL_ShowCursor(SDL_DISABLE);
 }
