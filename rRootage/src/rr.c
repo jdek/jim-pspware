@@ -30,10 +30,6 @@
 #include "soundmanager.h"
 #include "attractmanager.h"
 
-#ifdef PSP
-#include <pspuser.h>
-#endif
-
 static int noSound = 0;
 
 // Initialize and load preference.
