@@ -57,11 +57,7 @@ void quitLast() {
   closeBarragemanager();
   closeSDL();
   SDL_Quit();
-#ifdef PSP
-  sceKernelExitGame();
-#else
   exit(1);
-#endif
 }
 
 int status;
