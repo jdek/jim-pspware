@@ -36,7 +36,11 @@
 //#include <sys/systm.h>
 #include <string.h>
 #include "md5.h"
- 
+
+#define LITTLE_ENDIAN 1234
+#define BIG_ENDIAN 4321
+#define BYTE_ORDER LITTLE_ENDIAN
+
 #define SHIFT(X, s) (((X) << (s)) | ((X) >> (32 - (s))))
  
 #define F(X, Y, Z) (((X) & (Y)) | ((~X) & (Z)))
