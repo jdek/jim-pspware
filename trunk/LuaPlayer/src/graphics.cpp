@@ -170,6 +170,7 @@ Image* loadJpegImage(const char* filename)
 	Image* image = (Image*) malloc(sizeof(Image));
 	if (!image) {
 		jpeg_destroy_decompress(&dinfo);
+		fclose(inFile);
 		return NULL;
 	}
 	image->imageWidth = width;
@@ -180,6 +181,7 @@ Image* loadJpegImage(const char* filename)
 	u8* line = (u8*) malloc(width * 3);
 	if (!line) {
 		jpeg_destroy_decompress(&dinfo);
+		fclose(inFile);
 		return NULL;
 	}
 	if (dinfo.jpeg_color_space == JCS_GRAYSCALE) {
@@ -207,6 +209,7 @@ Image* loadJpegImage(const char* filename)
 	jpeg_finish_decompress(&dinfo);
 	jpeg_destroy_decompress(&dinfo);
 	free(line);
+	fclose(inFile);
 	return image;
 }
 

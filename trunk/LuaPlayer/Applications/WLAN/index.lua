@@ -37,7 +37,7 @@ for key, value in configs do
 end
 graphicsPrintln("")
 graphicsPrintln("using first connection...")
-Wlan.useConnectionConfig(0)
+Wlan.useConnectionConfig(1)
 
 -- start server socket
 graphicsPrintln("open server socket...")

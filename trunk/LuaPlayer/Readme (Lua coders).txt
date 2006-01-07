@@ -32,9 +32,9 @@ Making your app play nicely with Lowser is very simple.
 Making your Lua application stand-alone
 ============================
 If you don't want your application to rely on an already-installed LuaPlayer on your end user's PSP, you might want to create a stand-alone version of LuaPlayer bundling only your LuaPlayer application. This standalone version will not include the file browser/application launcher `Lowser`. It does, however, require that you are familiar with the unix build system, have the latest PSP toolchain installed, and the dependencies listed in "Readme (LuaPlayer Core developers).txt". Put your lua app files (either a Lowser-compatible folder or package, or just loose files with a main script.lua) in standalone/app folder. Modify the Makefile.psp-standalone makefile to match your app name, change title-icon.png, and run
-	$ make -f Makefile.psp-standalone standalone10 -- for firmware 1.0
+	$ make -f Makefile.psp-standalone release10 -- for firmware 1.0
 or
-	$ make -f Makefile.psp-standalone standalone15 -- for firmware 1.5
+	$ make -f Makefile.psp-standalone release15 -- for firmware 1.5
 from the luaplayer directory.
 
 

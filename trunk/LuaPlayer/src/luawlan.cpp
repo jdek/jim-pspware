@@ -90,8 +90,25 @@ static int Wlan_useConnectionConfig(lua_State* L)
 	int argc = lua_gettop(L); 
 	if (argc != 1) return luaL_error(L, "Argument error: index to connection config expected."); 
 	
-	int connectionConfig = luaL_checkint(L, 1);
-	lua_pushnumber(L, sceNetApctlConnect(connectionConfig));
+	int connectionConfig = luaL_checkint(L, 1) - 1;
+	int result = sceNetApctlConnect(connectionConfig);
+
+	while (1)
+	{
+		int state;
+		int err = sceNetApctlGetState(&state);
+		if (err != 0) {
+			result = err;
+			break;
+		}
+		if (state == 4)
+			break;  // connected with static IP
+
+		// wait a little before polling again
+		sceKernelDelayThread(200*1000); // 200ms
+	}
+	lua_pushnumber(L, result);
+
 	return 1;
 }
 
@@ -133,6 +150,8 @@ static int Socket_connect(lua_State *L)
 	int argc = lua_gettop(L); 
 	if (argc != 2) return luaL_error(L, "host and port expected."); 
 	
+	sceKernelDelayThread(50*1000); // without this delay it doesn't work sometime
+
 	Socket** luaSocket = pushSocket(L);
 	Socket* socket = (Socket*) malloc(sizeof(Socket));
 	*luaSocket = socket;
