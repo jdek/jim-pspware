@@ -6,6 +6,7 @@
 #include <psppower.h>
 #include <pspdebug.h>
 #include <unistd.h>
+#include <sys/stat.h>
 #include "luaplayer.h"
 #include "sio.h"
 
@@ -88,6 +89,36 @@ static int lua_dir(lua_State *L)
 	sceIoDclose(fd);
 
 	return 1;  /* table is already on top */
+}
+
+static int lua_createDir(lua_State *L)
+{
+	const char *path = luaL_checkstring(L, 1);
+	if(!path) return luaL_error(L, "Argument error: System.createDirectory(directory) takes a directory name as string as argument.");
+
+	mkdir(path, 0777);
+	
+	return 0;
+}
+
+static int lua_removeDir(lua_State *L)
+{
+	const char *path = luaL_checkstring(L, 1);
+	if(!path) return luaL_error(L, "Argument error: System.removeDirectory(directory) takes a directory name as string as argument.");
+
+	rmdir(path);
+	
+	return 0;
+}
+
+static int lua_removeFile(lua_State *L)
+{
+	const char *path = luaL_checkstring(L, 1);
+	if(!path) return luaL_error(L, "Argument error: System.removeFile(filename) takes a filena as string as argument.");
+
+	remove(path);
+	
+	return 0;
 }
 
 static int LoadStartModule(char *path)
@@ -222,6 +253,13 @@ static int lua_powerGetBatteryVolt(lua_State *L)
 	return 1;
 }
 
+static int lua_powerTick(lua_State *L)
+{
+	if (lua_gettop(L) != 0) return luaL_error(L, "wrong number of arguments");
+	scePowerTick(0);
+	return 0;
+}
+
 static int lua_md5sum(lua_State *L)
 {
 	size_t size;
@@ -340,6 +378,9 @@ static int lua_getFreeMemory(lua_State *L)
 static const luaL_reg System_functions[] = {
   {"currentDirectory",              lua_curdir},
   {"listDirectory",           	    lua_dir},
+  {"createDirectory",               lua_createDir},
+  {"removeDirectory",               lua_removeDir},
+  {"removeFile",                    lua_removeFile},
   {"usbDiskModeActivate",           lua_usbActivate},
   {"usbDiskModeDeactivate",    	    lua_usbDeactivate},
   {"powerIsPowerOnline",            lua_powerIsPowerOnline},
@@ -351,6 +392,7 @@ static const luaL_reg System_functions[] = {
   {"powerGetBatteryLifeTime",       lua_powerGetBatteryLifeTime},
   {"powerGetBatteryTemp",           lua_powerGetBatteryTemp},
   {"powerGetBatteryVolt",           lua_powerGetBatteryVolt},
+  {"powerTick",                     lua_powerTick},
   {"md5sum",                        lua_md5sum},
   {"sioInit",                       lua_sioInit},
   {"sioRead",                       lua_sioRead},

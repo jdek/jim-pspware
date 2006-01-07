@@ -1,7 +1,17 @@
-v0.16
-==========
- - Wlan:getIPAddress bugfix: now it returns nil on error and the IP address otherwise [Shine]
- - DNS resolving, thanks to ideas how to use the resolver lib from PSPRadio [Shine]
+v0.16 (all changes for this version by Shine)
+================================================
+ - Wlan:getIPAddress bugfix: now it returns nil on error and the
+   IP address otherwise
+ - DNS resolving. Now you can write
+   Socket.connect("www.luaplayer.org", 80) instead of
+   Socket.connect("212.227.39.202", 80),
+   thanks to ideas how to use the resolver lib from PSPRadio
+ - when loading JPEGs, the file was not closed
+ - System.md5sum bugfixing for the Windows version
+ - Wlan.useConnectionConfig index is 1 based instead of 0 based, like usual in Lua
+ - System.powerTick added: this prevents power off, now you can nail
+   your PSP on a wall for your electronic painting :-)
+ - System.createDirectory, System.removeDirectory and System.removeFile added
 
 v0.15
 ==========
