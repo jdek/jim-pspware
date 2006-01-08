@@ -1,4 +1,3 @@
---dofile("ms0:/psp/game/luaplayer/script.lua")
 function dumpDirectory(filelist, directory)
 	flist = System.listDirectory(directory)
 	for idx, file in flist do
