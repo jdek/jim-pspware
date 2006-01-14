@@ -86,30 +86,34 @@ static int Wlan_getConnectionConfigs(lua_State* L)
 
 static int Wlan_useConnectionConfig(lua_State* L)
 {
-	if (!wlanInitialized) return luaL_error(L, wlanNotInitialized);
+	if (!wlanInitialized) return luaL_error(L, wlanNotInitialized); 
 	int argc = lua_gettop(L); 
 	if (argc != 1) return luaL_error(L, "Argument error: index to connection config expected."); 
 	
-	int connectionConfig = luaL_checkint(L, 1) - 1;
-	int result = sceNetApctlConnect(connectionConfig);
-
-	while (1)
-	{
-		int state;
-		int err = sceNetApctlGetState(&state);
-		if (err != 0) {
-			result = err;
-			break;
+	int connectionConfig = luaL_checkint(L, 1) - 1; 
+	int result = sceNetApctlConnect(connectionConfig); 
+	
+	int state = 0; 
+	
+	while (1) { 
+		sceKernelDelayThread(200*1000); // 200ms 
+		
+		int err = sceNetApctlGetState(&state); 
+		if (err != 0 || state == 0) {
+			// conncection failed
+			return 0; 
 		}
-		if (state == 4)
-			break;  // connected with static IP
-
-		// wait a little before polling again
-		sceKernelDelayThread(200*1000); // 200ms
-	}
-	lua_pushnumber(L, result);
-
-	return 1;
+		
+		if (state == 4) {
+			//connection succeeded 
+			result = 1; 
+			break; 
+		} 
+	} 
+	
+	lua_pushnumber(L, result); 
+	
+	return 1; 
 }
 
 static int Wlan_getIPAddress(lua_State* L)

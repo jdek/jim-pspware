@@ -1,3 +1,7 @@
+v0.17
+==========
+ - Wlan.useConnectionConfig bugfix: doesn't lock up anymore on error [Elxx]
+
 v0.16 (all changes for this version by Shine)
 ================================================
  - Wlan:getIPAddress bugfix: now it returns nil on error and the
