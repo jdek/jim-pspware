@@ -8,7 +8,7 @@ JOY = YES
 CFLAGS = -Wall -Wno-long-long -O2 -G0 -DJOY_$(JOY)
 CFLAGS += $(shell $(PSPBIN)/sdl-config --cflags)
 
-LIBS = -lstdc++ -lSDL_mixer $(shell $(PSPBIN)/sdl-config --libs) 
+LIBS = -lstdc++ -lSDL_mixer -lvorbisidec $(shell $(PSPBIN)/sdl-config --libs) 
 
 EXTRA_TARGETS = EBOOT.PBP
 
