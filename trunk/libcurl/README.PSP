@@ -1,0 +1,12 @@
+This is a port of libcurl 7.15.1 for the PSP, based originally on danzel's patches but 
+I have cleaned them up, in part because I added gethostbyname/addr to newlib itself.
+
+To build configure the source with:
+
+LDFLAGS="-L/usr/local/pspdev/psp/lib -L/usr/local/pspdev/psp/sdk/lib" \
+		 LIBS="-lc -lpspnet_inet -lpspnet_resolver -lpspuser" \
+		 ./configure --host=psp --disable-shared --prefix=/usr/local/pspdev/psp
+
+The just make; make install.
+
+TyRaNiD
