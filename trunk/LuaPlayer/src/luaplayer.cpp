@@ -11,6 +11,13 @@
 
 static lua_State *L;
 
+extern "C" {
+	lua_State * getLuaState()
+	{
+		return L;
+	}
+}
+
 int runScript(const char* script, bool isStringBuffer )
 {
 	L = lua_open();
