@@ -26,15 +26,14 @@
 #include "graphics.h"
 #include "sound.h"
 #include "luaplayer.h"
-#include "sio.h"
 
 /* the boot.lua */
 #include "boot.cpp"
 
 /* Define the module info section */
-PSP_MODULE_INFO("LUAPLAYER", 0x1000, 1, 1);
+PSP_MODULE_INFO("LUAPLAYER", 0, 1, 1);
 PSP_MAIN_THREAD_ATTR(0);
-PSP_MAIN_THREAD_STACK_SIZE_KB(32); /* smaller stack for kernel thread */
+PSP_HEAP_SIZE_KB(10024); /* 10MB */
 
 // startup path
 char path[256];
@@ -77,27 +76,51 @@ int SetupCallbacks(void)
 	return thid;
 }
 
-int nullOutput(const char *buff, int size)
+void debugResetScreen()
 {
-	return size;
+	disableGraphics();
+	pspDebugScreenInit();
 }
 
-int debugOutput(const char *buff, int size)
+int debugOutput(const char *format, ...)
 {
+	va_list opt;
+	char buffer[2048];
+	int bufsz;
+
 	static int debugInitialized = 0;
-	if(!buff) {
-		debugInitialized = 0;
-		return 0;
-	}
 	if (!debugInitialized) {
-		disableGraphics();
-		pspDebugScreenInit();
+		debugResetScreen();
 		debugInitialized = 1;
 	}
-	return pspDebugScreenPrintData(buff, size);
+	va_start(opt, format);
+	bufsz = vsnprintf( buffer, (size_t) sizeof(buffer), format, opt);
+	return pspDebugScreenPrintData(buffer, bufsz);
 }
 
-int user_main(SceSize argc, void* argv)
+int loadModule( char * moduleLocation )
+{
+	char path[256];	
+	getcwd(path, 256);
+	strcat(path, moduleLocation );
+	int retVal = sceKernelLoadModule( path, 0, NULL );
+	if (retVal < 0)
+	{
+		return retVal;
+	}
+
+	int fd;
+	retVal = sceKernelStartModule( retVal, 0, NULL, &fd, NULL );
+	if ( retVal < 0 )
+	{
+		return retVal;
+	}
+
+	return 0;
+}
+
+
+int user_main( SceSize argc, void *argp )
 {
 	SetupCallbacks();
 	tzset();
@@ -106,35 +129,34 @@ int user_main(SceSize argc, void* argv)
 	initGraphics();
 	initMikmod();
 
-	// install new output handlers	
-	pspDebugInstallStdoutHandler(debugOutput); 
-	pspDebugInstallStderrHandler(debugOutput); 
-
 	// execute Lua script (according to boot sequence)
 	getcwd(path, 256);
 	char* bootStringWith0 = (char*) malloc(size_bootString + 1);
 	memcpy(bootStringWith0, bootString, size_bootString);
 	bootString[size_bootString] = 0;
+
 	while(1) { // reload on error
 		chdir(path); // set base path luaplater/
 		clearScreen(0);
 		flipScreen();
 		clearScreen(0);
 
-		if (runScript(bootStringWith0, true))
+		const char * errMsg = runScript(bootStringWith0, true);
+		if ( errMsg != NULL);
 		{
-			debugOutput("Error: No script file found.\n", 29);
+			debugOutput("Error: %s\n", errMsg );
 		}
-		debugOutput("\nPress start to restart\n", 26);
+		debugOutput("\nPress start to restart\n");
 
 		SceCtrlData pad; int i;
 		sceCtrlReadBufferPositive(&pad, 1); 
 		for(i = 0; i < 40; i++) sceDisplayWaitVblankStart();
 		while(!(pad.Buttons&PSP_CTRL_START)) sceCtrlReadBufferPositive(&pad, 1); 
 		
-		debugOutput(0,0);
+		debugResetScreen();
 		initGraphics();
 	}
+
 	free(bootStringWith0);
 	
 	// wait until user ends the program
@@ -143,16 +165,8 @@ int user_main(SceSize argc, void* argv)
 	return 0;
 }
 
-int main(void)
+int main(SceSize argc, char **argv)
 {
-	getcwd(path, 256);
-	int err = pspSdkLoadInetModules();
-	if (err != 0) {
-		pspDebugScreenInit();
-		pspDebugScreenPrintf("pspSdkLoadInetModules failed with %x\n", err);
-	        sceKernelDelayThread(5*1000000); // 5 sec to read error
-	}
-
 	// create user thread, tweek stack size here if necessary
 	SceUID thid = sceKernelCreateThread("User Mode Thread", user_main,
 	    0x11, // default priority
@@ -162,23 +176,8 @@ int main(void)
 	// start user thread, then wait for it to do everything else
 	sceKernelStartThread(thid, 0, NULL);
 	sceKernelWaitThreadEnd(thid, NULL);
-	
+
 	sceKernelExitGame();
 	return 0;
 }
-
-__attribute__((constructor)) void stdoutInit() 
-{ 
-	pspKernelSetKernelPC();
-	pspSdkInstallNoDeviceCheckPatch();
-	pspSdkInstallNoPlainModuleCheckPatch();
-	pspKernelSetKernelPC();
-	pspKernelSetKernelPC();
-	pspSdkInstallNoDeviceCheckPatch();
-	pspDebugInstallKprintfHandler(NULL);
-	registerSIODriver();
-
-	// ignore startup messages from kernel, but install the tty driver in kernel mode
-	pspDebugInstallStdoutHandler(nullOutput); 
-} 
 

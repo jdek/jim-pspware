@@ -1,5 +1,5 @@
-#ifndef __LUAPLAYER_H
-#define __LUAPLAYER_H
+#ifndef __LUAMODULE_H
+#define __LUAMODULE_H
 
 #include <stdlib.h>
 #include <tdefs.h>
@@ -51,18 +51,8 @@ int HANDLE##_register(lua_State *L) { \
 	return 1; \
 }
 
-extern const char * runScript(const char* script, bool isStringBuffer);
+extern int runScript(const char* script, bool isStringBuffer);
 extern void luaC_collectgarbage (lua_State *L);
-
-
-
-extern void luaSound_init(lua_State *L);
-extern void luaControls_init(lua_State *L);
-extern void luaGraphics_init(lua_State *L);
-extern void lua3D_init(lua_State *L);
-extern void luaTimer_init(lua_State *L);
-extern void luaSystem_init(lua_State *L);
-extern void luaWlan_init(lua_State *L);
 
 extern void stackDump (lua_State *L);
 

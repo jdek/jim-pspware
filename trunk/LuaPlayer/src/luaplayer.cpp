@@ -18,7 +18,7 @@ extern "C" {
 	}
 }
 
-int runScript(const char* script, bool isStringBuffer )
+const char * runScript(const char* script, bool isStringBuffer )
 {
 	L = lua_open();
 	
@@ -40,6 +40,8 @@ int runScript(const char* script, bool isStringBuffer )
 	luaWlan_init(L);
 	
 	int s = 0;
+	const char * errMsg = NULL;
+
 	if(!isStringBuffer) 
 		s = luaL_loadfile(L, script);
 	else 
@@ -49,10 +51,11 @@ int runScript(const char* script, bool isStringBuffer )
 		s = lua_pcall(L, 0, LUA_MULTRET, 0);
 	}
 	if (s) {
+		errMsg = lua_tostring(L, -1);
 		printf("error: %s\n", lua_tostring(L, -1));
 		lua_pop(L, 1); // remove error message
 	}
 	lua_close(L);
 	
-	return s;
+	return errMsg;
 }
