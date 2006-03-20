@@ -1,3 +1,19 @@
+v0.18alpha (blame Oobles for all changes)
+================================================
+ - Moved all kernel dependant code into bootstrap code.
+ - Moved all of luaplayer into a user mode prx module.
+ - Removed the stdio redirection.
+ - Made runScript return its error message to main.
+ - Exported all lua functions from luaplayer module.
+ - Made debugOutput work in the same was as printf.
+ - Added System.loadModule function to dynamically load LRX modules.
+ - Added an example simple.lrx module as template.
+ - Changed Makefiles to support new bootstrap code.
+ - Added an example sound.lrx module which moves all sound out
+   of main luaplayer.  In theory could remove it completely from
+   luaplayer and load it only when required.  Same could apply
+   for other modules.
+
 v0.17
 ==========
  - Wlan.useConnectionConfig bugfix: doesn't lock up anymore on error [Elxx]

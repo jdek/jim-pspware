@@ -1,4 +1,5 @@
 #include <stdlib.h>
+#include <string.h>
 #include <pspkernel.h>
 
 #include <pspusb.h>
@@ -8,7 +9,8 @@
 #include <unistd.h>
 #include <sys/stat.h>
 #include "luaplayer.h"
-#include "sio.h"
+
+#define SIO_IOCTL_SET_BAUD_RATE 1
 
 static int usbActivated = 0;
 static SceUID sio_fd = -1;
@@ -123,21 +125,59 @@ static int lua_removeFile(lua_State *L)
 
 static int LoadStartModule(char *path)
 {
-    u32 loadResult;
-    u32 startResult;
-    int status;
+	u32 loadResult;
+	u32 startResult;
+	int status;
 
-    loadResult = sceKernelLoadModule(path, 0, NULL);
-    if (loadResult & 0x80000000)
+	loadResult = sceKernelLoadModule(path, 0, NULL);
+	if (loadResult & 0x80000000)
 		return -1;
-    else
+	else
 		startResult =
-	    sceKernelStartModule(loadResult, 0, NULL, &status, NULL);
+		sceKernelStartModule(loadResult, 0, NULL, &status, NULL);
 
-    if (loadResult != startResult)
-	return -2;
+	if (loadResult != startResult)
+		return -2;
 
-    return 0;
+	return 0;
+}
+
+static char modulePath[256];
+
+static void setModulePath()
+{
+	getcwd( modulePath, 256 );
+}
+
+static int lua_loadModule(lua_State *L)
+{
+	char path[256];
+	u32 loadResult;
+	u32 startResult;
+	int status;
+
+	const char *name = luaL_checkstring(L, 1);
+	if (!name) return luaL_error(L, "Argument error: System.loadModule(name) takes a module name as string as argument.");
+
+	strcpy( path, modulePath );
+	strcat( path, "/" );
+	strcat( path, name );
+	strcat( path, ".lrx" );
+
+	loadResult = sceKernelLoadModule(path,0, NULL);
+	if (loadResult & 0x80000000)
+	{
+		return luaL_error(L, "Argument error: Failed to load module");
+	}
+
+	startResult = sceKernelStartModule( loadResult, strlen(path)+1,(void*) path, &status, NULL );
+	if ( loadResult != startResult )
+	{
+		printf( "Module error: Failed to load module\n" );
+		return luaL_error(L, "Module error: Failed to load module");
+	}
+
+	return 0;  
 }
 
 static int lua_usbActivate(lua_State *L)
@@ -183,7 +223,7 @@ static int lua_usbDeactivate(lua_State *L)
 	if (lua_gettop(L) != 0) return luaL_error(L, "wrong number of arguments");
 	if (!usbActivated) return 0;
 
-	sceUsbDeactivate();
+	sceUsbDeactivate( 0 );  // what value here?
 	usbActivated = 0;
 	return 0;
 }
@@ -381,6 +421,7 @@ static const luaL_reg System_functions[] = {
   {"createDirectory",               lua_createDir},
   {"removeDirectory",               lua_removeDir},
   {"removeFile",                    lua_removeFile},
+  {"loadModule",		    lua_loadModule},
   {"usbDiskModeActivate",           lua_usbActivate},
   {"usbDiskModeDeactivate",    	    lua_usbDeactivate},
   {"powerIsPowerOnline",            lua_powerIsPowerOnline},
@@ -405,6 +446,7 @@ static const luaL_reg System_functions[] = {
   {0, 0}
 };
 void luaSystem_init(lua_State *L) {
+	setModulePath();
 	luaL_openlib(L, "System", System_functions, 0);
 }
 

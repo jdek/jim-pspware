@@ -1,5 +1,5 @@
 TARGET = luaplayer
-VERSION = 0.16
+VERSION = 0.18
 
 RELEASEF = "LuaPlayer v$(VERSION)"
 RELEASEFOLDER = build/$(RELEASEF)
@@ -9,7 +9,9 @@ PSP_EBOOT_ICON = title-icon.png
 
 include Makefile.psp.common
 
-release: all kxploit # note - does not include binary; see release10 & 15
+release: all # note - does not include binary; see release10 & 15
+	make -C bootstrap kxploit
+	make -C modules release
 	mkdir -p $(RELEASEFOLDER)/luaplayer
 	cp -R Applications $(RELEASEFOLDER)/luaplayer/
 	cp -R System $(RELEASEFOLDER)/luaplayer/
@@ -21,12 +23,19 @@ release: all kxploit # note - does not include binary; see release10 & 15
 	-find $(RELEASEFOLDER) -name ".svn" -exec rm -rfv '{}' ";"
 	
 release10: release
-	cp -R EBOOT.PBP $(RELEASEFOLDER)/luaplayer
+	mkdir -p $(RELEASEFOLDER)/luaplayer
+	cp bootstrap/luaboot/EBOOT.PBP $(RELEASEFOLDER)/luaplayer/EBOOT.PBP
+	cp luaplayer.prx $(RELEASEFOLDER)/luaplayer
+	cp modules/*.lrx $(RELEASEFOLDER)/luaplayer
 	-cd build && zip -r "LuaPlayer_v$(VERSION)_firmware10".zip $(RELEASEF)
 	
 release15: release
-	cp -R luaplayer $(RELEASEFOLDER)/
-	cp -R luaplayer% $(RELEASEFOLDER)/
+	mkdir -p $(RELEASEFOLDER)/luaplayer
+	mkdir -p $(RELEASEFOLDER)/luaplayer%
+	cp bootstrap/luaboot/EBOOT.PBP $(RELEASEFOLDER)/luaplayer/EBOOT.PBP
+	cp bootstrap/luaboot%/EBOOT.PBP $(RELEASEFOLDER)/luaplayer%/EBOOT.PBP
+	cp luaplayer.prx $(RELEASEFOLDER)/luaplayer
+	cp modules/*.lrx $(RELEASEFOLDER)/luaplayer
 	-cd build && zip -r "LuaPlayer_v$(VERSION)_firmware15".zip $(RELEASEF)
 
 release-all: release10 release15
@@ -48,8 +57,21 @@ clean-builds:
 	-rm -rf build
 	
 clean-all: clean-builds clean
+	make -C bootstrap clean
+	make -C modules clean
 	
-install: all kxploit
-	cp -R luaplayer /Volumes/Untitled/PSP/GAME/
-	cp -R luaplayer% /Volumes/Untitled/PSP/GAME/
-	cp -R System/system.lua /Volumes/Untitled/PSP/GAME/luaplayer/System/
+#INSTALL_PATH = /Volumes/Untitled/PSP/GAME
+INSTALL_PATH = test
+
+install: all 
+	make -C bootstrap kxploit
+	make -C modules release
+	mkdir -p $(INSTALL_PATH)/luaplayer
+	mkdir -p $(INSTALL_PATH)/luaplayer%
+	cp bootstrap/luaboot/EBOOT.PBP $(INSTALL_PATH)/luaplayer
+	cp bootstrap/luaboot%/EBOOT.PBP $(INSTALL_PATH)/luaplayer%
+	cp luaplayer.prx $(INSTALL_PATH)/luaplayer
+	cp modules/*.lrx $(INSTALL_PATH)/luaplayer
+	mkdir -p $(INSTALL_PATH)/luaplayer/System
+	cp -R System/system.lua $(INSTALL_PATH)/luaplayer/System/
+
