@@ -76,10 +76,11 @@ int SetupCallbacks(void)
 	return thid;
 }
 
+static int debugInitialized = 0;
+
 void debugResetScreen()
 {
-	disableGraphics();
-	pspDebugScreenInit();
+	debugInitialized = 0;
 }
 
 int debugOutput(const char *format, ...)
@@ -88,9 +89,9 @@ int debugOutput(const char *format, ...)
 	char buffer[2048];
 	int bufsz;
 
-	static int debugInitialized = 0;
 	if (!debugInitialized) {
-		debugResetScreen();
+		disableGraphics();
+		pspDebugScreenInit();
 		debugInitialized = 1;
 	}
 	va_start(opt, format);

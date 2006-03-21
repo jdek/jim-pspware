@@ -1,4 +1,5 @@
 BUILD_PRX=1
+PRX_EXPORTS=src/exports.exp
 
 TARGET = luaplayer
 OBJS = src/graphics.o src/sound.o src/luaplayer.o src/utility.o src/main.o src/framebuffer.o \
