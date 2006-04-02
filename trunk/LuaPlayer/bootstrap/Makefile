@@ -5,7 +5,7 @@ OBJS = bootstrap.o sio.o
 # Define the name of our custom exports (minus the .exp extension)
 PRX_EXPORTS=exports.exp
 
-PSP_EBOOT_TITLE = LuaPlayer 0.17
+PSP_EBOOT_TITLE = LuaPlayer 0.18
 PSP_EBOOT_ICON = title-icon.png
 
 INCDIR = 
