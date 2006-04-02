@@ -10,7 +10,6 @@ PSP_EBOOT_ICON = title-icon.png
 include Makefile.psp.common
 
 release: all # note - does not include binary; see release10 & 15
-	make -C bootstrap kxploit
 	make -C modules release
 	mkdir -p $(RELEASEFOLDER)/luaplayer
 	cp -R Applications $(RELEASEFOLDER)/luaplayer/
@@ -23,13 +22,15 @@ release: all # note - does not include binary; see release10 & 15
 	-find $(RELEASEFOLDER) -name ".svn" -exec rm -rfv '{}' ";"
 	
 release10: release
+	make -C bootstrap EBOOT.PBP
 	mkdir -p $(RELEASEFOLDER)/luaplayer
-	cp bootstrap/luaboot/EBOOT.PBP $(RELEASEFOLDER)/luaplayer/EBOOT.PBP
+	cp bootstrap/EBOOT.PBP $(RELEASEFOLDER)/luaplayer/EBOOT.PBP
 	cp luaplayer.prx $(RELEASEFOLDER)/luaplayer
 	cp modules/*.lrx $(RELEASEFOLDER)/luaplayer
 	-cd build && zip -r "LuaPlayer_v$(VERSION)_firmware10".zip $(RELEASEF)
 	
 release15: release
+	make -C bootstrap kxploit
 	mkdir -p $(RELEASEFOLDER)/luaplayer
 	mkdir -p $(RELEASEFOLDER)/luaplayer%
 	cp bootstrap/luaboot/EBOOT.PBP $(RELEASEFOLDER)/luaplayer/EBOOT.PBP
