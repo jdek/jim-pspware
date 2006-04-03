@@ -1,3 +1,7 @@
+v0.19
+==========
+ - directory detection bugfix [moonlight]
+
 v0.18alpha (blame Oobles for all changes)
 ================================================
  - Moved all kernel dependant code into bootstrap code.

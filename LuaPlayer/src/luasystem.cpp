@@ -82,7 +82,7 @@ static int lua_dir(lua_State *L)
 			lua_settable(L, -3);
 	
 			lua_pushstring(L, "directory");
-			lua_pushboolean(L, g_dir.d_stat.st_attr & FIO_SO_IFDIR);
+			lua_pushboolean(L, FIO_S_ISDIR(g_dir.d_stat.st_mode));
 			lua_settable(L, -3);
 
 		lua_settable(L, -3);
