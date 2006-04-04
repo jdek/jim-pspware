@@ -10,7 +10,6 @@ PSP_EXPORT_END
 
 # Export our functions
 PSP_EXPORT_START(LUAPLAYER, 0, 0x0001)
-PSP_EXPORT_FUNC_HASH(getLuaState)
 PSP_EXPORT_FUNC_HASH(lua_atpanic)
 PSP_EXPORT_FUNC_HASH(lua_call)
 PSP_EXPORT_FUNC_HASH(lua_checkstack)
@@ -117,7 +116,7 @@ PSP_EXPORT_FUNC_HASH(luaopen_base)
 PSP_EXPORT_FUNC_HASH(luaopen_table)
 PSP_EXPORT_FUNC_HASH(luaopen_string)
 PSP_EXPORT_FUNC_HASH(luaopen_math)
-PSP_EXPORT_FUNC_HASH(luaopen_loadlib)
+#PSP_EXPORT_FUNC_HASH(luaopen_loadlib)
 PSP_EXPORT_FUNC_HASH(luaC_collectgarbage)
 PSP_EXPORT_END
 

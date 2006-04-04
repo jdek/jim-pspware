@@ -31,7 +31,7 @@
 #include "boot.cpp"
 
 /* Define the module info section */
-PSP_MODULE_INFO("LUAPLAYER", 0, 1, 1);
+PSP_MODULE_INFO(LUAPLAYER, 0, 1, 1);
 PSP_MAIN_THREAD_ATTR(0);
 PSP_HEAP_SIZE_KB(10024); /* 10MB */
 

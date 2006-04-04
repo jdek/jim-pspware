@@ -23,11 +23,12 @@
 #include <string.h>
 #include <unistd.h>
 #include <stdio.h>
+#include <stdarg.h>
 
 #include "sio.h"
 
 /* Define the module info section */
-PSP_MODULE_INFO("LUABOOT", 0x1000, 1, 1);
+PSP_MODULE_INFO(LUABOOT, 0x1000, 1, 1);
 PSP_MAIN_THREAD_ATTR(0);
 PSP_MAIN_THREAD_STACK_SIZE_KB(32); 
 PSP_HEAP_SIZE_KB(32);
@@ -35,10 +36,14 @@ PSP_HEAP_SIZE_KB(32);
 // startup path
 char path[256];
 
-int debugOutput(const char *buff, int size)
+int debugOutput(const char *format, ...)
 {
+	va_list opt;
+	char buffer[2048];
+	int bufsz;
+
 	static int debugInitialized = 0;
-	if(!buff) {
+	if(!format) {
 		debugInitialized = 0;
 		return 0;
 	}
@@ -47,8 +52,11 @@ int debugOutput(const char *buff, int size)
 		pspDebugScreenInit();
 		debugInitialized = 1;
 	}
-	return pspDebugScreenPrintData(buff, size);
+	va_start(opt, format);
+	bufsz = vsnprintf( buffer, (size_t) sizeof(buffer), format, opt);
+	return pspDebugScreenPrintData(buffer, bufsz);
 }
+
 
 int loadModule( char * moduleLocation )
 {
@@ -59,8 +67,8 @@ int loadModule( char * moduleLocation )
 	int retVal = sceKernelLoadModule( path, 0, NULL );
 	if (retVal < 0)
 	{
-		debugOutput("Error: loadModule luaplayer.prx\n", 33);		
-		debugOutput( path, strlen(path) );
+		debugOutput("Error: loadModule %s %x\n", path, retVal);
+		debugOutput("Loading from %s\n", path );
 		return retVal;
 	}
 
@@ -68,17 +76,19 @@ int loadModule( char * moduleLocation )
 	retVal = sceKernelStartModule( retVal, strlen(path)+1, path, &fd, NULL );
 	if ( retVal < 0 )
 	{
-		debugOutput("Error: strtModule luaplayer.prx\n", 33);		
+		debugOutput("Error: strtModule %s %x\n", path, retVal);
 		return retVal;
 	}
 
 	return 0;
 }
 
-int main( int argc, void **argp )
+int main( SceSize args, void *argp )
 {
 	pspSdkInstallNoDeviceCheckPatch();
 	pspSdkInstallNoPlainModuleCheckPatch();
+	registerSIODriver();
+	
 
 	getcwd(path, 256);
 	int err = pspSdkLoadInetModules();
@@ -88,29 +98,21 @@ int main( int argc, void **argp )
 	        sceKernelDelayThread(5*1000000); // 5 sec to read error
 	}
 
-	int retVal = loadModule( "/luaplayer.prx" );
-	if (retVal < 0)
+	int retVal = loadModule( "/loadlib.prx" );
+	if (retVal < 0 )
 	{
-		debugOutput("Error: failed loadModule luaplayer.prx\n", 31);
+		debugOutput("Error: failed loadModule loadlib.prx\n");
 		sceKernelSleepThread();
 	}
-	
+
+	retVal = loadModule( "/luaplayer.prx" );
+	if (retVal < 0)
+	{
+		debugOutput("Error: failed loadModule luaplayer.prx\n");
+		sceKernelSleepThread();
+	}
+
 	sceKernelSleepThread();
 	return 0;
 }
-/*
-__attribute__((constructor)) void stdoutInit() 
-{ 
-	//pspKernelSetKernelPC();
-	pspSdkInstallNoDeviceCheckPatch();
-	pspSdkInstallNoPlainModuleCheckPatch();
-	//pspKernelSetKernelPC();
-	//pspKernelSetKernelPC();
-	//pspSdkInstallNoDeviceCheckPatch();
-	//pspDebugInstallKprintfHandler(NULL);
-	registerSIODriver();
 
-	// ignore startup messages from kernel, but install the tty driver in kernel mode
-	//pspDebugInstallStdoutHandler(nullOutput); 
-} 
-*/
