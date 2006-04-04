@@ -2,7 +2,9 @@
 #include <stdlib.h>
 #include <unistd.h>
 
+extern "C" {
 #include "luamodule.h"
+}
 #include "sound.h"
 
 // Forward declaration

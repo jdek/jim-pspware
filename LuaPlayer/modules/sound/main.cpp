@@ -14,7 +14,11 @@
 #include <stdio.h>
 #include <unistd.h>
 #include <sys/stat.h>
+
+extern "C" {
 #include "luamodule.h"
+}
+
 #include "sound.h"
 
 PSP_MODULE_INFO("SOUND", 0, 1, 1);
