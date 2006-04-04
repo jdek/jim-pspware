@@ -4,12 +4,10 @@
 #include <stdlib.h>
 #include <tdefs.h>
 
-extern "C" {
 #include "lua.h"
 #include "lualib.h"
 #include "lauxlib.h"
 extern void luaC_collectgarbage (lua_State *L);
-}
 
 #define MAX(a, b) ((a) > (b) ? (a) : (b))
 #define CLAMP(val, min, max) ((val)>(max)?(max):((val)<(min)?(min):(val)))
@@ -50,11 +48,6 @@ int HANDLE##_register(lua_State *L) { \
 	lua_setmetatable(L, -2); \
 	return 1; \
 }
-
-extern int runScript(const char* script, bool isStringBuffer);
-extern void luaC_collectgarbage (lua_State *L);
-
-extern void stackDump (lua_State *L);
 
 
 #endif

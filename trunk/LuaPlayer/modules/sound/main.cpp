@@ -22,21 +22,15 @@ PSP_HEAP_SIZE_KB(240);
 PSP_NO_CREATE_MAIN_THREAD(); 
 
 
-extern "C" {
-
-extern lua_State * getLuaState();
+int init( lua_State * L )
+{
+	luaSound_init( L );
 }
-
 
 int main(int argc, char *argv[] )
 {
 	printf( "sound.lrx loaded\n" );
 
-	lua_State * L;
-
-	L = getLuaState();
-
-	luaSound_init( L );
 
 	return 0;
 }

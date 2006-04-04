@@ -26,6 +26,7 @@ release10: release
 	mkdir -p $(RELEASEFOLDER)/luaplayer
 	cp bootstrap/EBOOT.PBP $(RELEASEFOLDER)/luaplayer/EBOOT.PBP
 	cp luaplayer.prx $(RELEASEFOLDER)/luaplayer
+	cp modules/loadlib.prx $(RELEASEFOLDER)/luaplayer
 	cp modules/*.lrx $(RELEASEFOLDER)/luaplayer
 	-cd build && zip -r "LuaPlayer_v$(VERSION)_firmware10".zip $(RELEASEF)
 	
@@ -36,6 +37,7 @@ release15: release
 	cp bootstrap/luaboot/EBOOT.PBP $(RELEASEFOLDER)/luaplayer/EBOOT.PBP
 	cp bootstrap/luaboot%/EBOOT.PBP $(RELEASEFOLDER)/luaplayer%/EBOOT.PBP
 	cp luaplayer.prx $(RELEASEFOLDER)/luaplayer
+	cp modules/loadlib.prx $(RELEASEFOLDER)/luaplayer
 	cp modules/*.lrx $(RELEASEFOLDER)/luaplayer
 	-cd build && zip -r "LuaPlayer_v$(VERSION)_firmware15".zip $(RELEASEF)
 
@@ -72,6 +74,7 @@ install: all
 	cp bootstrap/luaboot/EBOOT.PBP $(INSTALL_PATH)/luaplayer
 	cp bootstrap/luaboot%/EBOOT.PBP $(INSTALL_PATH)/luaplayer%
 	cp luaplayer.prx $(INSTALL_PATH)/luaplayer
+	cp modules/loadlib.prx $(INSTALL_PATH)/luaplayer
 	cp modules/*.lrx $(INSTALL_PATH)/luaplayer
 	mkdir -p $(INSTALL_PATH)/luaplayer/System
 	cp -R System/system.lua $(INSTALL_PATH)/luaplayer/System/

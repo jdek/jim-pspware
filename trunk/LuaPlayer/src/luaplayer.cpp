@@ -11,12 +11,6 @@
 
 static lua_State *L;
 
-extern "C" {
-	lua_State * getLuaState()
-	{
-		return L;
-	}
-}
 
 const char * runScript(const char* script, bool isStringBuffer )
 {
@@ -28,7 +22,9 @@ const char * runScript(const char* script, bool isStringBuffer )
 	luaopen_table(L);
 	luaopen_string(L);
 	luaopen_math(L);
-	luaopen_loadlib(L);
+
+	// luasystem.cpp defines our loadlib.
+	// luaopen_loadlib(L);
 	
 	// Modules
 	luaSound_init(L);

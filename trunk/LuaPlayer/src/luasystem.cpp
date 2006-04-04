@@ -149,35 +149,35 @@ static void setModulePath()
 	getcwd( modulePath, 256 );
 }
 
+extern "C" {
+	extern SceUID psploadlib( const char * name, char * init );
+	extern void **findFunction( SceUID id, const char * library, const char * name );
+	extern int init( lua_State *L);
+}
+
+#define LOADMODULE_ARGERROR "Argument error: System.loadModule(module, init) takes a module name and init method as string arguments."
+
 static int lua_loadModule(lua_State *L)
 {
-	char path[256];
-	u32 loadResult;
-	u32 startResult;
-	int status;
-
 	const char *name = luaL_checkstring(L, 1);
-	if (!name) return luaL_error(L, "Argument error: System.loadModule(name) takes a module name as string as argument.");
+	const char *init = luaL_checkstring(L, 2);
 
-	strcpy( path, modulePath );
-	strcat( path, "/" );
-	strcat( path, name );
-	strcat( path, ".lrx" );
-
-	loadResult = sceKernelLoadModule(path,0, NULL);
-	if (loadResult & 0x80000000)
-	{
-		return luaL_error(L, "Argument error: Failed to load module");
+	SceUID uid = psploadlib( name, NULL );
+	if ( uid >= 0 ) {
+		lua_CFunction f = (lua_CFunction) *(findFunction( uid, name, init )); 
+		if (f != NULL)
+		{
+			lua_pushlightuserdata(L,(void*)uid);
+			lua_pushcclosure(L,f,1);
+			return 1;
+		}
 	}
 
-	startResult = sceKernelStartModule( loadResult, strlen(path)+1,(void*) path, &status, NULL );
-	if ( loadResult != startResult )
-	{
-		printf( "Module error: Failed to load module\n" );
-		return luaL_error(L, "Module error: Failed to load module");
-	}
+	lua_pushnil(L);
+	lua_pushstring(L, LOADMODULE_ARGERROR );
+	lua_pushstring(L, (uid >= 0) ? "init" : "open");
 
-	return 0;  
+	return 3;
 }
 
 static int lua_usbActivate(lua_State *L)
@@ -421,7 +421,6 @@ static const luaL_reg System_functions[] = {
   {"createDirectory",               lua_createDir},
   {"removeDirectory",               lua_removeDir},
   {"removeFile",                    lua_removeFile},
-  {"loadModule",		    lua_loadModule},
   {"usbDiskModeActivate",           lua_usbActivate},
   {"usbDiskModeDeactivate",    	    lua_usbDeactivate},
   {"powerIsPowerOnline",            lua_powerIsPowerOnline},
@@ -448,5 +447,6 @@ static const luaL_reg System_functions[] = {
 void luaSystem_init(lua_State *L) {
 	setModulePath();
 	luaL_openlib(L, "System", System_functions, 0);
+	lua_register(L, "loadlib", lua_loadModule);
 }
 

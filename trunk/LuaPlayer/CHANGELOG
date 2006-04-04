@@ -1,6 +1,14 @@
+
 v0.19
 ==========
  - directory detection bugfix [moonlight]
+ - Changed System.loadModule to loadlib to work. [Oobles]
+   the same as the traditional lua loadlib function.
+ - Made loadlib check if a module is already loaded before trying
+   to load. [Oobles]
+ - Removed getLuaState export. No longer required. [Oobles]
+ - Made debugOutput work in the same way as printf in bootstrap. [Oobles]
+ - Added loadlib.prx kernel module. required for module loading. [Oobles]
 
 v0.18alpha (blame Oobles for all changes)
 ================================================
