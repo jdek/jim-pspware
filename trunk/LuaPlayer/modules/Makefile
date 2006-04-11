@@ -1,6 +1,6 @@
 # LuaPlayer Modules
 
-SUBDIRS = loadlib simple sound
+SUBDIRS = loadlib simple sound effect
 
 .PHONY: dummy
 
