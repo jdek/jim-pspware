@@ -9,6 +9,7 @@ v0.19
  - Removed getLuaState export. No longer required. [Oobles]
  - Made debugOutput work in the same way as printf in bootstrap. [Oobles]
  - Added loadlib.prx kernel module. required for module loading. [Oobles]
+ - Added a module sample for manipulating images [Shine]
 
 v0.18alpha (blame Oobles for all changes)
 ================================================
