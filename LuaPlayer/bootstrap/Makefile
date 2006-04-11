@@ -1,7 +1,7 @@
 TARGET = luaboot
 OBJS = bootstrap.o sio.o 
 
-PSP_EBOOT_TITLE = LuaPlayer 0.18
+PSP_EBOOT_TITLE = LuaPlayer 0.19
 PSP_EBOOT_ICON = title-icon.png
 
 INCDIR = 

@@ -33,11 +33,10 @@ static int lua_lifeStep(lua_State *L)
 	if (argc != 2) return luaL_error(L, "lifeStep(currentImage, nextImage) takes two arguments.");
 
 	// get images
-	// TODO: looks like garbage is passed, because with and height are incorrect
-	Image* current = (Image*) lua_touserdata(L, 1);
+	Image* current = (Image*) *((Image**)lua_touserdata(L, 1));
 	if (!current) luaL_typerror(L, 1, "Image");
-	Image* next = (Image*) lua_touserdata(L, 2);
-	if (!next) luaL_typerror(L, 1, "Image");
+	Image* next = (Image*) *((Image**)lua_touserdata(L, 2));
+	if (!next) luaL_typerror(L, 2, "Image");
 
 	// the colors of the cellular automaton
 	Color green = 0xff00ff00;
@@ -48,18 +47,14 @@ static int lua_lifeStep(lua_State *L)
 	int height = current->imageHeight;
 
 	// check dimensions
-	if (width != next->imageWidth || height != next->imageHeight) {
-		char buf[200];
-		sprintf(buf, "w: %i, h: %i, nw: %i, nh: %i", width, height, next->imageWidth, next->imageHeight);
-//		return luaL_error(L, "current and next image must be of the same size.");
-		return luaL_error(L, buf);
-	}
+	if (width != next->imageWidth || height != next->imageHeight)
+		return luaL_error(L, "current and next image must be of the same size.");
 	
 	// calculate next Game Of Life generation
-	for (int y = 1; y < height - 1; y++) {
-		for (int x = 1; x < width - 1; x++) {
-			int center = current->data[x + y * current->textureWidth];
-			int result = center;
+	for (int y = 1; y < height - 2; y++) {
+		for (int x = 1; x < width - 2; x++) {
+			Color center = current->data[x + y * current->textureWidth];
+			int result = center == green ? 1 : 0;
 
 			// game of life rules
 			int n = current->data[x + (y - 1) * current->textureWidth] == green ? 1 : 0;
@@ -77,7 +72,7 @@ static int lua_lifeStep(lua_State *L)
 				result = 0;
 
 			// set next state
-			next->data[x + y * next->textureWidth] = result ? green : black;
+			next->data[x + y * next->textureWidth] = result == 1 ? green : black;
 		}
 	}
 
