@@ -3,9 +3,9 @@ I have cleaned them up, in part because I added gethostbyname/addr to newlib its
 
 To build configure the source with:
 
-LDFLAGS="-L/usr/local/pspdev/psp/lib -L/usr/local/pspdev/psp/sdk/lib" \
+LDFLAGS="-L$(psp-config --psp-prefix)/lib -L$(psp-config --pspsdk-path)/lib" \
 		 LIBS="-lc -lpspnet_inet -lpspnet_resolver -lpspuser" \
-		 ./configure --host=psp --disable-shared --prefix=/usr/local/pspdev/psp
+		 ./configure --host=psp --disable-shared --prefix=$(psp-config --psp-prefix)
 
 The just make; make install.
 
