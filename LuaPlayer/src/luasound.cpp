@@ -30,6 +30,10 @@ static int Music_loadAndPlay(lua_State *L)
 	getcwd(fullpath, 256);
 	strcat(fullpath, "/");
 	strcat(fullpath, path);
+
+	FILE* soundFile = fopen(fullpath, "rb");
+	if (!soundFile) return luaL_error(L, "can't open sound file %s.", fullpath);
+	fclose(soundFile);
 	
 	lua_gc(L, LUA_GCCOLLECT, 0);
 	loadAndPlayMusicFile(fullpath, loop);
@@ -160,6 +164,10 @@ static int Sound_load(lua_State *L) {
 	strcat(fullpath, "/");
 	strcat(fullpath, path);
 	BOOL doloop = (argc==2)?lua_toboolean(L, 2):false;
+	
+	FILE* soundFile = fopen(fullpath, "rb");
+	if (!soundFile) return luaL_error(L, "can't open sound file %s.", fullpath);
+	fclose(soundFile);
 	
 	// Create the user object
 	lua_gc(L, LUA_GCCOLLECT, 0);

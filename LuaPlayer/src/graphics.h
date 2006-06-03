@@ -53,6 +53,16 @@ extern Image* loadPngImage(const char* filename);
 extern Image* loadJpegImage(const char* filename);
 
 /**
+ * Load a PNG or JPEG image from in-memory data (with auto detection of the format).
+ *
+ * @pre data != NULL && len >0
+ * @param data - the in-memory bytes of the image
+ * @param len - the number of valid bytes at the data pointer
+ * @return pointer to a new allocated Image struct, or NULL on failure
+ */
+extern Image* loadImageFromMemory(const unsigned char* data, int len);
+
+/**
  * Blit a rectangle part of an image to another image.
  *
  * @pre source != NULL && destination != NULL &&

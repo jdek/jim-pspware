@@ -75,43 +75,26 @@ Image* loadImage(const char* filename)
 	}
 }
 
-Image* loadPngImage(const char* filename)
+Image* loadPngImageImpl(png_structp png_ptr)
 {
-	png_structp png_ptr;
-	png_infop info_ptr;
 	unsigned int sig_read = 0;
 	png_uint_32 width, height, x, y;
 	int bit_depth, color_type, interlace_type;
 	u32* line;
-	FILE *fp;
-	Image* image = (Image*) malloc(sizeof(Image));
-	if (!image) return NULL;
-
-	if ((fp = fopen(filename, "rb")) == NULL) return NULL;
-	png_ptr = png_create_read_struct(PNG_LIBPNG_VER_STRING, NULL, NULL, NULL);
-	if (png_ptr == NULL) {
-		free(image);
-		fclose(fp);
-		return NULL;;
-	}
-	png_set_error_fn(png_ptr, (png_voidp) NULL, (png_error_ptr) NULL, user_warning_fn);
+	png_infop info_ptr;
 	info_ptr = png_create_info_struct(png_ptr);
 	if (info_ptr == NULL) {
-		free(image);
-		fclose(fp);
 		png_destroy_read_struct(&png_ptr, png_infopp_NULL, png_infopp_NULL);
 		return NULL;
 	}
-	png_init_io(png_ptr, fp);
 	png_set_sig_bytes(png_ptr, sig_read);
 	png_read_info(png_ptr, info_ptr);
 	png_get_IHDR(png_ptr, info_ptr, &width, &height, &bit_depth, &color_type, &interlace_type, int_p_NULL, int_p_NULL);
 	if (width > 512 || height > 512) {
-		free(image);
-		fclose(fp);
 		png_destroy_read_struct(&png_ptr, png_infopp_NULL, png_infopp_NULL);
 		return NULL;
 	}
+	Image* image = (Image*) malloc(sizeof(Image));
 	image->imageWidth = width;
 	image->imageHeight = height;
 	image->textureWidth = getNextPower2(width);
@@ -125,7 +108,6 @@ Image* loadPngImage(const char* filename)
 	image->data = (Color*) memalign(16, image->textureWidth * image->textureHeight * sizeof(Color));
 	if (!image->data) {
 		free(image);
-		fclose(fp);
 		png_destroy_read_struct(&png_ptr, png_infopp_NULL, png_infopp_NULL);
 		return NULL;
 	}
@@ -133,7 +115,6 @@ Image* loadPngImage(const char* filename)
 	if (!line) {
 		free(image->data);
 		free(image);
-		fclose(fp);
 		png_destroy_read_struct(&png_ptr, png_infopp_NULL, png_infopp_NULL);
 		return NULL;
 	}
@@ -147,22 +128,28 @@ Image* loadPngImage(const char* filename)
 	free(line);
 	png_read_end(png_ptr, info_ptr);
 	png_destroy_read_struct(&png_ptr, &info_ptr, png_infopp_NULL);
+	return image;
+}
+
+Image* loadPngImage(const char* filename)
+{
+	png_structp png_ptr;
+	FILE *fp;
+
+	if ((fp = fopen(filename, "rb")) == NULL) return NULL;
+	png_ptr = png_create_read_struct(PNG_LIBPNG_VER_STRING, NULL, NULL, NULL);
+	if (png_ptr == NULL) {
+		fclose(fp);
+		return NULL;;
+	}
+	png_init_io(png_ptr, fp);
+	Image* image = loadPngImageImpl(png_ptr);
 	fclose(fp);
 	return image;
 }
 
-Image* loadJpegImage(const char* filename)
+Image* loadJpegImageImpl(struct jpeg_decompress_struct dinfo)
 {
-	struct jpeg_decompress_struct dinfo;
-	struct jpeg_error_mgr jerr;
-	dinfo.err = jpeg_std_error(&jerr);
-	jpeg_create_decompress(&dinfo);
-	FILE* inFile = fopen(filename, "rb");
-	if (!inFile) {
-		jpeg_destroy_decompress(&dinfo);
-		return NULL;
-	}
-	jpeg_stdio_src(&dinfo, inFile);
 	jpeg_read_header(&dinfo, TRUE);
 	int width = dinfo.image_width;
 	int height = dinfo.image_height;
@@ -170,7 +157,10 @@ Image* loadJpegImage(const char* filename)
 	Image* image = (Image*) malloc(sizeof(Image));
 	if (!image) {
 		jpeg_destroy_decompress(&dinfo);
-		fclose(inFile);
+		return NULL;
+	}
+	if (width > 512 || height > 512) {
+		jpeg_destroy_decompress(&dinfo);
 		return NULL;
 	}
 	image->imageWidth = width;
@@ -181,7 +171,6 @@ Image* loadJpegImage(const char* filename)
 	u8* line = (u8*) malloc(width * 3);
 	if (!line) {
 		jpeg_destroy_decompress(&dinfo);
-		fclose(inFile);
 		return NULL;
 	}
 	if (dinfo.jpeg_color_space == JCS_GRAYSCALE) {
@@ -209,8 +198,183 @@ Image* loadJpegImage(const char* filename)
 	jpeg_finish_decompress(&dinfo);
 	jpeg_destroy_decompress(&dinfo);
 	free(line);
+	return image;
+}
+
+Image* loadJpegImage(const char* filename)
+{
+	struct jpeg_decompress_struct dinfo;
+	struct jpeg_error_mgr jerr;
+	dinfo.err = jpeg_std_error(&jerr);
+	jpeg_create_decompress(&dinfo);
+	FILE* inFile = fopen(filename, "rb");
+	if (!inFile) {
+		jpeg_destroy_decompress(&dinfo);
+		return NULL;
+	}
+	jpeg_stdio_src(&dinfo, inFile);
+	Image* image = loadJpegImageImpl(dinfo);
 	fclose(inFile);
 	return image;
+}
+
+
+// code for jpeg memory source
+typedef struct {
+	struct jpeg_source_mgr pub;	/* public fields */
+
+	const unsigned char* membuff;	/* The input buffer */
+	int location;			/* Current location in buffer */ 
+	int membufflength;            /* The length of the input buffer */
+	JOCTET * buffer;		/* start of buffer */
+	boolean start_of_buff;	/* have we gotten any data yet? */
+} mem_source_mgr;
+
+typedef mem_source_mgr* mem_src_ptr;
+
+#define INPUT_BUF_SIZE  4096	/* choose an efficiently fread'able size */
+
+
+METHODDEF(void) mem_init_source (j_decompress_ptr cinfo) {
+	mem_src_ptr src;
+
+	src = (mem_src_ptr) cinfo->src;
+
+	/* We reset the empty-input-file flag for each image,
+	* but we don't clear the input buffer.
+	* This is correct behavior for reading a series of images from one source.
+	*/
+	src->location = 0;
+	src->start_of_buff = TRUE;
+}
+
+
+METHODDEF(boolean) mem_fill_input_buffer (j_decompress_ptr cinfo) {
+	mem_src_ptr src;
+	size_t bytes_to_read;
+	size_t nbytes;
+
+	src = (mem_src_ptr) cinfo->src;
+
+	if((src->location)+INPUT_BUF_SIZE >= src->membufflength)
+		bytes_to_read = src->membufflength - src->location;
+	else
+		bytes_to_read = INPUT_BUF_SIZE;
+
+	memcpy(src->buffer, (src->membuff)+(src->location), bytes_to_read);
+	nbytes = bytes_to_read;
+	src->location += (int) bytes_to_read;
+
+	if (nbytes <= 0) {
+		if (src->start_of_buff)	/* Treat empty input file as fatal error */
+			ERREXIT(cinfo, JERR_INPUT_EMPTY);
+		WARNMS(cinfo, JWRN_JPEG_EOF);
+		/* Insert a fake EOI marker */
+		src->buffer[0] = (JOCTET) 0xFF;
+		src->buffer[1] = (JOCTET) JPEG_EOI;
+		nbytes = 2;
+	}
+
+	src->pub.next_input_byte = src->buffer;
+	src->pub.bytes_in_buffer = nbytes;
+	src->start_of_buff = FALSE;
+
+	return TRUE;
+}
+
+
+METHODDEF(void) mem_skip_input_data (j_decompress_ptr cinfo, long num_bytes) {
+	mem_src_ptr src;
+
+	src = (mem_src_ptr) cinfo->src;
+
+	if (num_bytes > 0) {
+		while (num_bytes > (long) src->pub.bytes_in_buffer) {
+			num_bytes -= (long) src->pub.bytes_in_buffer;
+			mem_fill_input_buffer(cinfo);
+		}
+		src->pub.next_input_byte += (size_t) num_bytes;
+		src->pub.bytes_in_buffer -= (size_t) num_bytes;
+	}
+}
+
+
+METHODDEF(void) mem_term_source (j_decompress_ptr cinfo) {
+}
+
+
+GLOBAL(void) jpeg_mem_src (j_decompress_ptr cinfo, const unsigned char *mbuff, int mbufflen) {
+	mem_src_ptr src;
+
+	if (cinfo->src == NULL) {	/* first time for this JPEG object? */
+		cinfo->src = (struct jpeg_source_mgr *)
+			(*cinfo->mem->alloc_small) ((j_common_ptr) cinfo, JPOOL_PERMANENT,
+			sizeof(mem_source_mgr));
+		src = (mem_src_ptr) cinfo->src;
+		src->buffer = (JOCTET *)
+			(*cinfo->mem->alloc_small) ((j_common_ptr) cinfo, JPOOL_PERMANENT,
+			INPUT_BUF_SIZE * sizeof(JOCTET));
+	}
+
+	src = (mem_src_ptr) cinfo->src;
+	src->pub.init_source = mem_init_source;
+	src->pub.fill_input_buffer = mem_fill_input_buffer;
+	src->pub.skip_input_data = mem_skip_input_data;
+	src->pub.resync_to_restart = jpeg_resync_to_restart;
+	src->pub.term_source = mem_term_source;
+	src->membuff = mbuff;
+	src->membufflength = mbufflen;
+	src->pub.bytes_in_buffer = 0;    /* forces fill_input_buffer on first read */
+	src->pub.next_input_byte = NULL; /* until buffer loaded */
+}
+
+typedef struct {
+	const unsigned char *data;
+	png_size_t size;
+	png_size_t seek;
+} PngData;
+	
+static void ReadPngData(png_structp png_ptr, png_bytep data, png_size_t length)
+{
+	PngData *pngData = (PngData*) png_get_io_ptr(png_ptr);
+	if (pngData) {
+		for (png_size_t i = 0; i < length; i++) {
+			if (pngData->seek >= pngData->size) break;
+			data[i] = pngData->data[pngData->seek++];
+		}
+	}
+}
+
+Image* loadImageFromMemory(const unsigned char* data, int len)
+{
+	if (len < 8) return NULL;
+	
+	// test for PNG
+	if (data[0] == 137 && data[1] == 80 && data[2] == 78 && data[3] == 71
+		&& data[4] == 13 && data[5] == 10 && data[6] == 26 && data[7] ==10)
+	{
+		png_structp png_ptr;
+		png_ptr = png_create_read_struct(PNG_LIBPNG_VER_STRING, NULL, NULL, NULL);
+		if (png_ptr == NULL) {
+			return NULL;;
+		}
+		PngData pngData;
+		pngData.data = data;
+		pngData.size = len;
+		pngData.seek = 0;
+		png_set_read_fn(png_ptr, (void *) &pngData, ReadPngData);
+		Image* image = loadPngImageImpl(png_ptr);
+		return image;
+	} else {
+		// assume JPG
+		struct jpeg_decompress_struct dinfo;
+		struct jpeg_error_mgr jerr;
+		dinfo.err = jpeg_std_error(&jerr);
+		jpeg_create_decompress(&dinfo);
+		jpeg_mem_src(&dinfo, data, len);
+		Image* image = loadJpegImageImpl(dinfo);
+		return image;
+	}
 }
 
 void blitImageToImage(int sx, int sy, int width, int height, Image* source, int dx, int dy, Image* destination)
@@ -240,16 +404,40 @@ void blitImageToScreen(int sx, int sy, int width, int height, Image* source, int
 
 void blitAlphaImageToImage(int sx, int sy, int width, int height, Image* source, int dx, int dy, Image* destination)
 {
-	// TODO Blend!
 	Color* destinationData = &destination->data[destination->textureWidth * dy + dx];
 	int destinationSkipX = destination->textureWidth - width;
 	Color* sourceData = &source->data[source->textureWidth * sy + sx];
 	int sourceSkipX = source->textureWidth - width;
 	int x, y;
+	s32 rcolorc, gcolorc, bcolorc, acolorc,rcolord, gcolord, bcolord, acolord;
 	for (y = 0; y < height; y++, destinationData += destinationSkipX, sourceData += sourceSkipX) {
 		for (x = 0; x < width; x++, destinationData++, sourceData++) {
 			Color color = *sourceData;
-			if (!IS_ALPHA(color)) *destinationData = color;
+			if (!IS_ALPHA(color)) {
+				*destinationData = color;
+			} else {
+				rcolorc = color & 0xff;
+				gcolorc = (color >> 8) & 0xff;
+				bcolorc = (color >> 16) & 0xff;
+				acolorc = (color >> 24) & 0xff;
+				rcolord = *destinationData & 0xff;
+				gcolord = (*destinationData >> 8) & 0xff;
+				bcolord = (*destinationData >> 16) & 0xff;
+				acolord = (*destinationData >> 24) & 0xff;
+				
+				rcolorc = ((acolorc*rcolorc)>>8) + (((255-acolorc) * rcolord)>>8);
+				if (rcolorc > 255) rcolorc = 255;
+				gcolorc = ((acolorc*gcolorc)>>8) + (((255-acolorc) * gcolord)>>8);
+				if (gcolorc > 255) gcolorc = 255;
+				bcolorc = ((acolorc*bcolorc)>>8) + (((255-acolorc) * bcolord)>>8);
+				if (bcolorc > 255) bcolorc = 255;
+				if (acolord + acolorc < 255) {
+					acolorc = acolord+acolorc;
+				} else {
+					acolorc = 255;
+				}
+				*destinationData = rcolorc | (gcolorc << 8) | (bcolorc << 16) | (acolorc << 24);
+			}
 		}
 	}
 }
@@ -429,6 +617,7 @@ static void fontPrintTextImpl(FT_Bitmap* bitmap, int xofs, int yofs, Color color
 	u8 rf = color & 0xff; 
 	u8 gf = (color >> 8) & 0xff;
 	u8 bf = (color >> 16) & 0xff;
+	u8 af = (color >> 24) & 0xff;
 	
 	u8* line = bitmap->buffer;
 	Color* fbLine = framebuffer + xofs + yofs * lineSize;
@@ -446,6 +635,7 @@ static void fontPrintTextImpl(FT_Bitmap* bitmap, int xofs, int yofs, Color color
 				r = rf * val / 255 + (255 - val) * r / 255;
 				g = gf * val / 255 + (255 - val) * g / 255;
 				b = bf * val / 255 + (255 - val) * b / 255;
+				a = af * val / 255 + (255 - val) * a / 255;
 				*fbColumn = r | (g << 8) | (b << 16) | (a << 24);
 			}
 			column++;

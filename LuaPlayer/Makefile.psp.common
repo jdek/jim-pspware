@@ -11,7 +11,7 @@ ASFLAGS = $(CFLAGS)
 LIBDIR =
 LDFLAGS =
 LIBS=  -llua -llualib -lpng -ljpeg -lz -lpspgum -lm -lmikmod -lmmio $(shell freetype-config --libs) \
-	-lpspaudiolib -lpspaudio -lpspusb -lpspusbstor -lpsppower \
+	-lpsprtc -lpspaudiolib -lpspaudio -lpspusb -lpspusbstor -lpsppower \
 	-lpspwlan -lpspgu -lpspdebug -lpsphprm_driver
 # TODO: without -lpspsdk it says: libpspsdk.a(inethelper.o): In function `pspSdkInetInit': inethelper.c:67: undefined reference to `sceNetInit'
 
