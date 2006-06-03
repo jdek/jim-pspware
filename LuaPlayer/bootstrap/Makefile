@@ -1,11 +1,11 @@
 TARGET = luaboot
 OBJS = bootstrap.o sio.o 
 
-PSP_EBOOT_TITLE = LuaPlayer 0.19
+PSP_EBOOT_TITLE = LuaPlayer 0.20
 PSP_EBOOT_ICON = title-icon.png
 
 INCDIR = 
-CFLAGS = -g -O0 -G0 -Wall
+CFLAGS = -O0 -G0 -Wall
 CXXFLAGS = $(CFLAGS) -fno-exceptions -fno-rtti
 ASFLAGS = $(CFLAGS)
 LIBS = -lpspdebug -lpsphprm_driver 

@@ -2,7 +2,7 @@ function table.print(tbl, prefix)
 	if prefix == nil then
 		prefix = ""
 	end
-	for idx, val in tbl do
+	for idx, val in ipairs(tbl) do
 		if type(val) == "table" then
 			print(prefix..idx..": >>")
 			table.print(val, prefix.."   >>")

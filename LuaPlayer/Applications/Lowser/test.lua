@@ -41,7 +41,7 @@ function LowserView:new() -- This is just a copypaste of Shines code...
    setmetatable(c, self) 
    self.__index = self 
    
-   --for i, v in self do
+   --for i, v in ipairs(self) do
    
    
    return c

@@ -1,6 +1,6 @@
 function dumpDirectory(filelist, directory)
 	flist = System.listDirectory(directory)
-	for idx, file in flist do
+	for idx, file in ipairs(flist) do
 		if file.name ~= "." and file.name ~= ".." and file.name ~= "filelist.txt" then
 			fullFile = directory .. "/" .. file.name
 			if file.directory then
@@ -18,16 +18,16 @@ function dumpDirectory(filelist, directory)
 end
 
 flist = System.listDirectory()
-dofiles = {}
+dofiles = { 0, 0, 0 }
 
-for idx, file in flist do
+for idx, file in ipairs(flist) do
 	if file.name ~= "." and file.name ~= ".." then
 		if string.lower(file.name) == "script.lua" then -- luaplayer/script.lua
 			dofiles[1] = file.name
 		end
 		if file.directory then
 			fflist = System.listDirectory(file.name)
-			for fidx, ffile in fflist do
+			for fidx, ffile in ipairs(fflist) do
 				if string.lower(ffile.name) == "script.lua" then -- app bundle
 					dofiles[2] = file.name.."/"..ffile.name
 					System.currentDirectory(file.name)
@@ -45,10 +45,12 @@ for idx, file in flist do
 	end
 end
 done = false
-for idx, runfile in dofiles do
-	dofile(runfile)
-	done = true
-	break
+for idx, runfile in ipairs(dofiles) do
+	if runfile ~= 0 then
+		dofile(runfile)
+		done = true
+		break
+	end
 end
 
 if not done then

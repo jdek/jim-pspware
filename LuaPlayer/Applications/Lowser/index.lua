@@ -43,7 +43,7 @@ function LowserView:renderIconsForCurrentDirectory()
 
 	done = false
 	while not done do -- filter out unwanted files
-		for idx,file in self.contents do
+		for idx,file in ipairs(self.contents) do
 			if string.sub(file.name,1,1) == "." and not string.find(file.name, "icon.png") then
 				table.remove(self.contents, idx)
 				break
@@ -54,7 +54,7 @@ function LowserView:renderIconsForCurrentDirectory()
 		end
 	end
 
-	for idx, file in self.contents do
+	for idx, file in ipairs(self.contents) do
 		-- defaults
 		file.icon = nil
 		file.render = nil
@@ -67,13 +67,13 @@ function LowserView:renderIconsForCurrentDirectory()
 			System.currentDirectory(file.name)
 			subdirconts = System.listDirectory()
 			
-			for subidx, subfile in subdirconts do
+			for subidx, subfile in ipairs(subdirconts) do
 				if string.lower(subfile.name) == "index.lua" then
 					file.icon = self.res.genericAppIcon
 					file.ftype = "appdir"
 				end
 			end
-			for subidx, subfile in subdirconts do
+			for subidx, subfile in ipairs(subdirconts) do
 				if string.lower(subfile.name) == "icon.png" then
 					file.icon = Image.load(subfile.name)
 				end

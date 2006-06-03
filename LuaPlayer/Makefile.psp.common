@@ -5,7 +5,7 @@ TARGET = luaplayer
 OBJS = src/graphics.o src/sound.o src/luaplayer.o src/utility.o src/main.o src/framebuffer.o \
 	src/luacontrols.o src/luagraphics.o src/luasound.o src/luatimer.o src/luasystem.o src/luawlan.o src/lua3d.o loadlib.o
 INCDIR =
-CFLAGS = -g -G0 -Wall -O0 -fno-strict-aliasing -mno-explicit-relocs $(EXTRA_CFLAGS) $(shell freetype-config --cflags)
+CFLAGS = -G0 -Wall -O0 -fno-strict-aliasing -mno-explicit-relocs $(EXTRA_CFLAGS) $(shell freetype-config --cflags)
 CXXFLAGS = $(CFLAGS) -fno-exceptions -fno-rtti
 ASFLAGS = $(CFLAGS)
 LIBDIR =
