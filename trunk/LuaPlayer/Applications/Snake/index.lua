@@ -284,7 +284,7 @@ function showMenu()
 	selectedOptionValues = nil
 	selectedOptionIndex = nil
 	selectedOptionName = nil
-	for optionKey, possibleOption in ipairs(possibleOptions) do
+	for optionKey, possibleOption in pairs(possibleOptions) do
 		color = deactiveColor
 		if selectedOptionNumber == y then
 			color = activeColor

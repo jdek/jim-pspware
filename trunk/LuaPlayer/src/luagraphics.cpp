@@ -11,6 +11,9 @@
 #include "vera.cpp"
 #include "veraMono.cpp"
 
+static const void* theScreen;
+static Image theScreenImage;
+
 UserdataStubs(Color, Color)
 
 FT_Library  ft_library;
@@ -198,10 +201,12 @@ static int Font_getTextSize(lua_State *L) {
 		x += slot->advance.x >> 6;
 		y += slot->advance.y >> 6;
 	}
-	lua_pushnumber(L, x);
-	lua_pushnumber(L, maxHeight);
+
+	lua_newtable(L);
+	lua_pushstring(L, "width"); lua_pushnumber(L, x); lua_settable(L, -3);
+	lua_pushstring(L, "height"); lua_pushnumber(L, maxHeight); lua_settable(L, -3);
 	
-	return 0;
+	return 1;
 }
 
 static int Font_free(lua_State *L) {
@@ -259,6 +264,17 @@ static int Image_load (lua_State *L) {
 	*luaImage = image;
 	return 1;
 }
+static int Image_loadFromMemory (lua_State *L) {
+	if (lua_gettop(L) != 1) return luaL_error(L, "Argument error: Image.load(data) takes one argument.");
+	lua_gc(L, LUA_GCCOLLECT, 0);
+	size_t size;
+	const unsigned char *string = (const unsigned char *) luaL_checklstring(L, 1, &size);
+	Image* image = loadImageFromMemory(string, size);
+	if(!image) return luaL_error(L, "Image.load: Error loading image.");
+	Image** luaImage = pushImage(L);
+	*luaImage = image;
+	return 1;
+}
 
 
 
@@ -286,7 +302,13 @@ static int Image_blit (lua_State *L) {
 		
 	int dx = luaL_checkint(L, 1);
 	int dy = luaL_checkint(L, 2);
-	Image* source = *toImage(L, 3);
+	Image* source;
+	if (lua_topointer(L, 3) == theScreen) {
+		theScreenImage.data = getVramDrawBuffer();
+		source = &theScreenImage;
+	} else {
+		source = *toImage(L, 3);
+	}
 	
 	bool rect = (argc ==8 || argc == 9) ;
 	int sx = rect? luaL_checkint(L, 4) : 0;
@@ -523,6 +545,7 @@ static int Image_tostring (lua_State *L) {
 static const luaL_reg Image_methods[] = {
 	{"createEmpty", Image_createEmpty},
 	{"load", Image_load},
+	{"loadFromMemory", Image_loadFromMemory},
 	{"blit", Image_blit},
 	{"clear", Image_clear},
 	{"fillRect", Image_fillRect},
@@ -636,4 +659,12 @@ void luaGraphics_init(lua_State *L) {
 	
 	luaL_openlib(L, "screen", Screen_functions, 0);
 	luaL_openlib(L, "screen", Image_methods, 0); // Basically just an ugly hack. What I'd really want to say is metatable(screen).__index = Image, but my lua powress is failing me there.
+
+	// this looks a bit hacked; I hope the "theScreen" pointer is persistent
+	theScreen = lua_topointer(L, -1);
+
+	theScreenImage.textureWidth = 512;
+	theScreenImage.textureHeight = 512;
+	theScreenImage.imageWidth = 480;
+	theScreenImage.imageHeight = 272;
 }

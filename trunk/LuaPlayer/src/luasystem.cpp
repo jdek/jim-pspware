@@ -116,9 +116,22 @@ static int lua_removeDir(lua_State *L)
 static int lua_removeFile(lua_State *L)
 {
 	const char *path = luaL_checkstring(L, 1);
-	if(!path) return luaL_error(L, "Argument error: System.removeFile(filename) takes a filena as string as argument.");
+	if(!path) return luaL_error(L, "Argument error: System.removeFile(filename) takes a filename as string as argument.");
 
 	remove(path);
+	
+	return 0;
+}
+
+static int lua_rename(lua_State *L)
+{
+	const char *oldName = luaL_checkstring(L, 1);
+	const char *newName = luaL_checkstring(L, 2);
+	if(!oldName || !newName)
+		return luaL_error(L, "Argument error: System.rename(source, destination) takes two filenames as strings as arguments.");
+
+	// TODO: looks like the stdio "rename" doesn't work
+	sceIoRename(oldName, newName);
 	
 	return 0;
 }
@@ -421,6 +434,7 @@ static const luaL_reg System_functions[] = {
   {"createDirectory",               lua_createDir},
   {"removeDirectory",               lua_removeDir},
   {"removeFile",                    lua_removeFile},
+  {"rename",                        lua_rename},
   {"usbDiskModeActivate",           lua_usbActivate},
   {"usbDiskModeDeactivate",    	    lua_usbDeactivate},
   {"powerIsPowerOnline",            lua_powerIsPowerOnline},

@@ -18,6 +18,7 @@
 #include <pspctrl.h>
 #include <pspsdk.h>
 #include <psputility.h>
+#include <psprtc.h>
 #include <time.h>
 #include <stdlib.h>
 #include <string.h>
@@ -37,6 +38,9 @@ PSP_HEAP_SIZE_KB(10024); /* 10MB */
 
 // startup path
 char path[256];
+
+// timezone
+static char tz[20];
 
 /* Exit callback */
 int exit_callback(int arg1, int arg2, void *common)
@@ -120,11 +124,38 @@ int loadModule( char * moduleLocation )
 	return 0;
 }
 
+void initTimezone()
+{
+	// calculate the difference between UTC and local time
+	u64 tick, localTick;
+	sceRtcGetCurrentTick(&tick);
+	sceRtcConvertUtcToLocalTime(&tick, &localTick);
+	int minutesDelta;
+	if (tick < localTick) {
+		u64 delta = localTick - tick;
+		delta /= sceRtcGetTickResolution();
+		minutesDelta = delta;
+		minutesDelta = -minutesDelta;
+	} else {
+		u64 delta = tick - localTick;
+		delta /= sceRtcGetTickResolution();
+		minutesDelta = delta;
+	}
+	minutesDelta = minutesDelta / 60;
+
+	// calculate the timezone offset
+	int tzOffsetAbs = minutesDelta < 0 ? -minutesDelta : minutesDelta;
+	int hours = tzOffsetAbs / 60;
+	int minutes = tzOffsetAbs - hours * 60;
+	sprintf(tz, "GMT%s%02i:%02i", minutesDelta < 0 ? "-" : "+", hours, minutes);
+	setenv("TZ", tz, 1);
+	tzset();
+}
 
 int user_main( SceSize argc, void *argp )
 {
 	SetupCallbacks();
-	tzset();
+	initTimezone();
 
 	// init modules
 	initGraphics();

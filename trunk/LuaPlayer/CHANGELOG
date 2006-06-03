@@ -1,10 +1,42 @@
 v0.20
 ==========
  - updated for gcc 4.1 and Lua 5.1. Some things you need to change for 5.1:
-   - change table iteration code:
-     "for i, value in someTable do" to
-     "for i, value in ipairs(someTable) do"
-   - it's pure Lua 5.1: no binary operators and double as number type
+    - change table iteration code:
+      "for i, value in someTable do" to
+      "for i, value in ipairs(someTable) do"
+      (but use "pairs" for tables like "t={foo=bar, foobar=99}"
+       and "ipairs" for tables like "t={foo, bar}")
+    - it's pure Lua 5.1: no binary operators and double as number type
+      (e.g. now you can use one number for storing IP addresses)
+ - Sound.load doesn't crash any more on invalid filenames
+ - fixed problems with daylight saving time
+ - Font:getTextSize fixed. Test case:
+    proportional = Font.createProportional()
+    proportional:setPixelSizes(0,8) 
+    test = proportional:getTextSize('some text')
+    assert(test.width == 39)
+    assert(test.height == 6)
+ - blit operation from screen to image works now, e.g.:
+     screen:print(10, 10, "hello", Color.new(255,255,255))
+     image = Image.createEmpty(480, 272)
+     image:blit(0, 0, screen, 480, 272, 480, 272, true)
+   and now you have an "image" with the text "hello"
+ - TTF font plotting to images now sets the alpha value to opaque, so
+   you can write e.g. something like this for buffering texts in images:
+     image = Image.createEmpty(400, 200)
+     proportional = Font.createProportional()
+     proportional:setPixelSizes(0, 16)
+     image:fontPrint(proportional, 0, 20, 'Hello', Color.new(0, 255, 0))
+     screen:blit(0, 0, image)
+     screen:blit(3, 3, image)
+ - new function Image.loadFromMemory for loading images from memory:
+     jpegFile = io.open("test.jpg", "rb")
+     data = jpegFile:read("*a")
+     jpegFile:close()
+     image = Image.loadFromMemory(data)
+   PNG and JPEG is supported and autodetected
+ - image-to-image blitting now uses alpha full blending [Callum Bethune]
+ - System.rename(oldName, newName) for renaming files and directories
 
 v0.19
 ==========
