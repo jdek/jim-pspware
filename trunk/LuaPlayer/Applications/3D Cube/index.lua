@@ -1,5 +1,3 @@
-System.usbDiskModeActivate()
-
 red = Color.new(255, 0, 0)
 green = Color.new(0, 255, 0)
 blue = Color.new(0, 0, 255)
@@ -79,7 +77,7 @@ while true do
 
 	-- clear screen
 	Gu.clearDepth(0);
-	Gu.clear(Gu.COLOR_BUFFER_BIT|Gu.DEPTH_BUFFER_BIT)
+	Gu.clear(Gu.COLOR_BUFFER_BIT+Gu.DEPTH_BUFFER_BIT)
 
 	-- setup projection and view matrices
 
@@ -98,7 +96,7 @@ while true do
 	-- draw triangle without texture
 
 	Gu.disable(Gu.TEXTURE_2D)
-	Gum.drawArray(Gu.TRIANGLES, Gu.COLOR_8888|Gu.VERTEX_32BITF|Gu.TRANSFORM_3D, plane)
+	Gum.drawArray(Gu.TRIANGLES, Gu.COLOR_8888+Gu.VERTEX_32BITF+Gu.TRANSFORM_3D, plane)
 
 	-- setup texture
 
@@ -122,7 +120,7 @@ while true do
 
 	-- draw cube
 
-	Gum.drawArray(Gu.TRIANGLES, Gu.TEXTURE_32BITF|Gu.COLOR_8888|Gu.VERTEX_32BITF|Gu.TRANSFORM_3D, cube)
+	Gum.drawArray(Gu.TRIANGLES, Gu.TEXTURE_32BITF+Gu.COLOR_8888+Gu.VERTEX_32BITF+Gu.TRANSFORM_3D, cube)
 
 	Gu.end3d()
 

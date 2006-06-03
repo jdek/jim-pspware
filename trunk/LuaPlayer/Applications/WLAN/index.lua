@@ -32,7 +32,7 @@ Wlan.init()
 configs = Wlan.getConnectionConfigs()
 graphicsPrintln("available connections:")
 graphicsPrintln("")
-for key, value in configs do
+for key, value in ipairs(configs) do
 	graphicsPrintln(key .. ": " .. value)
 end
 graphicsPrintln("")

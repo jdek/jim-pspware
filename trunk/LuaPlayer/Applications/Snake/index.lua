@@ -284,14 +284,14 @@ function showMenu()
 	selectedOptionValues = nil
 	selectedOptionIndex = nil
 	selectedOptionName = nil
-	for optionKey, possibleOption in possibleOptions do
+	for optionKey, possibleOption in ipairs(possibleOptions) do
 		color = deactiveColor
 		if selectedOptionNumber == y then
 			color = activeColor
 			selectedOptionValues = possibleOption.values
 		end
 		screen:print(x0 + 16, y * 10 + y0 + 60, possibleOption.displayName, color)
-		for i, value in possibleOption.values do
+		for i, value in ipairs(possibleOption.values) do
 			color = deactiveColor
 			if options[optionKey] == value then
 				color = activeColor
@@ -344,7 +344,7 @@ optionsFile = "options.txt"
 function saveOptions()
 	file = io.open(optionsFile, "w")
 	if file then
-		for key, value in options do
+		for key, value in ipairs(options) do
 			file:write(key .. "=" .. value .. "\n")
 		end
 		file:close()

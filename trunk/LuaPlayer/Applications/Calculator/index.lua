@@ -117,8 +117,8 @@ while true do
 	h = 30
 	drawRect(w, 0, w * 4, h-2)
 	screen:print(w+4, 4, text, color)
-	for yindex,line in keys do
-		for xindex,key in line do
+	for yindex,line in ipairs(keys) do
+		for xindex,key in ipairs(line) do
 			x0 = xindex * w
 			y0 = yindex * h
 			drawRect(x0, y0, w, h)

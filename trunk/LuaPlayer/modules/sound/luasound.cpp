@@ -33,7 +33,7 @@ static int Music_loadAndPlay(lua_State *L)
 	strcat(fullpath, "/");
 	strcat(fullpath, path);
 	
-	luaC_collectgarbage(L);
+	lua_gc(L, LUA_GCCOLLECT, 0);
 	loadAndPlayMusicFile(fullpath, loop);
 	
 	return 0;
@@ -164,7 +164,7 @@ static int Sound_load(lua_State *L) {
 	BOOL doloop = (argc==2)?lua_toboolean(L, 2):false;
 	
 	// Create the user object
-	luaC_collectgarbage(L);
+	lua_gc(L, LUA_GCCOLLECT, 0);
 	Sound* newsound = loadSound(fullpath);;
 	if (!newsound) return luaL_error(L, "error loading sound");
 	Sound** luaNewsound = pushSound(L);

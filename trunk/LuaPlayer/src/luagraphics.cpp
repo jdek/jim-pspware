@@ -88,7 +88,7 @@ static int adjustBlitRectangle(
 UserdataStubs(Font, Font*) //==========================
 static int Font_load(lua_State *L) {
 	if (lua_gettop(L) != 1) return luaL_error(L, "Argument error: Font.load(filename) takes one argument.");
-	luaC_collectgarbage(L);
+	lua_gc(L, LUA_GCCOLLECT, 0);
 	Font* font = (Font*) malloc(sizeof(Font));
 	const char* filename = luaL_checkstring(L, 1);
 	
@@ -120,7 +120,7 @@ static int Font_load(lua_State *L) {
 
 static int Font_createMonoSpaced(lua_State *L) {
 	if (lua_gettop(L) != 0) return luaL_error(L, "Argument error: Font.createMonoSpaced() takes no arguments.");
-	luaC_collectgarbage(L);
+	lua_gc(L, LUA_GCCOLLECT, 0);
 	Font* font = (Font*) malloc(sizeof(Font));
 	const char* filename = "Vera mono spaced";
 
@@ -138,7 +138,7 @@ static int Font_createMonoSpaced(lua_State *L) {
 
 static int Font_createProportional(lua_State *L) {
 	if (lua_gettop(L) != 0) return luaL_error(L, "Argument error: Font.createProportional() takes no arguments.");
-	luaC_collectgarbage(L);
+	lua_gc(L, LUA_GCCOLLECT, 0);
 	Font* font = (Font*) malloc(sizeof(Font));
 	const char* filename = "Vera proportional";
 
@@ -243,7 +243,7 @@ static int Image_createEmpty(lua_State *L)
 	int w = luaL_checkint(L, 1);
 	int h = luaL_checkint(L, 2);
 	if (w <= 0 || h <= 0 || w > 512 || h > 512) return luaL_error(L, "invalid size");
-	luaC_collectgarbage(L);
+	lua_gc(L, LUA_GCCOLLECT, 0);
 	Image* image = createImage(w, h);
 	if (!image) return luaL_error(L, "can't create image");
 	Image** luaImage = pushImage(L);
@@ -252,7 +252,7 @@ static int Image_createEmpty(lua_State *L)
 }
 static int Image_load (lua_State *L) {
 	if (lua_gettop(L) != 1) return luaL_error(L, "Argument error: Image.load(filename) takes one argument.");
-	luaC_collectgarbage(L);
+	lua_gc(L, LUA_GCCOLLECT, 0);
 	Image* image = loadImage(luaL_checkstring(L, 1));
 	if(!image) return luaL_error(L, "Image.load: Error loading image.");
 	Image** luaImage = pushImage(L);

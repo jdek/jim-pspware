@@ -4,7 +4,7 @@ function table.print(tbl, prefix)
 	if not prefix then
 		prefix = ""
 	end
-	for idx, val in tbl do
+	for idx, val in ipairs(tbl) do
 		if type(val) == "table" then
 			table.print(val, prefix.."  ")
 		elseif type(val) == "boolean" then

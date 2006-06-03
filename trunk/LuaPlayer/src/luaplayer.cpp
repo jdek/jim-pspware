@@ -17,11 +17,7 @@ const char * runScript(const char* script, bool isStringBuffer )
 	L = lua_open();
 	
 	// Standard libraries
-	luaopen_io(L);
-	luaopen_base(L);
-	luaopen_table(L);
-	luaopen_string(L);
-	luaopen_math(L);
+	luaL_openlibs(L);
 
 	// luasystem.cpp defines our loadlib.
 	// luaopen_loadlib(L);
