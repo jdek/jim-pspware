@@ -1,5 +1,9 @@
 v0.20
 ==========
+ - enhanced Windows support by InsertWittyName
+
+v0.20
+==========
  - updated for gcc 4.1 and Lua 5.1. Some things you need to change for 5.1:
     - change table iteration code:
       "for i, value in someTable do" to
