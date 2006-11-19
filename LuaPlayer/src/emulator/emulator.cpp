@@ -3,15 +3,17 @@ extern "C" {
 #include <psptypes.h>
 #include <pspctrl.h>
 #include <pspsdk.h>
+#include <psputility_netparam.h> //ADDED
 #include <pspge.h>
 #include "mikmod.h"
+#include <sys/socket.h> //ADDED
 }
 
 #include <time.h>
 #include <string.h>
 #include "../framebuffer.h"
 #include "../graphics.h"
-#include "../sio.h"
+#include "../../bootstrap/sio.h"
 #include "md5.h"
 
 /* includes from host system, not PSPSDK */
@@ -32,9 +34,10 @@ extern void emuRefreshDisplay();
 
 extern "C" {
 
+unsigned int clear_depth = 0;
 void sceGuClearDepth(unsigned int depth)
 {
-  //printf("NOT IMPLEMENTD: sceGuClearDepth\n");
+  clear_depth = depth;
 }
 
 void sceGuBlendFunc(int op, int src, int dest, unsigned int srcfix, unsigned int destfix)
@@ -50,7 +53,9 @@ void sceGuClearColor(unsigned int color)
 
 void sceGumMatrixMode(int mode)
 {
-  //printf("NOT IMPLEMENTD: sceGumMatrixMode\n");
+  //glMatrixMode(GL_PROJECTION);
+  //glMatrixMode(GL_MODELVIEW);
+  //NO GL_VIEW???
 }
 
 /**
@@ -63,22 +68,25 @@ void sceGumMatrixMode(int mode)
 **/
 void sceGumLoadIdentity(void)
 {
-  //printf("NOT IMPLEMENTD: sceGumLoadIdentity\n");
+  //glLoadIdentity();
 }
 
 void sceGumPerspective(float fovy, float aspect, float near, float far)
 {
-  //printf("NOT IMPLEMENTD: sceGumPerspective\n");
+  //gluPerspective(fofvy, aspect, near, far);
 }
 
 void sceGumRotateXYZ(const ScePspFVector3* v)
 {
-  //printf("NOT IMPLEMENTD: sceGumRotateXYZ\n");
+  //glRotatef(v.x,1.0f,0.0f,0.0f);
+  //glRotatef(v.y,0.0f,1.0f,0.0f);
+  //glRotatef(v.z,0.0f,0.0f,1.0f);
+  //v.x/v.y/v.z is in degress, need to convert to rads
 }
 
 void sceGumTranslate(const ScePspFVector3* v)
 {
-  //printf("NOT IMPLEMENTD: sceGumTranslate\n");
+  //glTranslatef(v.x, v.y, v.z);
 }
 
 void sceGumDrawArray(int prim, int vtype, int count, const void* indices, const void* vertices)
@@ -331,6 +339,16 @@ int sceIoWrite(SceUID fd, const void *data, SceSize size)
 {
   return (write(fd, data, size));
 }
+
+//ADDED (CHECK IT WORKS)
+int sceIoRename(const char *oldname, const char *newname)
+{
+ int result = rename(oldname, newname);
+ if (result != 0)
+ 	return -1;
+ return 0;
+}
+//END
 
 void sceKernelDelayThread(SceUInt delay)
 {
@@ -800,5 +818,138 @@ int sceKernelUtilsMd5Digest(u8 *data, u32 size, u8 *digest)
   MD5Update( &ctx, data, size );
   MD5Final( digest, &ctx );
 }
+
+//ADDED WLAN STUBS
+int pspSdkInetInit()
+{
+ return 0;
+}
+
+int sceNetResolverCreate(int *rid, void *buf, SceSize buflen)
+{
+  return 0;
+}
+
+int sceNetApctlDisconnect(void)
+{
+  return 0;
+}
+
+void pspSdkInetTerm()
+{
+}
+
+int sceUtilityCheckNetParam(int id)
+{
+  //SIMULATE NO MORE CONNECTIONS TO CHOOSE FROM (NEEDS WORK)
+  return 1;
+}
+
+int sceUtilityGetNetParam(int conf, int param, netData *data)
+{
+//WHAT TO DO?
+  return 0;
+}
+
+int sceNetApctlConnect(int connIndex)
+{
+  //SHOULD BE FINE
+  return 0;
+}
+
+int sceNetApctlGetState(int *pState)
+{
+  //4 MEANS WE ARE CONNECTED
+  return 4;
+}
+
+int sceNetApctlGetInfo(int code, void *pInfo)
+{
+  //RETURN IP ADDRESS
+  //RETURN 0 SHOULD BE FINE
+  return 0;
+}
+
+int sceNetInetClose(int s)
+{
+  return 0;
+}
+
+int sceNetInetSetsockopt(int s, int level, int optname, const void *optval, socklen_t optlen)
+{
+  return 0;
+}
+
+int sceNetInetInetAton(const char* host, u32* in_addr)
+{
+  return 0;
+}
+
+int sceNetResolverStartNtoA(int rid, const char *hostname, struct in_addr* addr, unsigned int timeout, int retry)
+{
+  return 0;
+}
+
+int sceNetInetSocket(int domain, int type, int protocol)
+{
+  return 0;
+}
+
+int sceNetInetConnect(int s, const struct sockaddr *serv_addr, socklen_t addrlen)
+{
+  return 0;
+}
+
+int sceNetInetGetErrno(void)
+{
+  return 0;
+}
+
+int sceNetInetBind(int s, const struct sockaddr *my_addr, socklen_t addrlen)
+{
+  return 0;
+}
+
+int sceNetInetListen(int s, int backlog)
+{
+  return 0;
+}
+
+int sceNetInetAccept(int s, struct sockaddr *addr, socklen_t *addrlen)
+{
+  return 0;
+}
+
+size_t	sceNetInetRecv(int s, void *buf, size_t len, int flags)
+{
+  return 0;
+}
+
+size_t	sceNetInetSend(int s, const void *buf, size_t len, int flags)
+{
+  return 0;
+}
+//END WLAN STUBS
+
+//ADDED
+SceUID psploadlib( char * name, char * init )
+{
+  //NOT SUPPORTED
+  return 0;
+}
+
+void** findFunction( SceUID id, const char *library, const char * name )
+{
+  //NOT SUPPORTED
+  return 0;
+}
+
+int scePowerTick()
+{
+  //NOT SUPPORTED
+  return 0;
+}
+
+
 
 }
