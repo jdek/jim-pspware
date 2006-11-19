@@ -1,10 +1,14 @@
+PSPSDK=$(shell psp-config --pspsdk-path)
+PSPDIR=$(shell psp-config --psp-prefix)
+
 TARGET=luaplayer
 
 OBJS = src/graphics.o src/sound.o src/luaplayer.o src/luacontrols.o src/luagraphics.o src/luasound.o src/luasystem.o src/utility.o \
-	src/luatimer.o src/emulator/emulator.o src/emulator/framebuffer.o src/emulator/windows/windows.o src/emulator/md5.o
+	src/luatimer.o src/emulator/emulator.o src/emulator/framebuffer.o src/emulator/windows/windows.o src/emulator/md5.o \
+	src/lua3d.o src/luawlan.o
   
-LDFLAGS = -lglut32 -lglu32 -llua -llualib -lopengl32 -lpng -ljpeg -lkernel32 -lmikmod -lmmio -lwinmm
-CFLAGS = -I$(PSPSDK)/sdk/include -I$(PSPSDK)/include -Isrc
+LDFLAGS = -lglut32 -lglu32 -llua -llualib -lopengl32 -lpng -ljpeg -lkernel32 -lmikmod -lmmio -lwinmm -lfreetype
+CFLAGS = -I/usr/include/freetype2 -I$(PSPSDK)/sdk/include -I$(PSPSDK)/include -Isrc
 
 # Add in PSPSDK includes and libraries.
 INCDIR   := $(INCDIR) . $(PSPSDK)/include
@@ -17,6 +21,17 @@ LDFLAGS  := $(addprefix -L,$(LIBDIR)) $(LDFLAGS)
 FINAL_TARGET = $(TARGET).exe
 
 all: $(FINAL_TARGET)
+
+src/luagraphics.o: boot.cpp vera.cpp veraMono.cpp
+
+boot.cpp: src/auxiliary/boot.lua
+	$(shell psp-config --pspdev-path)/bin/bin2c $< $@ bootString
+
+vera.cpp: src/auxiliary/Vera.ttf
+	$(shell psp-config --pspdev-path)/bin/bin2c $< $@ ttfVera
+
+veraMono.cpp: src/auxiliary/VeraMono.ttf
+	$(shell psp-config --pspdev-path)/bin/bin2c $< $@ ttfVeraMono
 
 $(TARGET).exe: $(OBJS)
 	$(LINK.c) $^ $(LDFLAGS) -o $@
