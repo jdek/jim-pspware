@@ -4,9 +4,11 @@ I have cleaned them up, in part because I added gethostbyname/addr to newlib its
 To build configure the source with:
 
 LDFLAGS="-L$(psp-config --psp-prefix)/lib -L$(psp-config --pspsdk-path)/lib" \
-		 LIBS="-lc -lpspnet_inet -lpspnet_resolver -lpspuser" \
-		 ./configure --host=psp --disable-shared --prefix=$(psp-config --psp-prefix)
+	 	LIBS="-lc -lpspnet_inet -lpspnet_resolver -lpspuser" \
+	 	./configure --host=psp --disable-shared --prefix=$(psp-config --psp-prefix)
 
-The just make; make install.
+Then just:
+
+make CFLAGS=-G0 && make install
 
 TyRaNiD
